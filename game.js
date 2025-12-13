@@ -3,7 +3,7 @@ const I18N = {
     'zh': {
         langName: "简", 
         gameTitle: "落叶 <span style='font-size:0.5em'>VS</span> 生辉", 
-        subTitle: "Alpha 0.6.8.1",
+        subTitle: "Alpha 0.6.8.2",
         btnPvE: "电脑对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -61,7 +61,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "落葉 <span style='font-size:0.5em'>VS</span> 生輝", 
-        subTitle: "Alpha 0.6.8.1",
+        subTitle: "Alpha 0.6.8.2",
         btnPvE: "電腦對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -119,7 +119,7 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Autumn <span style='font-size:0.5em'>VS</span> Radiance", 
-        subTitle: "Alpha 0.6.8.1",
+        subTitle: "Alpha 0.6.8.2",
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -410,6 +410,8 @@ function initGame() {
     
     // Reset state
     bombTarget = null;
+    SoundEngine.setCritical(false); // 重置危机状态
+    
     // 恢复用户偏好的音乐
     const userPref = document.getElementById('trackOverture').classList.contains('active') ? 'overture' : 'origin';
     SoundEngine.switchTrack(userPref);
@@ -420,6 +422,18 @@ function initGame() {
     gameTicker = setInterval(() => {
         if(!gameActive) return;
         timeRemaining[currentPlayer]--;
+        
+        // --- 核心更新：实时同步危机状态给音频引擎 ---
+        if (bombTarget !== null && currentPlayer === bombTarget) {
+            if (timeRemaining[currentPlayer] < 30) {
+                SoundEngine.setCritical(true);
+            } else {
+                SoundEngine.setCritical(false);
+            }
+        } else {
+            SoundEngine.setCritical(false);
+        }
+
         updateDynamicUI(); 
         if(timeRemaining[currentPlayer] <= 0) { 
             showToast(t('timeOut', 'toast')); 
@@ -484,6 +498,10 @@ function restoreState(state) {
     shortBattleTurns = state.shortBattleTurns; 
     timeRemaining = state.timeRemaining; 
     bombTarget = state.bombTarget; 
+    
+    // 悔棋重置音效状态
+    SoundEngine.setCritical(false);
+
     for(let r=0; r<BOARD_SIZE; r++) for(let c=0; c<BOARD_SIZE; c++) { 
         const cell = getCell(r,c); 
         cell.className = 'cell'; 

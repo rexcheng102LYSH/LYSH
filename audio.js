@@ -9,13 +9,9 @@ const SoundEngine = {
     bgmTimeout: null,
     
     mp3Audio: null,
-
-    // 频率表
-    notes: {
-        'G3': 196.00, 'A3': 220.00, 'B3': 246.94,
-        'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00, 'A4': 440.00, 'B4': 493.88,
-        'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'G5': 783.99, 'A5': 880.00
-    },
+    
+    // 新增：危机状态标记
+    isCritical: false,
 
     init: function() { 
         if (this.ctx) return; 
@@ -36,36 +32,38 @@ const SoundEngine = {
         if(this.mp3Audio) this.mp3Audio.volume = v;
     },
 
-    // --- SFX ---
+    // 核心新增：设置危机状态 (由 game.js 调用)
+    setCritical: function(critical) {
+        this.isCritical = critical;
+    },
+
+    // --- SFX (Tone Generator) ---
     playNote: function(freq, duration, type, volume, attack=0.05, release=0.1) {
         if (this.isMuted || !this.ctx || volume <= 0) return;
-        
         const o = this.ctx.createOscillator();
         const g = this.ctx.createGain();
         const now = this.ctx.currentTime;
-
         o.type = type;
         o.frequency.setValueAtTime(freq, now);
-
         g.gain.setValueAtTime(0, now);
         g.gain.linearRampToValueAtTime(volume, now + attack); 
         g.gain.exponentialRampToValueAtTime(0.01, now + duration + release); 
-
         o.connect(g);
         g.connect(this.ctx.destination);
         o.start();
         o.stop(now + duration + release);
     },
 
-    tone: function(f, type, d, v=0.1) { 
-        this.playNote(f, d, type, v * this.sfxVolume, 0.01, 0.1);
+    // 新增：模拟弦乐的长音 (Sawtooth + Envelope)
+    playStringPad: function(freq, duration, volume) {
+        if (this.isMuted || !this.ctx) return;
+        // 使用 Sawtooth 保证压迫感，但 Attack 慢一点(0.2s)模拟运弓
+        this.playNote(freq, duration, 'sawtooth', volume * 0.6, 0.2, 0.5);
     },
 
+    tone: function(f, type, d, v=0.1) { this.playNote(f, d, type, v * this.sfxVolume, 0.01, 0.1); },
     playPlace: function() { this.tone(400, 'sine', 0.1, 0.3); },
-    playSkill: function() { 
-        this.tone(600, 'triangle', 0.1, 0.2);
-        setTimeout(() => this.tone(800, 'triangle', 0.2, 0.1), 100);
-    },
+    playSkill: function() { this.tone(600, 'triangle', 0.1, 0.2); setTimeout(() => this.tone(800, 'triangle', 0.2, 0.1), 100); },
     playWin: function() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => this.tone(f, 'sine', 0.2, 0.4), i * 150)); },
     playGrandWin: function() { [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => setTimeout(() => this.tone(f, 'square', 0.2, 0.4), i * 120)); },
     playError: function() { this.tone(150, 'sawtooth', 0.2, 0.2); },
@@ -84,26 +82,17 @@ const SoundEngine = {
     startBGM: function() { 
         if(this.isMuted || this.isPlaying) return; 
         this.isPlaying = true; 
-        
-        if (this.currentTrack === 'bomb') {
-            this.playBombLoop();
-        } else if (this.currentTrack === 'origin') {
-            this.playOriginLoop();
-        } else {
-            this.playMp3Loop();
-        }
+        if (this.currentTrack === 'bomb') this.playBombLoop();
+        else if (this.currentTrack === 'origin') this.playOriginLoop();
+        else this.playMp3Loop();
     },
 
     stopBGM: function() { 
         this.isPlaying = false; 
         clearTimeout(this.bgmTimeout); 
-        if (this.mp3Audio) {
-            this.mp3Audio.pause(); 
-            this.mp3Audio = null;
-        }
+        if (this.mp3Audio) { this.mp3Audio.pause(); this.mp3Audio = null; }
     },
 
-    // 1. 原初
     playOriginLoop: function() {
         if(!this.isPlaying || this.currentTrack !== 'origin') return;
         const scale = [261.63, 293.66, 329.63, 392.00, 440.00]; 
@@ -113,7 +102,6 @@ const SoundEngine = {
         this.bgmTimeout = setTimeout(() => this.playOriginLoop(), d * 800);
     },
 
-    // 2. 序曲 (MP3)
     playMp3Loop: function() {
         if (!this.mp3Audio) {
             this.mp3Audio = new Audio('bgm.mp3'); 
@@ -123,29 +111,40 @@ const SoundEngine = {
         this.mp3Audio.play().catch(e => console.log("Waiting for interaction", e));
     },
 
-    // 3. 炸弹 (紧张感 - 管弦乐版)
+    // 4. 炸弹 (Horror Strings - Alpha 0.6.8.2)
     bombStep: 0,
     playBombLoop: function() {
         if(!this.isPlaying || this.currentTrack !== 'bomb') return;
         
-        const stepTime = 1000; // BPM 60
+        let stepTime = 1000; // 默认 60 BPM
         
-        // 1. 滴答声 (Tick) - 清脆的响板 (高频正弦波，极短衰减)
-        this.playNote(1200, 0.02, 'sine', 0.15 * this.musicVolume, 0.001, 0.03);
+        if (!this.isCritical) {
+            // === 正常压迫状态 (The Looming Threat) ===
+            // 1. 滴答声 (Tick) - 高频 Square，模拟倒计时
+            this.playNote(800, 0.05, 'square', 0.05 * this.musicVolume, 0.01, 0.05);
 
-        // 2. 压迫感 (Pizzicato Cello) - 每2秒一次
-        // 使用 Triangle 模拟拨弦，Attack 稍快，Release 适中
-        if (this.bombStep % 2 === 0) {
-            // 低音 G2 (98Hz)
-            this.playNote(98, 0.5, 'triangle', 0.2 * this.musicVolume, 0.02, 0.4);
+            // 2. 沉重弦乐 (Deep Strings) - 使用 Sawtooth 模拟大提琴
+            if (this.bombStep % 4 === 0) {
+                // 低音 G1 + D2 (纯五度，黑暗、稳定)
+                this.playStringPad(49.00, 2.5, 0.15 * this.musicVolume); 
+                this.playStringPad(73.42, 2.5, 0.10 * this.musicVolume);
+            }
         } else {
-            // 低音 C3 (130.8Hz) - 形成纯五度关系，稳定但压抑
-            this.playNote(130.8, 0.5, 'triangle', 0.2 * this.musicVolume, 0.02, 0.4);
-        }
+            // === 危机状态 (Panic Mode < 30s) ===
+            stepTime = 500; // 速度翻倍！120 BPM
+            
+            // 1. 急促滴答 (Fast Tick) - 更尖锐
+            this.playNote(1200, 0.05, 'square', 0.08 * this.musicVolume, 0.005, 0.02);
 
-        // 3. 偶尔的危机感 (High Piano) - 模拟高音钢琴点缀
-        if (this.bombStep % 8 === 6) {
-             this.playNote(1568, 0.3, 'sine', 0.05 * this.musicVolume, 0.01, 0.3);
+            // 2. 癫狂小提琴 (Screeching Violin) - 高音不协和
+            if (this.bombStep % 2 === 0) {
+                // 高音 G5 (783Hz) + 升C6 (1108Hz, 三全音魔鬼音程)
+                this.playStringPad(783.99, 0.4, 0.1 * this.musicVolume); 
+                this.playStringPad(1108.7, 0.4, 0.08 * this.musicVolume);
+                
+                // 加入一点点 "金属摩擦声" (极短的高频 Sawtooth)
+                this.playNote(3000 + Math.random()*1000, 0.1, 'sawtooth', 0.03 * this.musicVolume, 0.01, 0.1);
+            }
         }
 
         this.bombStep++;
