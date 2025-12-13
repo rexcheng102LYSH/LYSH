@@ -36,7 +36,7 @@ const SoundEngine = {
         if(this.mp3Audio) this.mp3Audio.volume = v;
     },
 
-    // --- SFX (Tone Generator) ---
+    // --- SFX ---
     playNote: function(freq, duration, type, volume, attack=0.05, release=0.1) {
         if (this.isMuted || !this.ctx || volume <= 0) return;
         
@@ -85,7 +85,6 @@ const SoundEngine = {
         if(this.isMuted || this.isPlaying) return; 
         this.isPlaying = true; 
         
-        // 优先级：如果是 Bomb 模式，无视设置，强制播放 Bomb 音乐
         if (this.currentTrack === 'bomb') {
             this.playBombLoop();
         } else if (this.currentTrack === 'origin') {
@@ -104,7 +103,7 @@ const SoundEngine = {
         }
     },
 
-    // 1. 原初 (Ambient)
+    // 1. 原初
     playOriginLoop: function() {
         if(!this.isPlaying || this.currentTrack !== 'origin') return;
         const scale = [261.63, 293.66, 329.63, 392.00, 440.00]; 
@@ -124,29 +123,29 @@ const SoundEngine = {
         this.mp3Audio.play().catch(e => console.log("Waiting for interaction", e));
     },
 
-    // 3. 炸弹 (Tension Loop - New!)
+    // 3. 炸弹 (紧张感 - 管弦乐版)
     bombStep: 0,
     playBombLoop: function() {
         if(!this.isPlaying || this.currentTrack !== 'bomb') return;
         
-        // BPM 60 (每秒一拍，模仿时钟)
-        const stepTime = 1000; 
+        const stepTime = 1000; // BPM 60
         
-        // 1. 滴答声 (Tick) - 每秒都有
-        // 高频短促的 Sawtooth，模拟电子表滴答
-        this.playNote(880, 0.05, 'sawtooth', 0.1 * this.musicVolume, 0.01, 0.05);
+        // 1. 滴答声 (Tick) - 清脆的响板 (高频正弦波，极短衰减)
+        this.playNote(1200, 0.02, 'sine', 0.15 * this.musicVolume, 0.001, 0.03);
 
-        // 2. 压迫感 (Drone) - 每4秒一个循环
-        // 低频 Sine/Triangle，模拟心跳或脉冲
-        if (this.bombStep % 4 === 0) {
-            this.playNote(55, 3.0, 'sawtooth', 0.15 * this.musicVolume, 0.5, 1.0); // Low A1
-        } else if (this.bombStep % 4 === 2) {
-            this.playNote(58.27, 3.0, 'sawtooth', 0.12 * this.musicVolume, 0.5, 1.0); // Low Bb1 (制造不协和感)
+        // 2. 压迫感 (Pizzicato Cello) - 每2秒一次
+        // 使用 Triangle 模拟拨弦，Attack 稍快，Release 适中
+        if (this.bombStep % 2 === 0) {
+            // 低音 G2 (98Hz)
+            this.playNote(98, 0.5, 'triangle', 0.2 * this.musicVolume, 0.02, 0.4);
+        } else {
+            // 低音 C3 (130.8Hz) - 形成纯五度关系，稳定但压抑
+            this.playNote(130.8, 0.5, 'triangle', 0.2 * this.musicVolume, 0.02, 0.4);
         }
 
-        // 3. 偶尔的警报 (High Pitch)
-        if (this.bombStep % 8 === 7) {
-             this.playNote(1760, 0.2, 'square', 0.05 * this.musicVolume, 0.01, 0.1);
+        // 3. 偶尔的危机感 (High Piano) - 模拟高音钢琴点缀
+        if (this.bombStep % 8 === 6) {
+             this.playNote(1568, 0.3, 'sine', 0.05 * this.musicVolume, 0.01, 0.3);
         }
 
         this.bombStep++;
