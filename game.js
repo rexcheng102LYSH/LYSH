@@ -1,7 +1,7 @@
 // ================== I18N (语言包) ==================
 const I18N = {
     'zh': {
-        langName: "简", gameTitle: "落叶 <span style='font-size:0.5em'>VS</span> 生辉", subTitle: "Alpha 0.6.8",
+        langName: "简", gameTitle: "落叶 <span style='font-size:0.5em'>VS</span> 生辉", subTitle: "Alpha 0.6.9",
         btnPvE: "电脑对战 (PvE)", btnPvPSingle: "双人单局 (PvP)", btnPvPBO3: "三番战 (PvP BO3)", hintSound: "点击任意处开启音效",
         titleDiff: "选择难度", diffEasy: "简单", diffMedium: "中等", diffHard: "困难", diffMaster: "大师", btnBack: "返回",
         titlePickSide: "猜先/选边", descPickSide: "选择身份", descPickSideLoser: "上一局失利者选边",
@@ -15,7 +15,7 @@ const I18N = {
         end: { win: "获胜！", lose: "挑战失败", grandWin: "👑 大胜利！", grandWinDesc: "{name} 赢得三番战", score: "比分", btnNext: "下一局", btnMenu: "主菜单", btnRestart: "再来一局", btnQuitMatch: "退出比赛" }
     },
     'zh-TW': {
-        langName: "繁", gameTitle: "落葉 <span style='font-size:0.5em'>VS</span> 生輝", subTitle: "Alpha 0.6.8",
+        langName: "繁", gameTitle: "落葉 <span style='font-size:0.5em'>VS</span> 生輝", subTitle: "Alpha 0.6.9",
         btnPvE: "電腦對戰 (PvE)", btnPvPSingle: "雙人單局 (PvP)", btnPvPBO3: "三番戰 (PvP BO3)", hintSound: "點擊任意處開啟音效",
         titleDiff: "選擇難度", diffEasy: "簡單", diffMedium: "中等", diffHard: "困難", diffMaster: "大師", btnBack: "返回",
         titlePickSide: "猜先/選邊", descPickSide: "選擇身份", descPickSideLoser: "上一局失利者選邊",
@@ -29,7 +29,7 @@ const I18N = {
         end: { win: "獲勝！", lose: "挑戰失敗", grandWin: "👑 大勝利！", grandWinDesc: "{name} 贏得三番戰", score: "比分", btnNext: "下一局", btnMenu: "主菜單", btnRestart: "再來一局", btnQuitMatch: "退出比賽" }
     },
     'en': {
-        langName: "En", gameTitle: "Autumn <span style='font-size:0.5em'>VS</span> Radiance", subTitle: "Alpha 0.6.8",
+        langName: "En", gameTitle: "Autumn <span style='font-size:0.5em'>VS</span> Radiance", subTitle: "Alpha 0.6.9",
         btnPvE: "PvE Mode (AI)", btnPvPSingle: "PvP (Single)", btnPvPBO3: "PvP BO3 Series", hintSound: "Tap to enable audio",
         titleDiff: "Difficulty", diffEasy: "Easy", diffMedium: "Medium", diffHard: "Hard", diffMaster: "Master", btnBack: "Back",
         titlePickSide: "Pick Side", descPickSide: "Choose faction", descPickSideLoser: "Loser picks side",
@@ -78,6 +78,7 @@ let timeRemaining = { [MAPLE]: 240, [SUN]: 240 };
 let gameTicker = null, aiTimer = null; 
 let historyStack = [];
 let selectedCell = null;
+let bombTarget = null; // 新增：记录被炸弹命中的玩家
 
 // ================= 界面控制 =================
 const screens = { main: document.getElementById('mainMenu'), diff: document.getElementById('difficultyScreen'), turn: document.getElementById('turnSelectScreen'), draft: document.getElementById('skillSelectScreen'), game: document.getElementById('gameScreen'), settings: document.getElementById('settingsModal') };
@@ -103,9 +104,17 @@ function updateVolume(type, val) {
     if (type === 'music') { SoundEngine.setMusicVolume(v); document.getElementById('valMusic').innerText = val + '%'; } 
     else { SoundEngine.sfxVolume = v; document.getElementById('valSfx').innerText = val + '%'; }
 }
-function changeTrack(track) { SoundEngine.switchTrack(track); updateTrackUI(); }
+function changeTrack(track) { 
+    // 如果当前正在播放炸弹危机音乐，不允许通过设置切换回去（保持压迫感）
+    if (SoundEngine.currentTrack === 'bomb') return;
+    SoundEngine.switchTrack(track); 
+    updateTrackUI(); 
+}
 function updateTrackUI() {
     document.querySelectorAll('.music-opt').forEach(el => el.classList.remove('active'));
+    // 如果是 bomb 模式，UI 上不显示选中，或者保持原样
+    if (SoundEngine.currentTrack === 'bomb') return; 
+    
     if (SoundEngine.currentTrack === 'origin') document.getElementById('trackOrigin').classList.add('active');
     else document.getElementById('trackOverture').classList.add('active');
 }
@@ -118,15 +127,13 @@ function goToMenu() {
 }
 function confirmExit() { if(confirm(t('confirmExit'))) goToMenu(); }
 
-// 修复：添加音效并清理逻辑
 function showDifficultyScreen() { 
-    SoundEngine.playPlace(); // 播放音效
+    SoundEngine.playPlace(); 
     showScreen('diff'); 
 }
 
-// 修复：强制 reset isBO3，防止 PvE 无法悔棋
 function startPvPFlow(subMode) { 
-    SoundEngine.playPlace(); // 播放音效
+    SoundEngine.playPlace(); 
     isBO3 = (subMode === 'bo3'); 
     p1Score = 0; p2Score = 0; chooser = 'p1'; 
     updateScoreBoard(); 
@@ -134,15 +141,12 @@ function startPvPFlow(subMode) {
 }
 
 function enterTurnSelection(mode, diff) {
-    SoundEngine.playPlace(); // 播放音效
+    SoundEngine.playPlace(); 
     document.getElementById('winnerModal').style.display = 'none'; showScreen('turn');
     
-    // 核心修复：如果是 PvE，强制关闭 BO3 模式，允许悔棋
     gameMode = mode; 
     aiDifficulty = diff;
-    if (gameMode === 'pve') {
-        isBO3 = false; 
-    }
+    if (gameMode === 'pve') { isBO3 = false; }
 
     const tEl = document.getElementById('turnSelectTitle'), dEl = document.getElementById('turnSelectDesc');
     updateStaticText(); 
@@ -150,16 +154,9 @@ function enterTurnSelection(mode, diff) {
     else { tEl.innerText = t('titlePickSide'); dEl.innerText = t('descPickSide'); }
 }
 
-// 新增：智能返回函数
 function goBackFromTurn() {
     SoundEngine.playPlace();
-    if (gameMode === 'pve') {
-        // 如果是 PvE，返回到难度选择
-        showScreen('diff');
-    } else {
-        // 如果是 PvP，返回主菜单
-        goToMenu();
-    }
+    if (gameMode === 'pve') { showScreen('diff'); } else { goToMenu(); }
 }
 
 function handleTurnChoice(c) {
@@ -201,6 +198,11 @@ function initGame() {
     historyStack = []; skillUsed = {[MAPLE]:false, [SUN]:false}; activeEffect = null; territoryZones = []; isDoubleMoveActive = false; chaosDebuff = {[MAPLE]:0, [SUN]:0}; shortBattleTurns = 0;
     timeRemaining = { [MAPLE]: 240, [SUN]: 240 }; selectedCell = null;
     
+    // Reset bomb state
+    bombTarget = null;
+    // 如果之前是 bomb 模式，切回默认（这里简单切回 origin，实际应该切回用户选择的，但为了简单先这样）
+    if (SoundEngine.currentTrack === 'bomb') SoundEngine.switchTrack('origin');
+
     clearInterval(gameTicker); clearTimeout(aiTimer); 
     
     updateStaticText(); 
@@ -246,12 +248,13 @@ function saveState() {
         territoryZones: JSON.parse(JSON.stringify(territoryZones)),
         chaosDebuff: JSON.parse(JSON.stringify(chaosDebuff)),
         shortBattleTurns: shortBattleTurns,
-        timeRemaining: JSON.parse(JSON.stringify(timeRemaining))
+        timeRemaining: JSON.parse(JSON.stringify(timeRemaining)),
+        bombTarget: bombTarget // 保存炸弹状态
     });
 }
 
 function restoreState(state) {
-    board = state.board; currentPlayer = state.currentPlayer; skillUsed = state.skillUsed; territoryZones = state.territoryZones; chaosDebuff = state.chaosDebuff; shortBattleTurns = state.shortBattleTurns; timeRemaining = state.timeRemaining;
+    board = state.board; currentPlayer = state.currentPlayer; skillUsed = state.skillUsed; territoryZones = state.territoryZones; chaosDebuff = state.chaosDebuff; shortBattleTurns = state.shortBattleTurns; timeRemaining = state.timeRemaining; bombTarget = state.bombTarget;
     for(let r=0; r<BOARD_SIZE; r++) for(let c=0; c<BOARD_SIZE; c++) {
         const cell = getCell(r,c); cell.className = 'cell'; cell.innerHTML = '';
         if(cell.getAttribute('data-star')==='true') { const d=document.createElement('div'); d.className='dot'; cell.appendChild(d); }
@@ -337,6 +340,11 @@ function activateSkill() {
     else if (sid === 'bomb') { 
         const opp = currentPlayer === MAPLE ? SUN : MAPLE;
         timeRemaining[opp] -= 120; showToast(t('bombStart', 'toast'));
+        
+        // 核心新增：激活炸弹特效和音乐
+        bombTarget = opp;
+        SoundEngine.switchTrack('bomb'); // 切换到紧张BGM
+
         if(timeRemaining[opp] <= 0) { handleMatchEnd(currentPlayer); return; }
         updateDynamicUI();
     }
@@ -346,8 +354,7 @@ function activateSkill() {
     else if (sid === 'swap') { activeEffect = 'swap_pick_1'; b.classList.add('casting-move-src'); showToast(t('swapPickSelf', 'toast')); }
 }
 
-// ... HandleSkillInteraction 保持不变 (请使用上个版本的完整代码，或这里省略) ...
-// 为了代码完整性，这里我再次列出，确保您可以全选复制。
+// ... HandleSkillInteraction 保持不变 ...
 function handleSkillInteraction(r, c) {
     SoundEngine.playPlace(); const b = document.getElementById('board'); const cell = getCell(r, c); if(!cell) return;
     if (activeEffect === 'voodoo_pick') {
@@ -400,6 +407,10 @@ function handleSkillInteraction(r, c) {
 
 function handleMatchEnd(winSide) {
     gameActive = false; clearInterval(bombInterval); clearInterval(gameTicker); clearTimeout(aiTimer); 
+    
+    // 如果 BGM 被切换到了 Bomb，还原
+    if (SoundEngine.currentTrack === 'bomb') SoundEngine.switchTrack('origin');
+
     const cBtn = (t,f,p) => { const b=document.createElement('button'); b.className=p?'btn primary':'btn secondary'; b.innerText=t; b.onclick=f; return b; };
     const bc = document.getElementById('endGameButtons'); bc.innerHTML = '';
     let title = "";
@@ -431,6 +442,11 @@ function undoMove() {
     const state = historyStack.pop();
     restoreState(state);
     
+    // 如果悔棋导致炸弹状态消失，恢复BGM
+    if (SoundEngine.currentTrack === 'bomb' && bombTarget === null) {
+        SoundEngine.switchTrack('origin');
+    }
+
     if (gameMode === 'pve') {
         clearTimeout(aiTimer);
         if (historyStack.length > 0) {
@@ -502,8 +518,25 @@ function updateDynamicUI(){
     if (t1.innerText !== t1Text) t1.innerText = t1Text;
     if (t2.innerText !== t2Text) t2.innerText = t2Text;
     
-    t1.className = `timer-pill ${currentPlayer===MAPLE?'active':''} ${timeRemaining[MAPLE]<30?'danger':''}`;
-    t2.className = `timer-pill ${currentPlayer===SUN?'active':''} ${timeRemaining[SUN]<30?'danger':''}`;
+    // --- 核心修复：更新炸弹特效类 ---
+    t1.className = `timer-pill ${currentPlayer===MAPLE?'active':''}`;
+    t2.className = `timer-pill ${currentPlayer===SUN?'active':''}`;
+
+    // 如果落叶方被炸
+    if (bombTarget === MAPLE) {
+        if (timeRemaining[MAPLE] < 30) t1.classList.add('timer-critical');
+        else t1.classList.add('timer-bomb');
+    } else if (timeRemaining[MAPLE] < 30) {
+        t1.classList.add('danger');
+    }
+
+    // 如果生辉方被炸
+    if (bombTarget === SUN) {
+        if (timeRemaining[SUN] < 30) t2.classList.add('timer-critical');
+        else t2.classList.add('timer-bomb');
+    } else if (timeRemaining[SUN] < 30) {
+        t2.classList.add('danger');
+    }
 
     const cc = document.getElementById('chaosCounter');
     const sbc = document.getElementById('shortBattleCounter');
