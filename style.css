@@ -4,6 +4,7 @@
     --corrode-color: #2c3e50; --zone-color: rgba(211, 47, 47, 0.2);
     --chaos-color: #673ab7; --preview-color: rgba(211, 47, 47, 0.1);
     --warn-color: #ff5722; --select-color: #FFD700;
+    --win-color: #00e676; /* 胜利高亮色 */
 }
 body { font-family: 'PingFang SC', 'Microsoft JhengHei', sans-serif; background: var(--bg-color); display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
 
@@ -36,13 +37,57 @@ h2 { color: #555; margin-bottom: 20px; text-align: center; font-weight: normal; 
 
 #gameScreen { justify-content: flex-start; padding-top: 8vh; }
 
-.top-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 5px; width: 100%; justify-content: center; flex-wrap: wrap; position: relative; min-height: 40px; }
+.top-bar { display: flex; gap: 15px; align-items: center; margin-bottom: 5px; width: 100%; justify-content: center; flex-wrap: wrap; position: relative; min-height: 50px; }
 .status-pill { background: white; padding: 5px 15px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); font-weight: bold; font-size: 1rem; display: flex; align-items: center; gap: 5px; }
 .score-board { display: none; background: #333; color: white; padding: 5px 10px; border-radius: 8px; font-family: monospace; font-size: 1rem; font-weight: bold; }
 
-.timer-pill { background: #eee; padding: 4px 10px; border-radius: 15px; font-family: monospace; font-size: 1rem; font-weight: bold; color: #333; border: 2px solid transparent; transition: all 0.3s; }
+/* --- 时钟样式升级 --- */
+.timer-container { position: relative; display: inline-block; }
+.timer-pill { background: #eee; padding: 6px 12px; border-radius: 15px; font-family: monospace; font-size: 1.1rem; font-weight: bold; color: #333; border: 3px solid transparent; transition: all 0.3s; position: relative; z-index: 2; }
 .timer-pill.active { border-color: #333; background: #fff; box-shadow: 0 0 8px rgba(0,0,0,0.2); transform: scale(1.05); }
-.timer-pill.danger { color: #f44336; animation: pulse 1s infinite; }
+
+/* 常态倒计时 (<30s) - 橙色警报 */
+.timer-pill.timer-critical-normal {
+    border-color: #ff9800;
+    color: #e65100;
+    background: #fff3e0;
+    animation: normalCriticalPulse 1s infinite;
+}
+@keyframes normalCriticalPulse { 0% { box-shadow: 0 0 0 #ff9800; } 50% { box-shadow: 0 0 10px #ff9800; } 100% { box-shadow: 0 0 0 #ff9800; } }
+
+/* 炸弹倒计时 (<30s) - 死亡红黑 */
+.timer-pill.timer-critical-bomb {
+    background: #b71c1c;
+    color: #fff;
+    border-color: #fff;
+    animation: criticalShake 0.2s infinite, criticalBlink 0.5s infinite;
+}
+
+/* --- C4 炸弹视觉模型 --- */
+.c4-visual {
+    display: none; /* 默认隐藏 */
+    position: absolute;
+    top: -12px; left: 50%; transform: translateX(-50%);
+    width: 90%; height: 100%;
+    z-index: 1; pointer-events: none;
+}
+.c4-visual.visible { display: block; animation: dropIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.c4-stick {
+    position: absolute; width: 100%; height: 12px; background: #d32f2f; border-radius: 4px;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.3); border: 1px solid #b71c1c;
+}
+.c4-stick:nth-child(1) { top: -8px; }
+.c4-stick:nth-child(2) { bottom: -8px; }
+.c4-wire {
+    position: absolute; top: 50%; left: 10%; width: 80%; height: 2px; background: #333; z-index: 3;
+}
+.c4-light {
+    position: absolute; top: -18px; right: 0; width: 8px; height: 8px; background: #444; border-radius: 50%; border: 1px solid #000;
+}
+.c4-light.active { background: #f00; box-shadow: 0 0 5px #f00; animation: blinkFast 0.5s infinite; }
+
+@keyframes dropIn { from { transform: translate(-50%, -20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+@keyframes blinkFast { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
 .chaos-counter, .short-battle-counter { color: white; font-weight: bold; padding: 2px 8px; border-radius: 5px; display: none; font-size: 0.8rem; animation: shake 0.5s; position: absolute; bottom: -25px; }
 .chaos-counter { background: var(--chaos-color); right: 20%; }
@@ -50,6 +95,8 @@ h2 { color: #555; margin-bottom: 20px; text-align: center; font-weight: normal; 
 
 @keyframes pulse { 0% {opacity:1;} 50% {opacity:0.5;} }
 @keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-3px);} 75%{transform:translateX(3px);} }
+@keyframes criticalShake { 0% { transform: translate(0, 0); } 25% { transform: translate(-2px, 2px); } 50% { transform: translate(2px, -2px); } 75% { transform: translate(-2px, -2px); } 100% { transform: translate(0, 0); } }
+@keyframes criticalBlink { 0%, 100% { background: #b71c1c; border-color: white; } 50% { background: #000; border-color: #ff1744; } }
 @keyframes selectPulse { 0% {box-shadow: 0 0 0 var(--select-color);} 50% {box-shadow: 0 0 10px var(--select-color);} 100% {box-shadow: 0 0 0 var(--select-color);} }
 
 .board { position: relative; background-color: var(--board-color); padding: 10px; display: grid; grid-template-columns: repeat(15, 30px); grid-template-rows: repeat(15, 30px); gap: 0; border: 2px solid var(--line-color); box-shadow: 0 5px 15px rgba(0,0,0,0.3); touch-action: none; }
@@ -58,6 +105,14 @@ h2 { color: #555; margin-bottom: 20px; text-align: center; font-weight: normal; 
 .cell::after { content: ''; position: absolute; left: 50%; top: 0; height: 100%; width: 1px; background: var(--line-color); z-index: 0; }
 .cell[data-star="true"] .dot { width: 20%; height: 20%; background: var(--line-color); border-radius: 50%; position: absolute; z-index: 0; }
 .piece { font-size: 26px; line-height: 1; margin-top: -3px; z-index: 1; pointer-events: none; }
+
+/* --- 胜利高亮特效 --- */
+.cell.win-highlight::after {
+    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: var(--win-color); opacity: 0.6; z-index: 0; border-radius: 50%;
+    animation: winPulse 1s infinite;
+}
+@keyframes winPulse { 0% { transform: scale(0.8); opacity: 0.6; } 100% { transform: scale(1.2); opacity: 0; } }
 
 @media (max-width: 600px) {
     h1 { font-size: 2rem; }
@@ -92,37 +147,10 @@ h2 { color: #555; margin-bottom: 20px; text-align: center; font-weight: normal; 
 .music-opt { flex: 1; padding: 8px; border: 2px solid #ddd; background: #fff; border-radius: 8px; cursor: pointer; font-weight: bold; color: #666; transition: all 0.2s; }
 .music-opt.active { border-color: #673ab7; color: #673ab7; background: #f0ebf8; box-shadow: 0 2px 5px rgba(103, 58, 183, 0.2); }
 
-/* --- 核心新增：炸弹特效 --- */
-/* 1. 被炸后的常规状态：红色、呼吸、黑字 */
-.timer-pill.timer-bomb {
-    background: #ffebee;
-    color: #d32f2f;
-    border: 2px solid #ff1744;
-    animation: bombPulse 1s infinite alternate;
+/* --- 爆炸闪光特效 --- */
+#explosionOverlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: white; opacity: 0; pointer-events: none; z-index: 999;
 }
-
-/* 2. 死亡倒计时 (<30s)：剧烈抖动、红黑闪烁 */
-.timer-pill.timer-critical {
-    background: #b71c1c;
-    color: #fff;
-    border: 2px solid #fff;
-    animation: criticalShake 0.2s infinite, criticalBlink 0.5s infinite;
-}
-
-@keyframes bombPulse {
-    from { box-shadow: 0 0 5px rgba(211, 47, 47, 0.5); transform: scale(1); }
-    to { box-shadow: 0 0 15px rgba(211, 47, 47, 0.8); transform: scale(1.05); }
-}
-
-@keyframes criticalShake {
-    0% { transform: translate(0, 0); }
-    25% { transform: translate(-2px, 2px); }
-    50% { transform: translate(2px, -2px); }
-    75% { transform: translate(-2px, -2px); }
-    100% { transform: translate(0, 0); }
-}
-
-@keyframes criticalBlink {
-    0%, 100% { background: #b71c1c; border-color: white; }
-    50% { background: #000; border-color: #ff1744; }
-}
+.explosion-anim { animation: explodeFlash 1s ease-out forwards; }
+@keyframes explodeFlash { 0% { opacity: 1; background: #fff; } 50% { background: #ff5722; } 100% { opacity: 0; } }
