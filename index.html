@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>落叶 VS 生辉 - Alpha 0.6.8 (Fixes)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body onclick="SoundEngine.init()">
+
+    <div class="top-right-controls">
+        <button class="icon-btn lang-btn" onclick="toggleLanguage()" title="Language">简</button>
+        <button class="icon-btn sound-toggle" onclick="SoundEngine.toggle()" title="Mute">🎵</button>
+        <button class="icon-btn settings-btn" onclick="openSettings()" title="Settings">⚙️</button>
+    </div>
+
+    <div id="mainMenu" class="screen active">
+        <h1 data-i18n="gameTitle">落叶 <span style="font-size:0.5em">VS</span> 生辉</h1>
+        <h2 style="margin-top:-5px; font-size:1.2rem; color:#888;">
+            <span data-i18n="subTitle">International Edition</span> <span class="version-tag">Alpha 0.6.8</span>
+        </h2>
+        <button class="btn" onclick="SoundEngine.playPlace(); showDifficultyScreen()" data-i18n="btnPvE">电脑对战 (PvE)</button>
+        <button class="btn" onclick="startPvPFlow('single')" data-i18n="btnPvPSingle">双人单局 (PvP)</button>
+        <button class="btn" onclick="startPvPFlow('bo3')" style="background: linear-gradient(to right, #fbc02d, #d32f2f); color: white;" data-i18n="btnPvPBO3">三番战 (PvP BO3)</button>
+        <div style="margin-top:20px; font-size:0.8rem; color:#999;" data-i18n="hintSound">点击页面任意处开启沉浸式音效</div>
+    </div>
+
+    <div id="difficultyScreen" class="screen">
+        <h1 data-i18n="titleDiff">选择难度</h1>
+        <button class="btn" onclick="enterTurnSelection('pve', 'easy')" data-i18n="diffEasy">简单</button>
+        <button class="btn" onclick="enterTurnSelection('pve', 'medium')" data-i18n="diffMedium">中等</button>
+        <button class="btn" onclick="enterTurnSelection('pve', 'hard')" data-i18n="diffHard">困难</button>
+        <button class="btn" onclick="enterTurnSelection('pve', 'master')" data-i18n="diffMaster">大师</button>
+        <button class="btn secondary" onclick="SoundEngine.playPlace(); goToMenu()" data-i18n="btnBack">返回</button>
+    </div>
+
+    <div id="turnSelectScreen" class="screen">
+        <h1 id="turnSelectTitle" data-i18n="titlePickSide">猜先</h1>
+        <p id="turnSelectDesc" style="color:#666; font-size:1rem; margin-bottom:20px;" data-i18n="descPickSide">请选择本局身份</p>
+        <div class="turn-choice-container">
+            <div class="turn-card maple" onclick="handleTurnChoice(1)">
+                <div class="icon">🍁</div><h3 data-i18n="sideFirst">先手</h3>
+            </div>
+            <div class="turn-card sun" onclick="handleTurnChoice(2)">
+                <div class="icon">☀️</div><h3 data-i18n="sideSecond">后手</h3>
+            </div>
+        </div>
+        <button class="btn secondary" onclick="goBackFromTurn()" data-i18n="btnBack" style="margin-top: 30px;">返回</button>
+    </div>
+
+    <div id="skillSelectScreen" class="screen">
+        <h2 id="draftTitle">Draft Phase</h2>
+        <div class="skill-grid" id="skillGrid"></div>
+    </div>
+
+    <div id="gameScreen" class="screen" style="background:var(--bg-color);">
+        <div class="top-bar">
+            <div id="timer1" class="timer-pill">🍁 04:00</div>
+            <div class="status-pill turn-maple" id="statusBar">
+                <span id="diffTag" class="diff-tag" style="display:none;"></span><span id="turnIcon">🍁</span> <span id="turnText">...</span>
+            </div>
+            <div id="timer2" class="timer-pill">☀️ 04:00</div>
+            
+            <div style="width:100%; display:flex; justify-content:center; gap:5px; margin-top:5px; position:relative;">
+                <div id="shortBattleCounter" class="short-battle-counter">⚔️</div>
+                <div id="chaosCounter" class="chaos-counter">🎲</div>
+                <div id="scoreBoard" class="score-board">P1 0 : 0 P2</div>
+            </div>
+        </div>
+        <div class="board" id="board"></div>
+        <div class="bottom-controls">
+            <button class="btn secondary" onclick="undoMove()" id="undoBtn" data-i18n="btnUndo">悔棋</button>
+            <button class="skill-btn" id="skillBtn" onclick="activateSkill()"><span>...</span><small>...</small></button>
+            <button class="btn secondary" onclick="confirmExit()" data-i18n="btnExit">退出</button>
+        </div>
+    </div>
+
+    <div id="winnerModal" class="modal">
+        <div class="modal-content">
+            <h2 id="winnerText" style="font-size: 2rem; margin-bottom: 20px;"></h2>
+            <div id="endGameButtons"></div>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal">
+        <div class="modal-content settings-content">
+            <h2 data-i18n="titleSettings">系统设置</h2>
+            
+            <div class="setting-item">
+                <label><span data-i18n="lblMusicVol">音乐音量</span> <span id="valMusic">50%</span></label>
+                <input type="range" id="sliderMusic" min="0" max="100" value="50" oninput="updateVolume('music', this.value)">
+            </div>
+            <div class="setting-item">
+                <label><span data-i18n="lblSfxVol">音效音量</span> <span id="valSfx">100%</span></label>
+                <input type="range" id="sliderSfx" min="0" max="100" value="100" oninput="updateVolume('sfx', this.value)">
+            </div>
+
+            <div class="setting-divider"></div>
+
+            <div class="setting-item">
+                <label data-i18n="lblMusicTrack">背景音乐</label>
+                <div class="music-selector">
+                    <button class="music-opt active" id="trackOrigin" onclick="changeTrack('origin')" data-i18n="trackOrigin">原初</button>
+                    <button class="music-opt" id="trackOverture" onclick="changeTrack('overture')" data-i18n="trackOverture">序曲</button>
+                </div>
+            </div>
+
+            <button class="btn primary" onclick="closeSettings()" style="margin-top:20px;" data-i18n="btnClose">关闭</button>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script src="audio.js"></script>
+    <script src="game.js"></script>
+    <script src="ai.js"></script>
+    <script>
+        window.onload = function() {
+            if (typeof initGame === 'function') {}
+        };
+    </script>
+</body>
+</html>
