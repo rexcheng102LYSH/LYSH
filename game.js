@@ -3,7 +3,7 @@ const I18N = {
     'zh': {
         langName: "简", 
         gameTitle: "落叶 <span style='font-size:0.5em'>VS</span> 生辉", 
-        subTitle: "Alpha 0.6.9.1",
+        subTitle: "Alpha 0.6.9.2",
         btnPvE: "电脑对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -23,7 +23,7 @@ const I18N = {
         names: { 1: "落叶方", 2: "生辉方" },
         titleSettings: "系统设置", 
         lblMusicVol: "音乐音量", lblSfxVol: "音效音量", lblMusicTrack: "背景音乐",
-        trackOrigin: "原初", trackOverture: "序曲 (MP3)", 
+        trackOrigin: "原初", trackOverture: "序曲 (MP3)", trackBgm2: "古风 (MP3)",
         btnClose: "关闭",
         skills: {
             double: { name: "双连", desc: "本回合落两子" },
@@ -61,7 +61,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "落葉 <span style='font-size:0.5em'>VS</span> 生輝", 
-        subTitle: "Alpha 0.6.9.1",
+        subTitle: "Alpha 0.6.9.2",
         btnPvE: "電腦對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -81,7 +81,7 @@ const I18N = {
         names: { 1: "落葉方", 2: "生輝方" },
         titleSettings: "系統設置", 
         lblMusicVol: "音樂音量", lblSfxVol: "音效音量", lblMusicTrack: "背景音樂",
-        trackOrigin: "原初", trackOverture: "序曲 (MP3)", 
+        trackOrigin: "原初", trackOverture: "序曲 (MP3)", trackBgm2: "古風 (MP3)",
         btnClose: "關閉",
         skills: {
             double: { name: "雙連", desc: "本回合落兩子" },
@@ -119,7 +119,7 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Autumn <span style='font-size:0.5em'>VS</span> Radiance", 
-        subTitle: "Alpha 0.6.9.1",
+        subTitle: "Alpha 0.6.9.2",
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -139,7 +139,7 @@ const I18N = {
         names: { 1: "Autumn", 2: "Radiance" },
         titleSettings: "Settings", 
         lblMusicVol: "Music Volume", lblSfxVol: "SFX Volume", lblMusicTrack: "Background Music",
-        trackOrigin: "Origin", trackOverture: "Overture (MP3)", 
+        trackOrigin: "Origin", trackOverture: "Overture (MP3)", trackBgm2: "Ancient (MP3)",
         btnClose: "Close",
         skills: {
             double: { name: "Double Strike", desc: "Place 2 pieces." },
@@ -151,21 +151,21 @@ const I18N = {
             god_hand: { name: "Hand of God", desc: "Move ANY 2 pieces. End turn." },
             chaos: { name: "Chaos Dice", desc: "Opponent's next 2 moves offset." },
             short_battle: { name: "Skirmish", desc: "Win by 4-in-a-row (6 turns)." },
-            swap: { name: "Displacement", desc: "Swap friend/foe piece. Continue." }
+            swap: { name: "Displacement", desc: "Swap pieces" }
         },
         toast: {
             skillUsed: "Depleted", casting: "Cast: ", 
-            doubleStart: "Double: Place 1st", doubleNext: "Double: Place 2nd!",
+            doubleStart: "Double: Place 1st", doubleNext: "Double: 2nd!",
             voodooPick: "Pick target", voodooDone: "Done. Move now!", 
             moveSrcSelf: "Pick YOURS", moveSrcEnemy: "Pick ENEMY",
             moveDest: "Pick dest", moveDone: "Done. Move now!", 
             zonePick: "Pick center", zoneDone: "Done. Move now!",
             bombStart: "Bomb! -2 Mins", 
             errInvalid: "Invalid", errZone: "Restricted Zone", undoPvP: "No undo in PvP!",
-            godPick1: "God: Pick 1st", godDest1: "Pick 1st dest", godPick2: "God: Pick 2nd", godDest2: "Pick 2nd dest",
+            godPick1: "God: Pick 1st", godDest1: "Dest 1", godPick2: "God: Pick 2nd", godDest2: "Dest 2",
             chaosTrigger: "Chaos! Missed!", chaosLabel: "🎲 Chaos:", 
-            shortBattleLabel: "⚔️ Skirmish:", shortBattleStart: "Skirmish! Connect 4!",
-            swapPickSelf: "Swap: Pick YOURS", swapPickEnemy: "Swap: Pick ENEMY", swapDone: "Done. Move now!", 
+            shortBattleLabel: "⚔️ Skirmish:", shortBattleStart: "Skirmish Mode!", 
+            swapPickSelf: "Swap: Yours", swapPickEnemy: "Swap: Enemy", swapDone: "Done. Move now!", 
             undoDone: "Undone", timeOut: "Time Out!"
         },
         end: { 
@@ -212,6 +212,9 @@ let historyStack = [];
 let selectedCell = null;
 let bombTarget = null; 
 
+// 新增：用户音乐偏好 (origin, overture, bgm2)
+let userMusicPref = 'origin';
+
 // ================= 界面控制 =================
 const screens = { main: document.getElementById('mainMenu'), diff: document.getElementById('difficultyScreen'), turn: document.getElementById('turnSelectScreen'), draft: document.getElementById('skillSelectScreen'), game: document.getElementById('gameScreen'), settings: document.getElementById('settingsModal') };
 function showScreen(n) { 
@@ -235,18 +238,27 @@ function updateVolume(type, val) {
     if (type === 'music') { SoundEngine.setMusicVolume(v); document.getElementById('valMusic').innerText = val + '%'; } 
     else { SoundEngine.sfxVolume = v; document.getElementById('valSfx').innerText = val + '%'; }
 }
+
+// 核心改动：切换轨道并记录偏好
 function changeTrack(track) { 
-    if (SoundEngine.currentTrack === 'bomb') return;
+    if (SoundEngine.currentTrack === 'bomb') {
+        // 如果正在播放炸弹，只记录偏好，不切歌
+        userMusicPref = track;
+        updateTrackUI();
+        return;
+    }
+    userMusicPref = track;
     SoundEngine.switchTrack(track); 
     updateTrackUI(); 
 }
+
+// 核心改动：UI 高亮基于 userMusicPref
 function updateTrackUI() {
     document.querySelectorAll('.music-opt').forEach(el => el.classList.remove('active'));
-    const pref = document.getElementById('trackOverture').classList.contains('active') ? 'overture' : 'origin';
-    if (SoundEngine.currentTrack === 'origin' || (SoundEngine.currentTrack === 'bomb' && pref === 'origin')) 
-        document.getElementById('trackOrigin').classList.add('active');
-    else 
-        document.getElementById('trackOverture').classList.add('active');
+    
+    if (userMusicPref === 'origin') document.getElementById('trackOrigin').classList.add('active');
+    else if (userMusicPref === 'overture') document.getElementById('trackOverture').classList.add('active');
+    else if (userMusicPref === 'bgm2') document.getElementById('trackBgm2').classList.add('active');
 }
 
 // --- 导航与流程 ---
@@ -288,8 +300,8 @@ function initGame() {
     bombTarget = null;
     SoundEngine.setCritical(false);
     
-    const userPref = document.getElementById('trackOverture').classList.contains('active') ? 'overture' : 'origin';
-    SoundEngine.switchTrack(userPref);
+    // 使用用户偏好恢复音乐
+    SoundEngine.switchTrack(userMusicPref);
 
     clearInterval(gameTicker); clearTimeout(aiTimer); 
     updateStaticText(); updateDynamicUI();  
@@ -366,8 +378,11 @@ function switchTurn() {
     territoryZones.forEach(z => { if(z.owner===currentPlayer) z.turns--; }); territoryZones = territoryZones.filter(z => z.turns > 0); updateTerritoriesUI();
     if (shortBattleTurns > 0) shortBattleTurns--;
     currentPlayer = currentPlayer === MAPLE ? SUN : MAPLE; 
-    const userPref = document.getElementById('trackOverture').classList.contains('active') ? 'overture' : 'origin';
-    if (bombTarget !== null && currentPlayer === bombTarget) { SoundEngine.switchTrack('bomb'); } else { SoundEngine.switchTrack(userPref); }
+    
+    // BGM Logic Update: 使用 userMusicPref
+    if (bombTarget !== null && currentPlayer === bombTarget) { SoundEngine.switchTrack('bomb'); } 
+    else { SoundEngine.switchTrack(userMusicPref); }
+    
     updateDynamicUI(); 
     clearTimeout(aiTimer);
     if (gameMode === 'pve' && currentPlayer !== humanSide && gameActive) { aiTimer = setTimeout(aiMove, 600); }
@@ -468,8 +483,9 @@ function triggerExplosion() {
 
 function handleMatchEnd(winSide) {
     gameActive = false; clearInterval(bombInterval); clearInterval(gameTicker); clearTimeout(aiTimer); 
-    const userPref = document.getElementById('trackOverture').classList.contains('active') ? 'overture' : 'origin';
-    SoundEngine.switchTrack(userPref); 
+    
+    // 使用 userMusicPref 恢复音乐
+    SoundEngine.switchTrack(userMusicPref); 
     
     const cBtn = (t,f,p) => { const b=document.createElement('button'); b.className=p?'btn primary':'btn secondary'; b.innerText=t; b.onclick=f; return b; };
     const bc = document.getElementById('endGameButtons'); bc.innerHTML = '';
@@ -506,9 +522,9 @@ function undoMove() {
     const state = historyStack.pop();
     restoreState(state);
     
-    if (bombTarget !== null && currentPlayer !== bombTarget && SoundEngine.currentTrack !== 'origin' && SoundEngine.currentTrack !== 'overture') {
-        const userPref = document.getElementById('trackOverture').classList.contains('active') ? 'overture' : 'origin';
-        SoundEngine.switchTrack(userPref);
+    // 悔棋 BGM 修正 (使用 userMusicPref)
+    if (bombTarget !== null && currentPlayer !== bombTarget) {
+        SoundEngine.switchTrack(userMusicPref);
     }
 
     if (gameMode === 'pve') { clearTimeout(aiTimer); if (historyStack.length > 0) { const state2 = historyStack.pop(); restoreState(state2); } }
@@ -684,7 +700,7 @@ function updateDynamicUI() {
     const statusBar = document.getElementById('statusBar'); const newClass = 'status-pill ' + (currentPlayer === MAPLE ? 'turn-maple' : 'turn-sun'); if (statusBar.className !== newClass) statusBar.className = newClass;
     const t1 = document.getElementById('timer1'); const t2 = document.getElementById('timer2'); const t1Text = `🍁 ${formatTime(timeRemaining[MAPLE])}`; const t2Text = `☀️ ${formatTime(timeRemaining[SUN])}`; if (t1.innerText !== t1Text) t1.innerText = t1Text; if (t2.innerText !== t2Text) t2.innerText = t2Text;
     
-    // --- 核心逻辑：移除 C4 垃圾，回归纯粹的 Class 控制 ---
+    // --- 核心逻辑：控制时钟样式和 C4 可见性 ---
     const updateTimerVisual = (player, timerEl, time) => {
         timerEl.className = `timer-pill ${currentPlayer===player?'active':''}`;
 
