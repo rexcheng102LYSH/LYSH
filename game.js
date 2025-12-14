@@ -3,7 +3,7 @@ const I18N = {
     'zh': {
         langName: "简", 
         gameTitle: "落叶 <span style='font-size:0.5em'>VS</span> 生辉", 
-        subTitle: "Alpha 0.6.9",
+        subTitle: "Alpha 0.6.9.1",
         btnPvE: "电脑对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -61,7 +61,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "落葉 <span style='font-size:0.5em'>VS</span> 生輝", 
-        subTitle: "Alpha 0.6.9",
+        subTitle: "Alpha 0.6.9.1",
         btnPvE: "電腦對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -119,7 +119,7 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Autumn <span style='font-size:0.5em'>VS</span> Radiance", 
-        subTitle: "Alpha 0.6.9",
+        subTitle: "Alpha 0.6.9.1",
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -144,8 +144,8 @@ const I18N = {
         skills: {
             double: { name: "Double Strike", desc: "Place 2 pieces." },
             voodoo: { name: "Voodoo", desc: "Corrupt cell, then move." },
-            move_self: { name: "Teleport Self", desc: "Move self, then move." },
-            move_enemy: { name: "Teleport Enemy", desc: "Move enemy, then move." },
+            move_self: { name: "Teleport Self", desc: "Move self" },
+            move_enemy: { name: "Teleport Enemy", desc: "Move enemy" },
             zone: { name: "Sanctuary", desc: "Claim 3x3 zone (6 turns)." },
             bomb: { name: "Time Bomb", desc: "-2 Mins to Opponent! (Lethal)" },
             god_hand: { name: "Hand of God", desc: "Move ANY 2 pieces. End turn." },
@@ -684,31 +684,27 @@ function updateDynamicUI() {
     const statusBar = document.getElementById('statusBar'); const newClass = 'status-pill ' + (currentPlayer === MAPLE ? 'turn-maple' : 'turn-sun'); if (statusBar.className !== newClass) statusBar.className = newClass;
     const t1 = document.getElementById('timer1'); const t2 = document.getElementById('timer2'); const t1Text = `🍁 ${formatTime(timeRemaining[MAPLE])}`; const t2Text = `☀️ ${formatTime(timeRemaining[SUN])}`; if (t1.innerText !== t1Text) t1.innerText = t1Text; if (t2.innerText !== t2Text) t2.innerText = t2Text;
     
-    // --- 核心逻辑：控制时钟样式和 C4 可见性 ---
-    const updateTimerVisual = (player, timerEl, c4El, time) => {
+    // --- 核心逻辑：移除 C4 垃圾，回归纯粹的 Class 控制 ---
+    const updateTimerVisual = (player, timerEl, time) => {
         timerEl.className = `timer-pill ${currentPlayer===player?'active':''}`;
-        c4El.classList.remove('visible'); // 默认隐藏 C4
-        c4El.querySelector('.c4-light').classList.remove('active'); // 默认不闪红灯
 
         if (bombTarget === player) {
-            // 如果被炸了，显示 C4
-            c4El.classList.add('visible');
+            // 被炸状态
             if (time < 30) {
-                // <30s：C4 闪红灯 + 时钟黑红闪烁
-                c4El.querySelector('.c4-light').classList.add('active');
-                timerEl.classList.add('timer-critical-bomb');
+                // <30s: 剧烈红黑闪烁 (旧版 timer-critical)
+                timerEl.classList.add('timer-critical');
             } else {
-                // >30s：只显示 C4，时钟变红
+                // >30s: 红色呼吸 (旧版 timer-bomb)
                 timerEl.classList.add('timer-bomb');
             }
         } else if (time < 30) {
-            // 没被炸，但时间不够了：橙色警报
+            // 没被炸，只是时间不够了：新版橙色预警
             timerEl.classList.add('timer-critical-normal');
         }
     };
 
-    updateTimerVisual(MAPLE, t1, document.getElementById('c4-p1'), timeRemaining[MAPLE]);
-    updateTimerVisual(SUN, t2, document.getElementById('c4-p2'), timeRemaining[SUN]);
+    updateTimerVisual(MAPLE, t1, timeRemaining[MAPLE]);
+    updateTimerVisual(SUN, t2, timeRemaining[SUN]);
 
     const cc = document.getElementById('chaosCounter'); const sbc = document.getElementById('shortBattleCounter');
     if (chaosDebuff[currentPlayer] > 0) { cc.style.display = 'block'; const ccText = `${t('chaosLabel', 'toast')} ${chaosDebuff[currentPlayer]}`; if (cc.innerText !== ccText) cc.innerText = ccText; } else { cc.style.display = 'none'; }
