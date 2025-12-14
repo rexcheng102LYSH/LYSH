@@ -3,36 +3,17 @@ const BOARD_SIZE = 15, EMPTY = 0, MAPLE = 1, SUN = 2, CORRODED = -1;
 const ICONS = { [MAPLE]: '🍁', [SUN]: '☀️' };
 const SKILL_IDS = ['double','voodoo','move_self','move_enemy','zone','bomb','god_hand','chaos','short_battle','swap'];
 
-// 核心升级：全新重绘的 SVG 图标库 (解决了双连/短兵战重复问题)
+// SVG 图标库 (Alpha 0.7.4 重绘版 - 绝不重复)
 const SKILL_ICONS = {
-    // 双连：双刃并行，代表连击
     double: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13l-5-5L15 2l5 5-10 6z"/><path d="M14 17l-5-5L19 6l5 5-10 6z"/><path d="M4 22l6-6"/></svg>',
-    
-    // 巫毒：骷髅头与气泡
     voodoo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 13s1.5 1.5 3 0 3 0"/><path d="M9 9h.01"/><path d="M15 9h.01"/></svg>',
-    
-    // 移己：箭头从点出发
     move_self: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="3"/><path d="M8 12h11"/><path d="M16 9l3 3-3 3"/></svg>',
-    
-    // 移敌：抓取效果
     move_enemy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6"/><path d="M12 12l9 9"/><path d="M16 16l5 5"/></svg>',
-    
-    // 领地：盾牌/区域
     zone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>',
-    
-    // 炸弹：圆形炸弹带引信
     bomb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="13" r="9"/><path d="M11 4v-1"/><path d="M11 4h2"/><path d="M22 2l-3 3"/><path d="M14.5 9.5L19 5"/></svg>',
-    
-    // 上帝之手：手掌
     god_hand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>',
-    
-    // 混乱：骰子
     chaos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="8" cy="8" r="1"/><circle cx="16" cy="16" r="1"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="8" r="1"/><circle cx="12" cy="12" r="1"/></svg>',
-    
-    // 短兵战：刀剑相交，决斗
     short_battle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/><line x1="8" y1="8" x2="4" y2="4"/></svg>',
-    
-    // 置换：循环箭头
     swap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v-3a3 3 0 0 1 3-3h13m-3-3l3 3-3 3"/><path d="M20 12v3a3 3 0 0 1-3 3H4m3 3l-3-3 3-3"/></svg>'
 };
 
@@ -130,11 +111,6 @@ function goToMenu() {
     gameActive=false; 
     clearInterval(gameTicker); clearTimeout(aiTimer); 
     document.getElementById('winnerModal').style.display='none'; 
-    
-    // 背景切换：移除 .in-game 类，背景变回“冷色调迷雾”
-    const bg = document.getElementById('bgAnim');
-    if(bg) bg.classList.remove('in-game');
-    
     showScreen('main'); 
 }
 function confirmExit() { if(confirm(t('confirmExit'))) goToMenu(); }
@@ -146,7 +122,7 @@ function handleTurnChoice(c) { SoundEngine.playPlace(); if (gameMode === 'pve') 
 function enterDraftPhase() { document.getElementById('winnerModal').style.display = 'none'; showScreen('draft'); if (gameMode === 'pve') draftTurn = SUN; else draftTurn = SUN; playerSkills = { [MAPLE]: null, [SUN]: null }; renderSkillGrid(); updateDraftTitle(); SoundEngine.init(); }
 let draftTurn = SUN;
 
-// 核心功能：渲染图标+文字的技能网格
+// 渲染带图标的技能网格
 function renderSkillGrid() { 
     const g = document.getElementById('skillGrid'); 
     g.innerHTML = ''; 
@@ -174,11 +150,6 @@ function pickSkill(id) { SoundEngine.playPlace(); playerSkills[draftTurn] = id; 
 // --- 游戏初始化 ---
 function initGame() {
     showScreen('game'); 
-    
-    // 背景切换：添加 .in-game 类，背景变暖变亮
-    const bg = document.getElementById('bgAnim');
-    if(bg) bg.classList.add('in-game');
-
     board = Array(BOARD_SIZE).fill(0).map(()=>Array(BOARD_SIZE).fill(EMPTY)); 
     currentPlayer = MAPLE; gameActive = true; 
     historyStack = []; skillUsed = {[MAPLE]:false, [SUN]:false}; 
@@ -220,7 +191,7 @@ function initGame() {
 
 function updateScoreBoard() { document.getElementById('scoreBoard').innerText = `P1 (${p1Score}) : (${p2Score}) P2`; }
 
-// --- 渲染棋盘 ---
+// --- 渲染棋盘 (DOM) ---
 function renderBoard() { 
     const b = document.getElementById('board'); 
     b.innerHTML = ''; 
@@ -465,3 +436,91 @@ function startBombTimer() { if(bombInterval) clearInterval(bombInterval); bombIn
 function updateDynamicUI() { const turnTextEl = document.getElementById('turnText'); const newTurnText = t('names')[currentPlayer===MAPLE?1:2]; if (turnTextEl.innerText !== newTurnText) turnTextEl.innerText = newTurnText; const turnIconEl = document.getElementById('turnIcon'); const newTurnIcon = ICONS[currentPlayer]; if (turnIconEl.innerText !== newTurnIcon) turnIconEl.innerText = newTurnIcon; const statusBar = document.getElementById('statusBar'); const newClass = 'status-pill ' + (currentPlayer === MAPLE ? 'turn-maple' : 'turn-sun'); if (statusBar.className !== newClass) statusBar.className = newClass; const t1 = document.getElementById('timer1'); const t2 = document.getElementById('timer2'); const t1Text = `🍁 ${formatTime(timeRemaining[MAPLE])}`; const t2Text = `☀️ ${formatTime(timeRemaining[SUN])}`; if (t1.innerText !== t1Text) t1.innerText = t1Text; if (t2.innerText !== t2Text) t2.innerText = t2Text; const updateTimerVisual = (player, timerEl, time) => { timerEl.className = `timer-pill ${currentPlayer===player?'active':''}`; if (bombTarget === player) { if (time < 30) { timerEl.classList.add('timer-critical'); } else { timerEl.classList.add('timer-bomb'); } } else if (time < 30) { timerEl.classList.add('timer-critical-normal'); } }; updateTimerVisual(MAPLE, t1, timeRemaining[MAPLE]); updateTimerVisual(SUN, t2, timeRemaining[SUN]); const cc = document.getElementById('chaosCounter'); const sbc = document.getElementById('shortBattleCounter'); if (chaosDebuff[currentPlayer] > 0) { cc.style.display = 'block'; const ccText = `${t('chaosLabel', 'toast')} ${chaosDebuff[currentPlayer]}`; if (cc.innerText !== ccText) cc.innerText = ccText; } else { cc.style.display = 'none'; } if (shortBattleTurns > 0) { sbc.style.display = 'block'; const sbcText = `${t('shortBattleLabel', 'toast')} ${shortBattleTurns}`; if (sbc.innerText !== sbcText) sbc.innerText = sbcText; } else { sbc.style.display = 'none'; } const ms = playerSkills[currentPlayer]; const u = skillUsed[currentPlayer]; const btn = document.getElementById('skillBtn'); if (!ms) { btn.disabled = true; if (btn.querySelector('span').innerText !== "---") btn.querySelector('span').innerText = "---"; if (btn.querySelector('small').innerText !== "") btn.querySelector('small').innerText = ""; return; } const so = t(ms, 'skills'); let myC=0, oppC=0; board.forEach(r=>r.forEach(c=>{ if(c===currentPlayer)myC++; else if(c!==0&&c!==-1)oppC++; })); let viable = true; if(ms==='move_self' && myC===0) viable=false; else if(ms==='move_enemy' && oppC===0) viable=false; else if((ms==='god_hand'||ms==='voodoo') && (myC+oppC)===0) viable=false; else if(ms==='swap' && (myC===0 || oppC===0)) viable=false; const span = btn.querySelector('span'); const small = btn.querySelector('small'); if(u || !viable) { btn.disabled=true; const newSpan = (so?so.name:t('skillName')) + " " + (u?t('skillUsed'):t('skillNoTarget')); if (span.innerText !== newSpan) span.innerText = newSpan; if (small.innerText !== "") small.innerText = ""; } else { btn.disabled=false; const newSpan = so?so.name:t('skillName'); const newSmall = t('skillReady'); if (span.innerText !== newSpan) span.innerText = newSpan; if (small.innerText !== newSmall) small.innerText = newSmall; } }
 function formatTime(s) { if(s<0) s=0; const m=Math.floor(s/60).toString().padStart(2,'0'); const sec=(s%60).toString().padStart(2,'0'); return `${m}:${sec}`; }
 function showToast(m){ const t=document.getElementById('toast'); t.innerText=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0,3000); }
+
+// ================== Spring Rain Engine (Background Only) ==================
+// This canvas logic is completely isolated from the game board.
+const BackgroundEngine = {
+    canvas: null,
+    ctx: null,
+    width: 0,
+    height: 0,
+    drops: [],
+    numDrops: 100, // Number of raindrops
+    animationId: null,
+
+    init: function() {
+        this.canvas = document.getElementById('bgCanvas');
+        if (!this.canvas) return;
+        this.ctx = this.canvas.getContext('2d');
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+        this.createDrops();
+        this.start();
+    },
+
+    resize: function() {
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+    },
+
+    createDrops: function() {
+        this.drops = [];
+        for (let i = 0; i < this.numDrops; i++) {
+            this.drops.push({
+                x: Math.random() * this.width,
+                y: Math.random() * this.height,
+                length: Math.random() * 20 + 10,
+                speed: Math.random() * 5 + 5,
+                wind: Math.random() * 1 - 0.5 // Slight horizontal drift
+            });
+        }
+    },
+
+    draw: function() {
+        this.ctx.clearRect(0, 0, this.width, this.height);
+        
+        // Make the rain look soft (Spring Rain)
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        this.ctx.lineWidth = 1;
+        this.ctx.lineCap = 'round';
+
+        this.ctx.beginPath();
+        for (let i = 0; i < this.numDrops; i++) {
+            const d = this.drops[i];
+            this.ctx.moveTo(d.x, d.y);
+            this.ctx.lineTo(d.x + d.wind, d.y + d.length);
+        }
+        this.ctx.stroke();
+    },
+
+    update: function() {
+        for (let i = 0; i < this.numDrops; i++) {
+            const d = this.drops[i];
+            d.y += d.speed;
+            d.x += d.wind;
+
+            // Reset if out of bounds
+            if (d.y > this.height) {
+                d.y = -d.length;
+                d.x = Math.random() * this.width;
+            }
+        }
+    },
+
+    loop: function() {
+        this.update();
+        this.draw();
+        this.animationId = requestAnimationFrame(() => this.loop());
+    },
+
+    start: function() {
+        if (!this.animationId) this.loop();
+    }
+};
+
+// Start the rain when window loads
+window.addEventListener('load', () => {
+    BackgroundEngine.init();
+});
