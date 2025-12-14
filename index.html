@@ -3,10 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>落叶 VS 生辉 - Alpha 0.7.3</title>
+    <title>落叶 VS 生辉 - Alpha 0.7.4</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body onclick="SoundEngine.init()">
+
+    <div id="bgAnim" class="bg-animation">
+        <div class="blob blob1"></div>
+        <div class="blob blob2"></div>
+        <div class="blob blob3"></div>
+        <div class="bg-overlay"></div> </div>
 
     <div class="top-right-controls">
         <button class="icon-btn skin-btn" onclick="openSkinMenu()" title="Skin Menu">🎨</button>
@@ -19,7 +25,7 @@
         <div class="glass-panel menu-panel">
             <h1 data-i18n="gameTitle">落叶 <span style="font-size:0.5em">VS</span> 生辉</h1>
             <h2 style="margin-top:-5px; font-size:1.2rem; color:#666;">
-                <span data-i18n="subTitle">Code Refactor</span> <span class="version-tag">Alpha 0.7.3</span>
+                <span data-i18n="subTitle">Aurora Redux</span> <span class="version-tag">Alpha 0.7.4</span>
             </h2>
             <button class="btn primary" onclick="SoundEngine.playPlace(); showDifficultyScreen()" data-i18n="btnPvE">电脑对战 (PvE)</button>
             <button class="btn" onclick="startPvPFlow('single')" data-i18n="btnPvPSingle">双人单局 (PvP)</button>
@@ -140,7 +146,8 @@
     <div id="explosionOverlay"></div>
 
     <script src="audio.js"></script>
-    <script src="lang.js"></script> <script src="game.js"></script>
+    <script src="lang.js"></script> 
+    <script src="game.js"></script>
     <script src="ai.js"></script>
     <script>
         window.onload = function() {

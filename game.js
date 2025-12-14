@@ -3,6 +3,39 @@ const BOARD_SIZE = 15, EMPTY = 0, MAPLE = 1, SUN = 2, CORRODED = -1;
 const ICONS = { [MAPLE]: '🍁', [SUN]: '☀️' };
 const SKILL_IDS = ['double','voodoo','move_self','move_enemy','zone','bomb','god_hand','chaos','short_battle','swap'];
 
+// 核心升级：全新重绘的 SVG 图标库 (解决了双连/短兵战重复问题)
+const SKILL_ICONS = {
+    // 双连：双刃并行，代表连击
+    double: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13l-5-5L15 2l5 5-10 6z"/><path d="M14 17l-5-5L19 6l5 5-10 6z"/><path d="M4 22l6-6"/></svg>',
+    
+    // 巫毒：骷髅头与气泡
+    voodoo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 13s1.5 1.5 3 0 3 0"/><path d="M9 9h.01"/><path d="M15 9h.01"/></svg>',
+    
+    // 移己：箭头从点出发
+    move_self: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="3"/><path d="M8 12h11"/><path d="M16 9l3 3-3 3"/></svg>',
+    
+    // 移敌：抓取效果
+    move_enemy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6"/><path d="M12 12l9 9"/><path d="M16 16l5 5"/></svg>',
+    
+    // 领地：盾牌/区域
+    zone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>',
+    
+    // 炸弹：圆形炸弹带引信
+    bomb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="13" r="9"/><path d="M11 4v-1"/><path d="M11 4h2"/><path d="M22 2l-3 3"/><path d="M14.5 9.5L19 5"/></svg>',
+    
+    // 上帝之手：手掌
+    god_hand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>',
+    
+    // 混乱：骰子
+    chaos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="8" cy="8" r="1"/><circle cx="16" cy="16" r="1"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="8" r="1"/><circle cx="12" cy="12" r="1"/></svg>',
+    
+    // 短兵战：刀剑相交，决斗
+    short_battle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/><line x1="8" y1="8" x2="4" y2="4"/></svg>',
+    
+    // 置换：循环箭头
+    swap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v-3a3 3 0 0 1 3-3h13m-3-3l3 3-3 3"/><path d="M20 12v3a3 3 0 0 1-3 3H4m3 3l-3-3 3-3"/></svg>'
+};
+
 let board = [], currentPlayer = MAPLE, gameMode = 'pvp', aiDifficulty = 'medium', gameActive = false;
 let isBO3 = false, p1Score = 0, p2Score = 0, playerSides = { [MAPLE]: 'p1', [SUN]: 'p2' }, chooser = 'p1', humanSide = MAPLE;
 let playerSkills = { [MAPLE]: null, [SUN]: null }, skillUsed = { [MAPLE]: false, [SUN]: false };
@@ -15,7 +48,7 @@ let historyStack = [];
 let selectedCell = null;
 let bombTarget = null; 
 let userMusicPref = 'origin';
-let currentSkin = 'nature'; // 'nature' | 'classic'
+let currentSkin = 'nature'; 
 
 // ================= 界面控制 =================
 const screens = { 
@@ -36,7 +69,6 @@ function showScreen(n) {
     if (screens[n]) screens[n].classList.add('active'); 
 }
 
-// 设置界面
 function openSettings() {
     document.getElementById('settingsModal').style.display = 'flex';
     document.getElementById('sliderMusic').value = SoundEngine.musicVolume * 100;
@@ -47,10 +79,8 @@ function openSettings() {
 }
 function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
 
-// 皮肤菜单 (修复核心：局内禁用)
 function openSkinMenu() {
     if (gameActive) {
-        // 如果游戏正在进行，禁止打开皮肤菜单，防止状态回滚 Bug
         showToast(t('errNoSkinInGame'));
         SoundEngine.playError();
         return;
@@ -63,7 +93,6 @@ function changeSkin(skin) {
     SoundEngine.playPlace();
     currentSkin = skin;
     updateSkinUI();
-    // 这里的 restoreState 仅在非游戏状态下（其实现在已被 openSkinMenu 屏蔽）或者未来扩展时生效
     if (gameActive) restoreState(historyStack.length > 0 ? historyStack[historyStack.length-1] : {board, currentPlayer, skillUsed, territoryZones, chaosDebuff, shortBattleTurns, timeRemaining, bombTarget});
 }
 function updateSkinUI() {
@@ -72,7 +101,6 @@ function updateSkinUI() {
     else document.getElementById('skinClassic').classList.add('active');
 }
 
-// 声音控制
 function updateVolume(type, val) {
     const v = val / 100;
     if (type === 'music') { 
@@ -98,7 +126,17 @@ function updateTrackUI() {
 }
 
 // --- 导航与流程 ---
-function goToMenu() { gameActive=false; clearInterval(gameTicker); clearTimeout(aiTimer); document.getElementById('winnerModal').style.display='none'; showScreen('main'); }
+function goToMenu() { 
+    gameActive=false; 
+    clearInterval(gameTicker); clearTimeout(aiTimer); 
+    document.getElementById('winnerModal').style.display='none'; 
+    
+    // 背景切换：移除 .in-game 类，背景变回“冷色调迷雾”
+    const bg = document.getElementById('bgAnim');
+    if(bg) bg.classList.remove('in-game');
+    
+    showScreen('main'); 
+}
 function confirmExit() { if(confirm(t('confirmExit'))) goToMenu(); }
 function showDifficultyScreen() { SoundEngine.playPlace(); showScreen('diff'); }
 function startPvPFlow(subMode) { SoundEngine.playPlace(); isBO3 = (subMode === 'bo3'); p1Score = 0; p2Score = 0; chooser = 'p1'; updateScoreBoard(); enterTurnSelection('pvp', null); }
@@ -107,13 +145,40 @@ function goBackFromTurn() { SoundEngine.playPlace(); if (gameMode === 'pve') { s
 function handleTurnChoice(c) { SoundEngine.playPlace(); if (gameMode === 'pve') { humanSide = (c === 1) ? MAPLE : SUN; enterDraftPhase(); } else { if (c === 1) { playerSides[MAPLE] = chooser; playerSides[SUN] = (chooser === 'p1' ? 'p2' : 'p1'); } else { playerSides[SUN] = chooser; playerSides[MAPLE] = (chooser === 'p1' ? 'p2' : 'p1'); } enterDraftPhase(); } }
 function enterDraftPhase() { document.getElementById('winnerModal').style.display = 'none'; showScreen('draft'); if (gameMode === 'pve') draftTurn = SUN; else draftTurn = SUN; playerSkills = { [MAPLE]: null, [SUN]: null }; renderSkillGrid(); updateDraftTitle(); SoundEngine.init(); }
 let draftTurn = SUN;
-function renderSkillGrid() { const g = document.getElementById('skillGrid'); g.innerHTML = ''; SKILL_IDS.forEach(sid => { const sd = t(sid, 'skills'); const c = document.createElement('div'); c.className = 'skill-card'; c.innerHTML = `<div class="skill-title">${sd.name}</div><div class="skill-desc">${sd.desc}</div>`; c.onclick = () => pickSkill(sid); if (Object.values(playerSkills).includes(sid)) { c.classList.add('selected'); c.onclick = null; } g.appendChild(c); }); }
+
+// 核心功能：渲染图标+文字的技能网格
+function renderSkillGrid() { 
+    const g = document.getElementById('skillGrid'); 
+    g.innerHTML = ''; 
+    SKILL_IDS.forEach(sid => { 
+        const sd = t(sid, 'skills'); 
+        const iconSvg = SKILL_ICONS[sid] || ''; 
+        const c = document.createElement('div'); 
+        c.className = 'skill-card'; 
+        c.innerHTML = `
+            <div class="skill-icon">${iconSvg}</div>
+            <div class="skill-info">
+                <div class="skill-title">${sd.name}</div>
+                <div class="skill-desc">${sd.desc}</div>
+            </div>
+        `; 
+        c.onclick = () => pickSkill(sid); 
+        if (Object.values(playerSkills).includes(sid)) { c.classList.add('selected'); c.onclick = null; } 
+        g.appendChild(c); 
+    }); 
+}
+
 function updateDraftTitle() { const tEl = document.getElementById('draftTitle'); let pickerName = t('names')[draftTurn]; if (gameMode === 'pve') { const isAITurn = (humanSide === MAPLE && draftTurn === SUN) || (humanSide === SUN && draftTurn === MAPLE); if (isAITurn) pickerName += " (AI)"; else pickerName += " (You)"; if (isAITurn) setTimeout(() => { const avail = SKILL_IDS.filter(s => !Object.values(playerSkills).includes(s)); pickSkill(avail[Math.floor(Math.random()*avail.length)]); }, 800); } tEl.innerHTML = t('draftTitle').replace('{icon}', ICONS[draftTurn]).replace('{name}', pickerName); tEl.style.color = draftTurn === MAPLE ? '#d32f2f' : '#f9a825'; }
 function pickSkill(id) { SoundEngine.playPlace(); playerSkills[draftTurn] = id; if (draftTurn === SUN) { draftTurn = MAPLE; renderSkillGrid(); updateDraftTitle(); } else initGame(); }
 
 // --- 游戏初始化 ---
 function initGame() {
     showScreen('game'); 
+    
+    // 背景切换：添加 .in-game 类，背景变暖变亮
+    const bg = document.getElementById('bgAnim');
+    if(bg) bg.classList.add('in-game');
+
     board = Array(BOARD_SIZE).fill(0).map(()=>Array(BOARD_SIZE).fill(EMPTY)); 
     currentPlayer = MAPLE; gameActive = true; 
     historyStack = []; skillUsed = {[MAPLE]:false, [SUN]:false}; 
