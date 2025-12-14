@@ -26,7 +26,7 @@ body {
     background: #000; /* 防止画布加载前闪白 */
 }
 
-/* === 核心升级：Canvas 动态背景 === */
+/* === 核心升级：Canvas 动态背景 (Alpha 0.7.4.2) === */
 #bgCanvas {
     position: fixed;
     top: 0;
@@ -34,8 +34,8 @@ body {
     width: 100%;
     height: 100%;
     z-index: -1; /* 永远在最底层 */
-    /* 春雨的底色：一种清透的、带有雾气的灰青色渐变 */
-    background: linear-gradient(to bottom, #dbe6f6, #c5d8e6);
+    /* 春雨 2.0：纯净白底 + 极淡的冷灰蓝渐变，衬托晶莹剔透的雨滴 */
+    background: linear-gradient(to bottom, #ffffff 0%, #f0f4f8 100%);
 }
 
 /* === 全局容器 === */

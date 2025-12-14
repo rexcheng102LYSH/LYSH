@@ -437,15 +437,15 @@ function updateDynamicUI() { const turnTextEl = document.getElementById('turnTex
 function formatTime(s) { if(s<0) s=0; const m=Math.floor(s/60).toString().padStart(2,'0'); const sec=(s%60).toString().padStart(2,'0'); return `${m}:${sec}`; }
 function showToast(m){ const t=document.getElementById('toast'); t.innerText=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0,3000); }
 
-// ================== Spring Rain Engine (Background Only) ==================
-// This canvas logic is completely isolated from the game board.
+// ================== Spring Rain Engine 2.0 (Crystal Edition) ==================
 const BackgroundEngine = {
     canvas: null,
     ctx: null,
     width: 0,
     height: 0,
     drops: [],
-    numDrops: 100, // Number of raindrops
+    splashes: [], // 水花粒子系统
+    numDrops: 120, 
     animationId: null,
 
     init: function() {
@@ -468,43 +468,89 @@ const BackgroundEngine = {
     createDrops: function() {
         this.drops = [];
         for (let i = 0; i < this.numDrops; i++) {
-            this.drops.push({
-                x: Math.random() * this.width,
-                y: Math.random() * this.height,
-                length: Math.random() * 20 + 10,
-                speed: Math.random() * 5 + 5,
-                wind: Math.random() * 1 - 0.5 // Slight horizontal drift
+            this.drops.push(this.newDrop());
+        }
+    },
+
+    newDrop: function() {
+        return {
+            x: Math.random() * this.width,
+            y: Math.random() * this.height - this.height,
+            length: Math.random() * 25 + 15,
+            speed: Math.random() * 8 + 8, // 更快的下落速度，增加穿透感
+            width: Math.random() * 1.5 + 0.5
+        };
+    },
+
+    createSplash: function(x, y) {
+        // 每个雨滴落地生成 3-5 个水花粒子
+        const count = Math.floor(Math.random() * 3) + 3;
+        for(let i=0; i<count; i++) {
+            this.splashes.push({
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 4, // 横向飞溅
+                vy: -(Math.random() * 3 + 1), // 向上弹起
+                life: 1.0, // 透明度生命周期
+                radius: Math.random() * 1.5 + 0.5
             });
         }
     },
 
     draw: function() {
         this.ctx.clearRect(0, 0, this.width, this.height);
-        
-        // Make the rain look soft (Spring Rain)
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-        this.ctx.lineWidth = 1;
         this.ctx.lineCap = 'round';
 
-        this.ctx.beginPath();
-        for (let i = 0; i < this.numDrops; i++) {
-            const d = this.drops[i];
+        // 1. 绘制雨滴 (Crystal Blue Gradient)
+        this.drops.forEach(d => {
+            // 使用线性渐变模拟水滴的“头部实、尾部虚”
+            const grad = this.ctx.createLinearGradient(d.x, d.y, d.x, d.y + d.length);
+            grad.addColorStop(0, 'rgba(66, 165, 245, 0)');   // 尾部完全透明
+            grad.addColorStop(1, 'rgba(33, 150, 243, 0.8)'); // 头部亮蓝，高不透明度
+            
+            this.ctx.strokeStyle = grad;
+            this.ctx.lineWidth = d.width;
+            
+            this.ctx.beginPath();
             this.ctx.moveTo(d.x, d.y);
-            this.ctx.lineTo(d.x + d.wind, d.y + d.length);
-        }
-        this.ctx.stroke();
+            this.ctx.lineTo(d.x, d.y + d.length);
+            this.ctx.stroke();
+        });
+
+        // 2. 绘制水花溅射 (Splashes)
+        this.splashes.forEach(s => {
+            this.ctx.fillStyle = `rgba(33, 150, 243, ${s.life})`;
+            this.ctx.beginPath();
+            this.ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+            this.ctx.fill();
+        });
     },
 
     update: function() {
-        for (let i = 0; i < this.numDrops; i++) {
+        // 更新雨滴
+        for (let i = 0; i < this.drops.length; i++) {
             const d = this.drops[i];
             d.y += d.speed;
-            d.x += d.wind;
 
-            // Reset if out of bounds
             if (d.y > this.height) {
-                d.y = -d.length;
-                d.x = Math.random() * this.width;
+                // 落地生花
+                this.createSplash(d.x, this.height);
+                // 重置雨滴
+                this.drops[i] = this.newDrop();
+                this.drops[i].y = -this.drops[i].length; // 从屏幕外重新开始
+            }
+        }
+
+        // 更新水花
+        for (let i = this.splashes.length - 1; i >= 0; i--) {
+            const s = this.splashes[i];
+            s.x += s.vx;
+            s.y += s.vy;
+            s.vy += 0.2; // 重力模拟
+            s.life -= 0.05; // 快速消散
+
+            if (s.life <= 0) {
+                this.splashes.splice(i, 1);
             }
         }
     },
@@ -520,7 +566,6 @@ const BackgroundEngine = {
     }
 };
 
-// Start the rain when window loads
 window.addEventListener('load', () => {
     BackgroundEngine.init();
 });
