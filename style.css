@@ -1,13 +1,23 @@
 :root {
+    /* --- 核心环境色 (保持 0.7.0 的高级渐变) --- */
     --bg-gradient: radial-gradient(circle at 50% 0%, #f3f4f6 0%, #c3cfe2 100%);
-    --glass-surface: rgba(255, 255, 255, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.9);
-    --glass-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
-    --glass-blur: blur(16px);
     
+    /* --- 玻璃态参数 --- */
+    --glass-surface: rgba(255, 255, 255, 0.75); /* 稍微不透明一点，防止字看不清 */
+    --glass-border: rgba(255, 255, 255, 0.95);
+    --glass-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
+    --glass-blur: blur(12px);
+    
+    /* --- 游戏语义色 (回归 0.6.9.2 的鲜明配色) --- */
     --board-wood: #e8c384;
-    --line-ink: rgba(60, 40, 30, 0.8);
+    --line-ink: rgba(60, 40, 30, 0.85);
     --corrode-color: #2d3436;
+    --maple-color: #d32f2f;
+    --sun-color: #fbc02d;
+    --win-glow: #00e676;
+    --warn-glow: #ff5722;
+    --chaos-glow: #673ab7;
+    --select-color: #FFD700;
 }
 
 body { 
@@ -25,7 +35,7 @@ body {
     display: none; flex-direction: column; justify-content: center; align-items: center; 
     background: var(--bg-gradient); z-index: 10; padding: 20px; box-sizing: border-box; 
 }
-.screen.active { display: flex; animation: fadeZoomIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.screen.active { display: flex; animation: fadeZoomIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
 @keyframes fadeZoomIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
 
 /* === 玻璃态面板 === */
@@ -41,7 +51,7 @@ body {
 /* === 标题与按钮 === */
 h1 { font-size: 2.5rem; margin-bottom: 5px; color: #2d3436; text-shadow: 0 2px 5px rgba(0,0,0,0.1); font-weight: 800; }
 h2 { color: #636e72; margin-bottom: 25px; font-weight: 400; font-size: 1.1rem; }
-.version-tag { font-size: 0.65rem; background: #6c5ce7; color: #fff; padding: 4px 8px; border-radius: 12px; margin-left: 8px; }
+.version-tag { font-size: 0.65rem; background: #6c5ce7; color: #fff; padding: 4px 8px; border-radius: 12px; margin-left: 8px; vertical-align: middle; }
 
 .btn { 
     padding: 14px 0; width: 85%; max-width: 320px; margin: 10px auto; display: block;
@@ -55,14 +65,37 @@ h2 { color: #636e72; margin-bottom: 25px; font-weight: 400; font-size: 1.1rem; }
 .btn.secondary { background: rgba(255,255,255,0.6); color: #555; }
 .btn.bo3-btn { background: linear-gradient(135deg, #fbc02d, #ff9f43); color: white; }
 
-/* === 猜先/选边界面 (Bug 6 Fix) === */
+/* === 技能选择界面 (修复排版崩坏 Bug) === */
+/* 强制恢复网格布局，确保文字不溢出 */
+.skill-grid { 
+    display: grid; 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 15px; 
+    width: 100%; max-width: 500px; 
+    max-height: 60vh; overflow-y: auto; 
+    padding: 5px; box-sizing: border-box;
+}
+.skill-card { 
+    background: rgba(255,255,255,0.9); 
+    padding: 15px; border-radius: 15px; 
+    border: 2px solid transparent; 
+    cursor: pointer; position: relative; 
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05); 
+    text-align: left; /* 强制左对齐，防止文字居中挤成一团 */
+    display: flex; flex-direction: column; justify-content: center;
+    min-height: 80px; /* 保证卡片高度一致 */
+}
+.skill-card:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+.skill-card.selected { background: #e0e0e0; border-color: #666; filter: grayscale(1); opacity: 0.8; }
+.skill-title { font-weight: bold; font-size: 1rem; color: #333; margin-bottom: 5px; }
+.skill-desc { font-size: 0.8rem; color: #666; line-height: 1.3; }
+
+/* === 猜先/选边界面 === */
 .turn-choice-container { display: flex; gap: 20px; justify-content: center; margin-top: 20px; }
 .turn-card { 
-    background: white; /* 修复：必须有背景色 */
-    padding: 20px; border-radius: 16px; 
+    background: white; padding: 20px; border-radius: 16px; 
     border: 3px solid transparent; cursor: pointer; text-align: center; width: 120px; 
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1); 
-    transition: transform 0.2s;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1); transition: transform 0.2s;
 }
 .turn-card:active { transform: scale(0.95); }
 .turn-card.maple { border-color: #d32f2f; color: #d32f2f; }
@@ -74,6 +107,8 @@ h2 { color: #636e72; margin-bottom: 25px; font-weight: 400; font-size: 1.1rem; }
 .board-wrapper {
     padding: 10px; background: rgba(255,255,255,0.4); border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.15); backdrop-filter: blur(10px); margin: 10px 0;
+    /* 修复遮挡：确保 z-index 不会过高盖住 absolute 元素，或者让 absolute 元素更高 */
+    position: relative; z-index: 1; 
 }
 .board { 
     position: relative; background-color: var(--board-wood); 
@@ -90,7 +125,7 @@ h2 { color: #636e72; margin-bottom: 25px; font-weight: 400; font-size: 1.1rem; }
 .cell::after { content: ''; position: absolute; left: 50%; top: 0; height: 100%; width: 1px; background: var(--line-ink); z-index: 0; }
 .cell[data-star="true"] .dot { width: 20%; height: 20%; background: var(--line-ink); border-radius: 50%; position: absolute; z-index: 0; }
 
-/* === 棋子样式 === */
+/* === 棋子样式 (经典 & 自然) === */
 .piece { 
     width: 85%; height: 85%; z-index: 2; pointer-events: none; border-radius: 50%; 
     display: flex; justify-content: center; align-items: center; font-size: 24px; line-height: 1;
@@ -99,21 +134,28 @@ h2 { color: #636e72; margin-bottom: 25px; font-weight: 400; font-size: 1.1rem; }
 @keyframes drop { from{transform:scale(1.5);opacity:0;} to{transform:scale(1);opacity:1;} }
 @media (max-width: 600px) { .piece { font-size: 5vw; } }
 
-/* 皮肤 A: 自然 */
+/* 皮肤: 自然 */
 .piece.skin-nature { filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
-
-/* 皮肤 B: 经典 */
+/* 皮肤: 经典 */
 .piece.skin-classic { box-shadow: inset 0 -2px 5px rgba(0,0,0,0.3), 0 3px 5px rgba(0,0,0,0.4); }
 .piece.skin-classic.p1 { background: radial-gradient(circle at 35% 35%, #666 0%, #000 100%); }
 .piece.skin-classic.p2 { background: radial-gradient(circle at 35% 35%, #fff 0%, #ddd 100%); }
 
-/* === 状态反馈 (Bug 1 & 5 Fix) === */
-/* 巫毒腐蚀：强制背景色，加图标 */
-.cell.corroded { background: var(--corrode-color) !important; z-index: 1; }
-.cell.corroded::after { content: '☠️'; position: absolute; font-size: 1.2rem; color: #7f8c8d; z-index: 2; }
+/* === 状态反馈 (修复特效丢失与遮挡) === */
+
+/* 1. 领地特效修复 (加深颜色，确保可见) */
+.cell.territory-zone { 
+    background-color: rgba(211, 47, 47, 0.3) !important; /* 加深透明度 */
+    box-shadow: inset 0 0 10px rgba(211, 47, 47, 0.2);
+} 
+.cell.territory-preview { background-color: rgba(211, 47, 47, 0.15); }
+
+/* 2. 腐蚀特效 */
+.cell.corroded { background: var(--corrode-color) !important; z-index: 1; box-shadow: inset 0 0 15px #000; }
+.cell.corroded::after { content: '☠️'; position: absolute; font-size: 1.2rem; color: #7f8c8d; z-index: 2; opacity: 0.7; }
 .cell.corroded .piece { opacity: 0.3; filter: grayscale(1); }
 
-/* 胜利连线：大幅提升 Z-Index */
+/* 3. 胜利连线 (Z-Index 提升) */
 .cell.win-highlight { position: relative; z-index: 10; } 
 .cell.win-highlight::before {
     content: ''; position: absolute; top: 10%; left: 10%; width: 80%; height: 80%;
@@ -122,20 +164,68 @@ h2 { color: #636e72; margin-bottom: 25px; font-weight: 400; font-size: 1.1rem; }
 }
 @keyframes flash { from{opacity:0.5; transform:scale(0.9);} to{opacity:1; transform:scale(1.1);} }
 
-/* 选中框 */
+/* 4. 选中框 */
 .cell.selected-move::after { 
     content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-    border: 2px solid #ffd700; border-radius: 50%; box-sizing: border-box; 
+    border: 2px solid var(--select-color); border-radius: 50%; box-sizing: border-box; 
     z-index: 5; animation: breathe 1.5s infinite; 
+    box-shadow: 0 0 8px var(--select-color); /* 增加发光 */
 }
-@keyframes breathe { 0%{opacity:0.5;} 50%{opacity:1;} 100%{opacity:0.5;} }
+@keyframes breathe { 0%{opacity:0.6; transform:scale(0.95);} 50%{opacity:1; transform:scale(1.05);} 100%{opacity:0.6; transform:scale(0.95);} }
 
-/* === UI 组件 === */
-.top-bar { display: flex; gap: 10px; align-items: center; justify-content: center; width: 100%; margin-bottom: 5px; flex-wrap: wrap; }
-.timer-pill { background: white; padding: 5px 12px; border-radius: 15px; font-family: monospace; font-weight: bold; border: 2px solid transparent; }
-.timer-pill.active { border-color: #333; transform: scale(1.05); }
-.timer-pill.timer-critical { background: #b71c1c; color: white; animation: shake 0.2s infinite; }
-@keyframes shake { 0%{transform:translateX(0);} 25%{transform:translateX(-2px);} 75%{transform:translateX(2px);} }
+/* === UI 组件 (修复遮挡和炸弹特效) === */
+.top-bar { 
+    display: flex; gap: 10px; align-items: center; justify-content: center; 
+    width: 100%; margin-bottom: 5px; flex-wrap: wrap; 
+    position: relative; z-index: 50; /* 确保在棋盘之上 */
+}
+
+.timer-pill { 
+    background: white; padding: 5px 12px; border-radius: 15px; 
+    font-family: monospace; font-weight: bold; border: 2px solid transparent; 
+    transition: all 0.3s;
+}
+.timer-pill.active { border-color: #333; transform: scale(1.05); background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+/* --- 核心修复：定时炸弹特效 (完全照搬 0.6.9.2) --- */
+/* 只要被挂了炸弹，就显示红色呼吸，不管时间多少 */
+.timer-pill.timer-bomb {
+    background: #ffebee !important;
+    color: #d32f2f !important;
+    border: 2px solid #ff1744 !important;
+    animation: bombPulse 1s infinite alternate !important;
+}
+/* 最后30秒，剧烈抖动 */
+.timer-pill.timer-critical {
+    background: #b71c1c !important;
+    color: #fff !important;
+    border: 2px solid #fff !important;
+    animation: criticalShake 0.2s infinite, criticalBlink 0.5s infinite !important;
+}
+/* 普通倒计时紧张状态 */
+.timer-pill.timer-critical-normal {
+    background: #fff3e0; color: #e65100; border: 2px solid #ff9800; animation: normalCriticalPulse 1s infinite;
+}
+
+@keyframes bombPulse { from { box-shadow: 0 0 5px rgba(211, 47, 47, 0.5); transform: scale(1); } to { box-shadow: 0 0 15px rgba(211, 47, 47, 0.8); transform: scale(1.05); } }
+@keyframes criticalShake { 0% { transform: translate(0, 0); } 25% { transform: translate(-2px, 2px); } 50% { transform: translate(2px, -2px); } 75% { transform: translate(-2px, -2px); } 100% { transform: translate(0, 0); } }
+@keyframes criticalBlink { 0%, 100% { background: #b71c1c; border-color: white; } 50% { background: #000; border-color: #ff1744; } }
+@keyframes normalCriticalPulse { 0% { box-shadow: 0 0 0 #ff9800; } 50% { box-shadow: 0 0 10px #ff9800; } 100% { box-shadow: 0 0 0 #ff9800; } }
+
+/* 状态栏图标与比分 (修复遮挡) */
+.counter-badge { 
+    padding: 2px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; color: white; 
+    display: none; box-shadow: 0 2px 5px rgba(0,0,0,0.3); z-index: 100; /* 提升层级 */
+}
+.counter-badge.chaos { background: var(--chaos-glow); position: absolute; bottom: -30px; right: 15%; animation: shake 0.5s; }
+.counter-badge.short-battle { background: var(--warn-glow); position: absolute; bottom: -30px; left: 15%; animation: shake 0.5s; }
+/* 修复比分被遮挡 */
+.score-board { 
+    display: none; background: #333; color: white; padding: 4px 12px; border-radius: 8px; 
+    font-family: monospace; font-size: 1rem; 
+    position: relative; z-index: 100; /* 确保最上层 */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
 
 .bottom-controls { margin-top: 10px; display: flex; gap: 10px; width: 95%; max-width: 500px; justify-content: center; }
 .bottom-controls .btn { padding: 10px 0; font-size: 1rem; width: 30%; }
@@ -147,23 +237,23 @@ h2 { color: #636e72; margin-bottom: 25px; font-weight: 400; font-size: 1.1rem; }
 .skill-btn:disabled { filter: grayscale(1); opacity: 0.6; }
 
 /* 右上角按钮 */
-.top-right-controls { position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 100; }
+.top-right-controls { position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 200; }
 .icon-btn { 
     width: 40px; height: 40px; border-radius: 50%; background: white; border: none; 
     box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer; display: flex; 
     justify-content: center; align-items: center; font-size: 1.2rem;
 }
 
-/* === 弹窗 (Bug 3 Fix) === */
+/* 弹窗与遮罩 */
 .modal { 
     display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
     background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); 
     justify-content: center; align-items: center; 
-    z-index: 9999; /* 关键修复：确保高于一切 */
+    z-index: 9999; 
 }
 .modal-content { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; text-align: center; }
 
-/* 皮肤选择器 (Bug 4 Fix) */
+/* 皮肤选择器 */
 .skin-selector { display: flex; gap: 15px; justify-content: center; margin: 20px 0; }
 .skin-option { 
     border: 2px solid #eee; border-radius: 12px; padding: 10px; cursor: pointer; width: 100px;
@@ -172,7 +262,8 @@ h2 { color: #636e72; margin-bottom: 25px; font-weight: 400; font-size: 1.1rem; }
 .skin-option.active { border-color: #333; background: #f5f5f5; transform: scale(1.05); }
 .skin-preview { font-size: 2rem; margin-bottom: 5px; }
 
-#toast { position: fixed; bottom: 15%; background: rgba(0,0,0,0.8); color: white; padding: 10px 20px; border-radius: 30px; opacity: 0; pointer-events: none; z-index: 10000; }
+#toast { position: fixed; bottom: 15%; background: rgba(0,0,0,0.85); color: white; padding: 10px 20px; border-radius: 30px; opacity: 0; pointer-events: none; z-index: 10000; transition: opacity 0.3s; }
 #explosionOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background:white; opacity:0; pointer-events:none; z-index:9998; }
 .explosion-anim { animation: flashWhite 1.5s forwards; }
 @keyframes flashWhite { 0%{opacity:1;} 100%{opacity:0;} }
+@keyframes shake { 0%{transform:translateX(0);} 25%{transform:translateX(-2px);} 75%{transform:translateX(2px);} }

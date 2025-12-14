@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>落叶 VS 生辉 - Alpha 0.7.1</title>
+    <title>落叶 VS 生辉 - Alpha 0.7.2</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body onclick="SoundEngine.init()">
@@ -19,7 +19,7 @@
         <div class="glass-panel menu-panel">
             <h1 data-i18n="gameTitle">落叶 <span style="font-size:0.5em">VS</span> 生辉</h1>
             <h2 style="margin-top:-5px; font-size:1.2rem; color:#666;">
-                <span data-i18n="subTitle">Bug Fixes</span> <span class="version-tag">Alpha 0.7.1</span>
+                <span data-i18n="subTitle">Visual Restoration</span> <span class="version-tag">Alpha 0.7.2</span>
             </h2>
             <button class="btn primary" onclick="SoundEngine.playPlace(); showDifficultyScreen()" data-i18n="btnPvE">电脑对战 (PvE)</button>
             <button class="btn" onclick="startPvPFlow('single')" data-i18n="btnPvPSingle">双人单局 (PvP)</button>
@@ -58,7 +58,7 @@
     </div>
 
     <div id="skillSelectScreen" class="screen">
-        <h2 id="draftTitle" style="font-size: 1.5rem; color: #333; text-shadow: 0 1px 5px rgba(255,255,255,0.8);">Draft Phase</h2>
+        <h2 id="draftTitle" style="font-size: 1.8rem; color: #333; text-shadow: 0 1px 5px rgba(255,255,255,0.8); margin-bottom: 15px;">Draft Phase</h2>
         <div class="skill-grid" id="skillGrid"></div>
     </div>
 
@@ -128,7 +128,7 @@
                     <span>自然 (Nature)</span>
                 </div>
                 <div class="skin-option" id="skinClassic" onclick="changeSkin('classic')">
-                    <div class="skin-preview" style="background: radial-gradient(circle at 30% 30%, #666, #000); border-radius:50%; width:40px; height:40px; margin:0 auto;"></div>
+                    <div class="skin-preview" style="background: radial-gradient(circle at 30% 30%, #666, #000); border-radius:50%; width:40px; height:40px; margin:0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>
                     <span>经典 (Classic)</span>
                 </div>
             </div>
