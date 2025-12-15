@@ -1,11 +1,10 @@
 /**
- * Project Lysh Visual Engine - Alpha 0.7.4.7 (Winter Snow)
- * * [冬雪实装]
- * 1. 太阳：沿用春日暖阳参数 (奶黄+柔光)，在冷色背景下提供温暖对比。
- * 2. 天空：极夜蓝 (Deep Night Blue) -> 雾霾蓝渐变，高对比度。
- * 3. 雪花：静谧垂直飘落，带轻微正弦摇摆，三层景深 (大小/速度/模糊)。
- * 4. 积雪：屏幕底部绘制起伏的白色雪堆，模拟积雪地面。
- * * [其他] 保留春夏秋所有特效逻辑。
+ * Project Lysh Visual Engine - Alpha 0.7.4.7 (Full Complete)
+ * 包含所有季节完整逻辑，修复代码缺失问题。
+ * [春] 暖阳 + 雨滴
+ * [夏] 烈日 + 彩虹 + 白云
+ * [秋] 夕阳(上暖下冷) + 物理落叶(无堆积)
+ * [冬] 暖阳 + 极夜蓝 + 静谧雪 + 积雪
  */
 
 window.BackgroundEngine = {
@@ -21,13 +20,13 @@ window.BackgroundEngine = {
     sunX: 0,
     sunY: 0,
 
-    // === 粒子/对象 ===
+    // === 粒子/对象 (全季节公用池) ===
     drops: [],
     splashes: [],
     numDrops: 120,
     clouds: [],
     leaves: [],
-    snowflakes: [], // 冬雪数组
+    snowflakes: [],
 
     init: function() {
         this.canvas = document.getElementById('bgCanvas');
@@ -44,7 +43,7 @@ window.BackgroundEngine = {
         this.clearCanvas();
         this.time = 0;
 
-        // 清空所有对象
+        // 清空所有对象，防止串味
         this.drops = [];
         this.splashes = [];
         this.clouds = [];
@@ -78,6 +77,7 @@ window.BackgroundEngine = {
         this.sunX = this.width * 0.15;
         this.sunY = this.height * 0.18;
 
+        // 重置当前季节逻辑，防止变形
         if (this.activeSeason === 'spring') this.initSpring();
         else if (this.activeSeason === 'summer') this.initSummer();
         else if (this.activeSeason === 'autumn') this.initAutumn();
@@ -112,7 +112,7 @@ window.BackgroundEngine = {
             this.updateSpringRain();
             this.drawSpringRain();
         } else if (this.activeSeason === 'summer') {
-            this.drawRainbow(); 
+            this.drawRainbow(); // 彩虹在后
             this.drawSummerSun(); 
             this.updateClouds();
             this.drawClouds();
@@ -123,9 +123,7 @@ window.BackgroundEngine = {
             this.updateAutumnLeaves(); 
             this.drawAutumnLeaves();   
         } else if (this.activeSeason === 'winter') {
-            // 冬：暖阳 -> 积雪 -> 雪花
-            // 直接复用春日暖阳 (你要求的健康太阳)
-            this.drawSpringSun(); 
+            this.drawSpringSun(); // 复用春日暖阳
             this.drawSnowGround(); // 积雪地面
             this.updateWinterSnow();
             this.drawWinterSnow();
@@ -140,17 +138,20 @@ window.BackgroundEngine = {
     drawSkyBackground: function() {
         const grad = this.ctx.createLinearGradient(0, 0, 0, this.height);
         if (this.activeSeason === 'spring') {
+            // 春：清晨蓝灰
             grad.addColorStop(0, '#E6E9F0'); 
             grad.addColorStop(1, '#EEF1F5');
         } else if (this.activeSeason === 'summer') {
+            // 夏：正午湛蓝
             grad.addColorStop(0, '#2980B9'); 
             grad.addColorStop(1, '#6DD5FA'); 
         } else if (this.activeSeason === 'autumn') {
+            // 秋：傍晚 (上暖下冷，撞色)
             grad.addColorStop(0, '#FF512F'); // 暖顶
             grad.addColorStop(0.4, '#DD2476');
-            grad.addColorStop(1, '#2c3e50'); // 冷底 (保留你的A/B选择)
+            grad.addColorStop(1, '#2c3e50'); // 冷底 (暮光)
         } else if (this.activeSeason === 'winter') {
-            // 冬：极夜蓝 -> 雾霾蓝
+            // 冬：黑夜 (极夜蓝)
             grad.addColorStop(0, '#0f172a'); // 深沉的午夜蓝
             grad.addColorStop(0.6, '#1e293b');
             grad.addColorStop(1, '#64748b'); // 底部的灰蓝色，衔接积雪
@@ -162,92 +163,18 @@ window.BackgroundEngine = {
     },
 
     // =========================================
-    // ❄️ 冬雪系统 (Winter Engine)
-    // =========================================
-    initWinter: function() {
-        this.snowflakes = [];
-        const count = 150; // 雪花数量
-        for(let i=0; i<count; i++) {
-            this.snowflakes.push(this.createSnowflake(true));
-        }
-    },
-
-    createSnowflake: function(randomY) {
-        // 景深逻辑：z 越大，离镜头越近 (更大、更快、更透)
-        const z = Math.random(); 
-        return {
-            x: Math.random() * this.width,
-            y: randomY ? Math.random() * this.height : -10,
-            z: z,
-            size: 2 + z * 3, // 2px ~ 5px
-            speed: 0.5 + z * 1.5, // 近处快，远处慢
-            sway: Math.random() * Math.PI * 2, // 摇摆相位
-            swayAmp: 0.5 + Math.random() * 1.0, // 摇摆幅度
-            opacity: 0.4 + z * 0.5 // 近处实，远处虚
-        };
-    },
-
-    updateWinterSnow: function() {
-        this.snowflakes.forEach(s => {
-            s.y += s.speed;
-            s.sway += 0.02; // 缓慢摇摆频率
-            s.x += Math.sin(s.sway) * s.swayAmp; // 正弦波飘落
-
-            // 循环 (落到积雪层下方重置)
-            // 积雪层大约在 height - 30 左右
-            if (s.y > this.height) {
-                // 重置到顶部
-                Object.assign(s, this.createSnowflake(false));
-            }
-        });
-    },
-
-    drawWinterSnow: function() {
-        const ctx = this.ctx;
-        ctx.fillStyle = '#fff';
-        
-        this.snowflakes.forEach(s => {
-            ctx.beginPath();
-            ctx.globalAlpha = s.opacity;
-            // 简单的圆形雪花 (性能最好)
-            ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
-            ctx.fill();
-        });
-        ctx.globalAlpha = 1.0; // 重置
-    },
-
-    // 绘制积雪地面 (Decor)
-    drawSnowGround: function() {
-        const ctx = this.ctx;
-        ctx.fillStyle = '#f1f5f9'; // 略带冷色的白
-        
-        // 画一个起伏的白色小山丘
-        ctx.beginPath();
-        ctx.moveTo(0, this.height);
-        ctx.lineTo(0, this.height - 40);
-        
-        // 贝塞尔曲线模拟雪堆
-        ctx.bezierCurveTo(
-            this.width * 0.3, this.height - 60, 
-            this.width * 0.7, this.height - 20, 
-            this.width, this.height - 40
-        );
-        
-        ctx.lineTo(this.width, this.height);
-        ctx.fill();
-    },
-
-    // =========================================
-    // 🌞 太阳系统 (复用)
+    // 🌞 太阳系统
     // =========================================
     drawSpringSun: function() {
         const ctx = this.ctx;
+        // 柔和光晕
         const glow = ctx.createRadialGradient(this.sunX, this.sunY, 50, this.sunX, this.sunY, 150);
         glow.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
         glow.addColorStop(1, 'rgba(255, 255, 255, 0)');
         ctx.fillStyle = glow;
         ctx.beginPath(); ctx.arc(this.sunX, this.sunY, 150, 0, Math.PI*2); ctx.fill();
 
+        // 太阳本体
         ctx.fillStyle = '#FFFDE7'; 
         ctx.shadowBlur = 15;
         ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
@@ -258,18 +185,22 @@ window.BackgroundEngine = {
     drawSummerSun: function() {
         const ctx = this.ctx;
         const pulse = Math.sin(this.time * 1.5) * 8; 
+        
+        // 呼吸热浪
         const heat = ctx.createRadialGradient(this.sunX, this.sunY, 60, this.sunX, this.sunY, 200 + pulse);
         heat.addColorStop(0, 'rgba(255, 200, 0, 0.4)');
         heat.addColorStop(1, 'rgba(255, 255, 0, 0)');
         ctx.fillStyle = heat;
         ctx.beginPath(); ctx.arc(this.sunX, this.sunY, 300, 0, Math.PI*2); ctx.fill();
 
+        // 核心光晕
         const coreGlow = ctx.createRadialGradient(this.sunX, this.sunY, 50, this.sunX, this.sunY, 120 + pulse * 0.5);
         coreGlow.addColorStop(0, 'rgba(255, 255, 200, 0.8)');
         coreGlow.addColorStop(1, 'rgba(255, 215, 0, 0)');
         ctx.fillStyle = coreGlow;
         ctx.beginPath(); ctx.arc(this.sunX, this.sunY, 150, 0, Math.PI*2); ctx.fill();
 
+        // 太阳本体
         ctx.fillStyle = '#FFF'; 
         ctx.shadowBlur = 40 + pulse;
         ctx.shadowColor = '#FFD700';
@@ -279,6 +210,7 @@ window.BackgroundEngine = {
 
     drawAutumnSun: function() {
         const ctx = this.ctx;
+        // 夕阳 (温润琥珀)
         const glow = ctx.createRadialGradient(this.sunX, this.sunY, 60, this.sunX, this.sunY, 250);
         glow.addColorStop(0, 'rgba(255, 140, 0, 0.4)'); 
         glow.addColorStop(0.5, 'rgba(200, 50, 50, 0.2)'); 
@@ -286,6 +218,7 @@ window.BackgroundEngine = {
         ctx.fillStyle = glow;
         ctx.beginPath(); ctx.arc(this.sunX, this.sunY, 300, 0, Math.PI*2); ctx.fill();
 
+        // 本体
         ctx.fillStyle = '#FFB74D'; 
         ctx.shadowBlur = 30;
         ctx.shadowColor = '#E64A19'; 
@@ -294,7 +227,7 @@ window.BackgroundEngine = {
     },
 
     // =========================================
-    // 🍁 秋叶系统 (保持 0.7.4.7 上暖下冷配色)
+    // 🍁 秋叶系统 (修正：直接穿过底部)
     // =========================================
     initAutumn: function() {
         this.leaves = [];
@@ -322,20 +255,19 @@ window.BackgroundEngine = {
 
     updateAutumnLeaves: function() {
         if (Math.random() < 0.03) this.leaves.push(this.createLeaf(false));
+
         for (let i = this.leaves.length - 1; i >= 0; i--) {
             let l = this.leaves[i];
-            if (l.state === 'falling') {
-                l.x += l.vx + Math.sin(this.time + l.y * 0.01) * 0.5;
-                l.y += l.vy;
-                l.rotation += l.rotSpeed;
-                l.flip += l.flipSpeed;
-                if (l.y > this.height - 25) { 
-                    l.state = 'landed';
-                    l.y = this.height - 25 + Math.random() * 15; 
-                }
-            } else {
-                l.life -= 0.003; 
-                if (l.life <= 0) this.leaves.splice(i, 1);
+            
+            // 物理移动
+            l.x += l.vx + Math.sin(this.time + l.y * 0.01) * 0.5;
+            l.y += l.vy;
+            l.rotation += l.rotSpeed;
+            l.flip += l.flipSpeed;
+
+            // 🔴 修正：无堆积，直接飞出屏幕底部
+            if (l.y > this.height + 20) { 
+                this.leaves.splice(i, 1);
             }
         }
     },
@@ -368,7 +300,62 @@ window.BackgroundEngine = {
     },
 
     // =========================================
-    // ☁️ 云朵 & 其他
+    // ❄️ 冬雪系统
+    // =========================================
+    initWinter: function() {
+        this.snowflakes = [];
+        for(let i=0; i<150; i++) this.snowflakes.push(this.createSnowflake(true));
+    },
+
+    createSnowflake: function(randomY) {
+        const z = Math.random(); 
+        return {
+            x: Math.random() * this.width,
+            y: randomY ? Math.random() * this.height : -10,
+            z: z,
+            size: 2 + z * 3, 
+            speed: 0.5 + z * 1.5, 
+            sway: Math.random() * Math.PI * 2, 
+            swayAmp: 0.5 + Math.random() * 1.0, 
+            opacity: 0.4 + z * 0.5 
+        };
+    },
+
+    updateWinterSnow: function() {
+        this.snowflakes.forEach(s => {
+            s.y += s.speed;
+            s.sway += 0.02; 
+            s.x += Math.sin(s.sway) * s.swayAmp; 
+            // 循环下落
+            if (s.y > this.height) Object.assign(s, this.createSnowflake(false));
+        });
+    },
+
+    drawWinterSnow: function() {
+        const ctx = this.ctx;
+        ctx.fillStyle = '#fff';
+        this.snowflakes.forEach(s => {
+            ctx.beginPath();
+            ctx.globalAlpha = s.opacity;
+            ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1.0; 
+    },
+
+    drawSnowGround: function() {
+        const ctx = this.ctx;
+        ctx.fillStyle = '#f1f5f9'; // 积雪
+        ctx.beginPath();
+        ctx.moveTo(0, this.height);
+        ctx.lineTo(0, this.height - 40);
+        ctx.bezierCurveTo(this.width * 0.3, this.height - 60, this.width * 0.7, this.height - 20, this.width, this.height - 40);
+        ctx.lineTo(this.width, this.height);
+        ctx.fill();
+    },
+
+    // =========================================
+    // ☁️ 云朵系统 (通用)
     // =========================================
     createCloud: function(type, randomX) {
         const puffs = [];
@@ -403,15 +390,6 @@ window.BackgroundEngine = {
         };
     },
 
-    initSpring: function() {
-        this.drops = []; for (let i = 0; i < this.numDrops; i++) this.drops.push(this.newDrop()); this.splashes = [];
-        this.clouds = []; for(let i=0; i<6; i++) this.clouds.push(this.createCloud('spring', true));
-    },
-
-    initSummer: function() {
-        this.clouds = []; for(let i=0; i<5; i++) this.clouds.push(this.createCloud('summer', true));
-    },
-
     updateClouds: function() {
         this.clouds.forEach((c, index) => {
             c.x += c.speed;
@@ -439,30 +417,117 @@ window.BackgroundEngine = {
         });
     },
 
+    // =========================================
+    // 💧 雨水 (Spring Rain) - 完整逻辑
+    // =========================================
+    initSpring: function() {
+        this.drops = [];
+        for (let i = 0; i < this.numDrops; i++) this.drops.push(this.newDrop());
+        this.splashes = [];
+        this.clouds = [];
+        for(let i=0; i<6; i++) this.clouds.push(this.createCloud('spring', true));
+    },
+
+    newDrop: function() {
+        return {
+            x: Math.random() * this.width,
+            y: Math.random() * this.height - this.height,
+            length: Math.random() * 25 + 15,
+            speed: Math.random() * 8 + 8,
+            width: Math.random() * 1.5 + 0.5
+        };
+    },
+
+    updateSpringRain: function() {
+        for (let i = 0; i < this.drops.length; i++) {
+            const d = this.drops[i];
+            d.y += d.speed;
+            if (d.y > this.height) {
+                this.createSplash(d.x, this.height);
+                this.drops[i] = this.newDrop();
+                this.drops[i].y = -this.drops[i].length;
+            }
+        }
+        for (let i = this.splashes.length - 1; i >= 0; i--) {
+            const s = this.splashes[i];
+            s.x += s.vx; s.y += s.vy; s.vy += 0.2; s.life -= 0.05;
+            if (s.life <= 0) this.splashes.splice(i, 1);
+        }
+    },
+
+    createSplash: function(x, y) {
+        const count = Math.floor(Math.random() * 3) + 3;
+        for(let i=0; i<count; i++) {
+            this.splashes.push({
+                x: x, y: y,
+                vx: (Math.random() - 0.5) * 4,
+                vy: -(Math.random() * 3 + 1),
+                life: 1.0, radius: Math.random() * 1.5 + 0.5
+            });
+        }
+    },
+
+    drawSpringRain: function() {
+        const ctx = this.ctx;
+        ctx.lineCap = 'round';
+        this.drops.forEach(d => {
+            const grad = ctx.createLinearGradient(d.x, d.y, d.x, d.y + d.length);
+            grad.addColorStop(0, 'rgba(66, 165, 245, 0)');
+            grad.addColorStop(1, 'rgba(33, 150, 243, 0.8)');
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = d.width;
+            ctx.beginPath();
+            ctx.moveTo(d.x, d.y);
+            ctx.lineTo(d.x, d.y + d.length);
+            ctx.stroke();
+        });
+        this.splashes.forEach(s => {
+            ctx.fillStyle = `rgba(33, 150, 243, ${s.life})`;
+            ctx.beginPath(); ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2); ctx.fill();
+        });
+    },
+
+    // =========================================
+    // 🌈 彩虹 (Summer Rainbow) - 完整逻辑
+    // =========================================
+    initSummer: function() {
+        this.clouds = [];
+        for(let i=0; i<5; i++) this.clouds.push(this.createCloud('summer', true));
+    },
+
     drawRainbow: function() {
         const ctx = this.ctx;
         const radius = this.width * 0.6;
         const cx = this.width * 0.5;
         const cy = this.height + (radius * 0.45); 
+
         ctx.save();
         ctx.globalCompositeOperation = 'source-over';
-        const colors = ['hsla(0, 100%, 55%, 0.65)','hsla(30, 100%, 55%, 0.65)','hsla(60, 100%, 55%, 0.65)','hsla(120, 100%, 55%, 0.65)','hsla(200, 100%, 55%, 0.65)','hsla(270, 100%, 55%, 0.65)','hsla(300, 100%, 55%, 0.65)'];
+
+        const colors = [
+            'hsla(0, 100%, 55%, 0.65)',    // 红
+            'hsla(30, 100%, 55%, 0.65)',   // 橙
+            'hsla(60, 100%, 55%, 0.65)',   // 黄
+            'hsla(120, 100%, 55%, 0.65)',  // 绿
+            'hsla(200, 100%, 55%, 0.65)',  // 蓝
+            'hsla(270, 100%, 55%, 0.65)',  // 靛
+            'hsla(300, 100%, 55%, 0.65)'   // 紫
+        ];
+
         const thickness = 22; 
+        
         colors.forEach((color, i) => {
             ctx.beginPath();
             ctx.arc(cx, cy, radius - (i * thickness), Math.PI, Math.PI * 2);
             ctx.strokeStyle = color;
             ctx.lineWidth = thickness;
-            ctx.shadowColor = color; ctx.shadowBlur = 50; 
+            ctx.shadowColor = color; 
+            ctx.shadowBlur = 50; 
             ctx.stroke();
         });
-        ctx.restore();
-    },
 
-    newDrop: function() { return { x: Math.random() * this.width, y: Math.random() * this.height - this.height, length: Math.random() * 25 + 15, speed: Math.random() * 8 + 8, width: Math.random() * 1.5 + 0.5 }; },
-    updateSpringRain: function() { for (let i = 0; i < this.drops.length; i++) { const d = this.drops[i]; d.y += d.speed; if (d.y > this.height) { this.createSplash(d.x, this.height); this.drops[i] = this.newDrop(); this.drops[i].y = -this.drops[i].length; } } for (let i = this.splashes.length - 1; i >= 0; i--) { const s = this.splashes[i]; s.x += s.vx; s.y += s.vy; s.vy += 0.2; s.life -= 0.05; if (s.life <= 0) this.splashes.splice(i, 1); } },
-    createSplash: function(x, y) { const count = Math.floor(Math.random() * 3) + 3; for(let i=0; i<count; i++) { this.splashes.push({ x: x, y: y, vx: (Math.random() - 0.5) * 4, vy: -(Math.random() * 3 + 1), life: 1.0, radius: Math.random() * 1.5 + 0.5 }); } },
-    drawSpringRain: function() { const ctx = this.ctx; ctx.lineCap = 'round'; this.drops.forEach(d => { const grad = ctx.createLinearGradient(d.x, d.y, d.x, d.y + d.length); grad.addColorStop(0, 'rgba(66, 165, 245, 0)'); grad.addColorStop(1, 'rgba(33, 150, 243, 0.8)'); ctx.strokeStyle = grad; ctx.lineWidth = d.width; ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x, d.y + d.length); ctx.stroke(); }); this.splashes.forEach(s => { ctx.fillStyle = `rgba(33, 150, 243, ${s.life})`; ctx.beginPath(); ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2); ctx.fill(); }); }
+        ctx.restore();
+    }
 };
 
 window.addEventListener('load', () => {

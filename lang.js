@@ -3,7 +3,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "落葉 <span style='font-size:0.5em'>VS</span> 生輝", 
-        subTitle: "Alpha 0.7.4.3",
+        subTitle: "Alpha 0.7.4.8", // 版本号统一
         btnPvE: "電腦對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -25,10 +25,8 @@ const I18N = {
         lblMusicVol: "音樂音量", lblSfxVol: "音效音量", lblMusicTrack: "背景音樂",
         trackOrigin: "原初", trackOverture: "序曲 (MP3)", trackBgm2: "古風 (MP3)",
         
-        // === 0.7.4.3 新增 keys (保持繁体) ===
         lblSeason: "背景特效",
         seasonSpring: "春雨", seasonSummer: "夏陽", seasonAutumn: "秋葉", seasonWinter: "冬雪",
-        // ===================================
 
         btnClose: "關閉",
         errNoSkinInGame: "對局進行中無法更換皮膚！",
@@ -68,7 +66,7 @@ const I18N = {
     'zh': {
         langName: "简", 
         gameTitle: "落叶 <span style='font-size:0.5em'>VS</span> 生辉", 
-        subTitle: "Alpha 0.7.4.3",
+        subTitle: "Alpha 0.7.4.8", // 版本号统一
         btnPvE: "电脑对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -90,10 +88,8 @@ const I18N = {
         lblMusicVol: "音乐音量", lblSfxVol: "音效音量", lblMusicTrack: "背景音乐",
         trackOrigin: "原初", trackOverture: "序曲 (MP3)", trackBgm2: "古风 (MP3)",
         
-        // === 0.7.4.3 新增 keys (保持简体) ===
         lblSeason: "背景特效",
         seasonSpring: "春雨", seasonSummer: "夏阳", seasonAutumn: "秋叶", seasonWinter: "冬雪",
-        // ===================================
 
         btnClose: "关闭",
         errNoSkinInGame: "对局进行中无法更换皮肤！",
@@ -133,7 +129,7 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Fallen <span style='font-size:0.5em'>VS</span> Radiance", 
-        subTitle: "Alpha 0.7.4.3",
+        subTitle: "Alpha 0.7.4.8", // Version fix
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -155,10 +151,8 @@ const I18N = {
         lblMusicVol: "Music Volume", lblSfxVol: "SFX Volume", lblMusicTrack: "Background Music",
         trackOrigin: "Origin", trackOverture: "Overture (MP3)", trackBgm2: "Ancient (MP3)",
         
-        // === 0.7.4.3 New Keys (English) ===
         lblSeason: "Background FX",
         seasonSpring: "Spring Rain", seasonSummer: "Summer Sun", seasonAutumn: "Autumn Leaves", seasonWinter: "Winter Snow",
-        // =================================
 
         btnClose: "Close",
         errNoSkinInGame: "Cannot change skin during game!",
@@ -197,7 +191,7 @@ const I18N = {
     }
 };
 
-// 🔴 核心修复：默认语言设为 'zh-TW' (繁体)
+// 默认语言设为 'zh-TW' (繁体)
 let curLangKey = 'zh-TW';
 const LANG_ORDER = ['zh-TW', 'zh', 'en'];
 
@@ -217,20 +211,13 @@ function t(key, path=null) {
 function toggleLanguage() { 
     const idx = LANG_ORDER.indexOf(curLangKey); 
     curLangKey = LANG_ORDER[(idx + 1) % LANG_ORDER.length]; 
-    
-    // 更新按钮文字
     const btn = document.querySelector('.lang-btn');
     if (btn) btn.innerText = I18N[curLangKey].langName; 
-    
     updateStaticText(); 
-    
-    // 如果设置界面开着，实时更新
     const settings = document.getElementById('settingsModal');
     if(settings && settings.style.display === 'flex') {
         if(typeof openSettings === 'function') openSettings(); 
     }
-    
-    // 检查 game.js 是否已加载且游戏正在运行
     if(typeof updateDynamicUI === 'function' && typeof gameActive !== 'undefined' && gameActive) {
         updateDynamicUI(); 
     }
@@ -243,8 +230,6 @@ function updateStaticText() {
     });
 }
 
-// 🔴 强制初始化：页面加载后立刻刷成繁体
-// 这可以覆盖 index.html 里硬编码的简体字，防止出现“第一次进是简体”的 bug
 window.addEventListener('DOMContentLoaded', () => {
     const btn = document.querySelector('.lang-btn');
     if (btn && I18N[curLangKey]) btn.innerText = I18N[curLangKey].langName;
