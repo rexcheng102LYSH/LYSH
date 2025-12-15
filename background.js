@@ -1,10 +1,10 @@
 /**
- * Project Lysh Visual Engine - Alpha 0.7.4.7 (Full Complete)
- * 包含所有季节完整逻辑，修复代码缺失问题。
- * [春] 暖阳 + 雨滴
- * [夏] 烈日 + 彩虹 + 白云
- * [秋] 夕阳(上暖下冷) + 物理落叶(无堆积)
- * [冬] 暖阳 + 极夜蓝 + 静谧雪 + 积雪
+ * Project Lysh Visual Engine - Alpha 0.7.4.9 (Spring Sun Polish)
+ * * [春阳重铸] 
+ * 1. 范围扩大：光晕半径从150px提升至300px (对标夏阳)，穿透雨幕。
+ * 2. 色调升温：抛弃惨白，改用暖金/嫩黄色调 (Morning Gold)，作为"清晨最亮的灯"。
+ * 3. 核心强化：增强本体发光力度，使其更具朝气。
+ * * [全季节保留] 完整包含夏(烈日)、秋(无堆积落叶)、冬(积雪+暖阳)的所有逻辑。
  */
 
 window.BackgroundEngine = {
@@ -77,7 +77,7 @@ window.BackgroundEngine = {
         this.sunX = this.width * 0.15;
         this.sunY = this.height * 0.18;
 
-        // 重置当前季节逻辑，防止变形
+        // 重置当前季节逻辑
         if (this.activeSeason === 'spring') this.initSpring();
         else if (this.activeSeason === 'summer') this.initSummer();
         else if (this.activeSeason === 'autumn') this.initAutumn();
@@ -112,7 +112,7 @@ window.BackgroundEngine = {
             this.updateSpringRain();
             this.drawSpringRain();
         } else if (this.activeSeason === 'summer') {
-            this.drawRainbow(); // 彩虹在后
+            this.drawRainbow(); 
             this.drawSummerSun(); 
             this.updateClouds();
             this.drawClouds();
@@ -123,8 +123,8 @@ window.BackgroundEngine = {
             this.updateAutumnLeaves(); 
             this.drawAutumnLeaves();   
         } else if (this.activeSeason === 'winter') {
-            this.drawSpringSun(); // 复用春日暖阳
-            this.drawSnowGround(); // 积雪地面
+            this.drawSpringSun(); // 冬日复用这个升级后的暖阳
+            this.drawSnowGround(); 
             this.updateWinterSnow();
             this.drawWinterSnow();
         }
@@ -146,15 +146,15 @@ window.BackgroundEngine = {
             grad.addColorStop(0, '#2980B9'); 
             grad.addColorStop(1, '#6DD5FA'); 
         } else if (this.activeSeason === 'autumn') {
-            // 秋：傍晚 (上暖下冷，撞色)
+            // 秋：傍晚 (上暖下冷)
             grad.addColorStop(0, '#FF512F'); // 暖顶
             grad.addColorStop(0.4, '#DD2476');
-            grad.addColorStop(1, '#2c3e50'); // 冷底 (暮光)
+            grad.addColorStop(1, '#2c3e50'); // 冷底
         } else if (this.activeSeason === 'winter') {
             // 冬：黑夜 (极夜蓝)
             grad.addColorStop(0, '#0f172a'); // 深沉的午夜蓝
             grad.addColorStop(0.6, '#1e293b');
-            grad.addColorStop(1, '#64748b'); // 底部的灰蓝色，衔接积雪
+            grad.addColorStop(1, '#64748b'); 
         } else {
             grad.addColorStop(0, '#fff'); grad.addColorStop(1, '#eee');
         }
@@ -163,21 +163,34 @@ window.BackgroundEngine = {
     },
 
     // =========================================
-    // 🌞 太阳系统
+    // 🌞 太阳系统 (The Sun)
     // =========================================
+    
+    // 🔴 核心更新：春日朝阳 (Spring Morning Sun)
+    // 目标：热烈、暖黄、范围大、清晨最亮的灯
     drawSpringSun: function() {
         const ctx = this.ctx;
-        // 柔和光晕
-        const glow = ctx.createRadialGradient(this.sunX, this.sunY, 50, this.sunX, this.sunY, 150);
-        glow.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
-        glow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+        // 1. 广域晨光 (对标夏阳 300px 范围)
+        // 使用暖黄色 (rgba 255, 238, 88) 代替原本的白色
+        const glow = ctx.createRadialGradient(this.sunX, this.sunY, 60, this.sunX, this.sunY, 300);
+        glow.addColorStop(0, 'rgba(255, 238, 88, 0.35)'); // 核心附近：明亮的暖黄
+        glow.addColorStop(0.5, 'rgba(255, 241, 118, 0.15)'); // 中间：柔和的淡黄
+        glow.addColorStop(1, 'rgba(255, 255, 255, 0)');   // 边缘：透明
         ctx.fillStyle = glow;
-        ctx.beginPath(); ctx.arc(this.sunX, this.sunY, 150, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(this.sunX, this.sunY, 300, 0, Math.PI*2); ctx.fill();
 
-        // 太阳本体
-        ctx.fillStyle = '#FFFDE7'; 
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+        // 2. 内部高光 (Inner Glow) - 金色微染
+        const coreGlow = ctx.createRadialGradient(this.sunX, this.sunY, 50, this.sunX, this.sunY, 120);
+        coreGlow.addColorStop(0, 'rgba(255, 215, 0, 0.25)'); 
+        coreGlow.addColorStop(1, 'rgba(255, 255, 224, 0)');
+        ctx.fillStyle = coreGlow;
+        ctx.beginPath(); ctx.arc(this.sunX, this.sunY, 120, 0, Math.PI*2); ctx.fill();
+
+        // 3. 太阳本体 (The Lamp) - 更有质感的奶酪黄
+        ctx.fillStyle = '#FFF9C4'; 
+        ctx.shadowBlur = 25; // 增强发光力度
+        ctx.shadowColor = '#FDD835'; // 投影改为明黄色 (不再是惨白)
         ctx.beginPath(); ctx.arc(this.sunX, this.sunY, 55, 0, Math.PI*2); ctx.fill();
         ctx.shadowBlur = 0;
     },
@@ -193,14 +206,12 @@ window.BackgroundEngine = {
         ctx.fillStyle = heat;
         ctx.beginPath(); ctx.arc(this.sunX, this.sunY, 300, 0, Math.PI*2); ctx.fill();
 
-        // 核心光晕
         const coreGlow = ctx.createRadialGradient(this.sunX, this.sunY, 50, this.sunX, this.sunY, 120 + pulse * 0.5);
         coreGlow.addColorStop(0, 'rgba(255, 255, 200, 0.8)');
         coreGlow.addColorStop(1, 'rgba(255, 215, 0, 0)');
         ctx.fillStyle = coreGlow;
         ctx.beginPath(); ctx.arc(this.sunX, this.sunY, 150, 0, Math.PI*2); ctx.fill();
 
-        // 太阳本体
         ctx.fillStyle = '#FFF'; 
         ctx.shadowBlur = 40 + pulse;
         ctx.shadowColor = '#FFD700';
@@ -210,7 +221,6 @@ window.BackgroundEngine = {
 
     drawAutumnSun: function() {
         const ctx = this.ctx;
-        // 夕阳 (温润琥珀)
         const glow = ctx.createRadialGradient(this.sunX, this.sunY, 60, this.sunX, this.sunY, 250);
         glow.addColorStop(0, 'rgba(255, 140, 0, 0.4)'); 
         glow.addColorStop(0.5, 'rgba(200, 50, 50, 0.2)'); 
@@ -218,7 +228,6 @@ window.BackgroundEngine = {
         ctx.fillStyle = glow;
         ctx.beginPath(); ctx.arc(this.sunX, this.sunY, 300, 0, Math.PI*2); ctx.fill();
 
-        // 本体
         ctx.fillStyle = '#FFB74D'; 
         ctx.shadowBlur = 30;
         ctx.shadowColor = '#E64A19'; 
@@ -227,7 +236,7 @@ window.BackgroundEngine = {
     },
 
     // =========================================
-    // 🍁 秋叶系统 (修正：直接穿过底部)
+    // 🍁 秋叶系统 (无堆积，飞出屏幕)
     // =========================================
     initAutumn: function() {
         this.leaves = [];
@@ -258,14 +267,11 @@ window.BackgroundEngine = {
 
         for (let i = this.leaves.length - 1; i >= 0; i--) {
             let l = this.leaves[i];
-            
-            // 物理移动
             l.x += l.vx + Math.sin(this.time + l.y * 0.01) * 0.5;
             l.y += l.vy;
             l.rotation += l.rotSpeed;
             l.flip += l.flipSpeed;
 
-            // 🔴 修正：无堆积，直接飞出屏幕底部
             if (l.y > this.height + 20) { 
                 this.leaves.splice(i, 1);
             }
@@ -300,7 +306,7 @@ window.BackgroundEngine = {
     },
 
     // =========================================
-    // ❄️ 冬雪系统
+    // ❄️ 冬雪系统 (积雪地面)
     // =========================================
     initWinter: function() {
         this.snowflakes = [];
@@ -326,7 +332,6 @@ window.BackgroundEngine = {
             s.y += s.speed;
             s.sway += 0.02; 
             s.x += Math.sin(s.sway) * s.swayAmp; 
-            // 循环下落
             if (s.y > this.height) Object.assign(s, this.createSnowflake(false));
         });
     },
@@ -345,7 +350,7 @@ window.BackgroundEngine = {
 
     drawSnowGround: function() {
         const ctx = this.ctx;
-        ctx.fillStyle = '#f1f5f9'; // 积雪
+        ctx.fillStyle = '#f1f5f9'; 
         ctx.beginPath();
         ctx.moveTo(0, this.height);
         ctx.lineTo(0, this.height - 40);
@@ -355,7 +360,7 @@ window.BackgroundEngine = {
     },
 
     // =========================================
-    // ☁️ 云朵系统 (通用)
+    // ☁️ 云朵 (通用)
     // =========================================
     createCloud: function(type, randomX) {
         const puffs = [];
@@ -418,7 +423,7 @@ window.BackgroundEngine = {
     },
 
     // =========================================
-    // 💧 雨水 (Spring Rain) - 完整逻辑
+    // 💧 雨水 & 🌈 彩虹
     // =========================================
     initSpring: function() {
         this.drops = [];
@@ -487,9 +492,6 @@ window.BackgroundEngine = {
         });
     },
 
-    // =========================================
-    // 🌈 彩虹 (Summer Rainbow) - 完整逻辑
-    // =========================================
     initSummer: function() {
         this.clouds = [];
         for(let i=0; i<5; i++) this.clouds.push(this.createCloud('summer', true));

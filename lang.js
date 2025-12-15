@@ -3,7 +3,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "落葉 <span style='font-size:0.5em'>VS</span> 生輝", 
-        subTitle: "Alpha 0.7.4.8", // 版本号统一
+        subTitle: "Alpha 0.7.4.9", 
         btnPvE: "電腦對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -66,7 +66,7 @@ const I18N = {
     'zh': {
         langName: "简", 
         gameTitle: "落叶 <span style='font-size:0.5em'>VS</span> 生辉", 
-        subTitle: "Alpha 0.7.4.8", // 版本号统一
+        subTitle: "Alpha 0.7.4.9", 
         btnPvE: "电脑对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -129,7 +129,7 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Fallen <span style='font-size:0.5em'>VS</span> Radiance", 
-        subTitle: "Alpha 0.7.4.8", // Version fix
+        subTitle: "Alpha 0.7.4.9", 
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
