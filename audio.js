@@ -5,29 +5,51 @@ const SoundEngine = {
     
     musicVolume: 0.5, 
     sfxVolume: 1.0,
+    ambientVolume: 1.0, // 新增环境音效音量 (默认 100%)
+    
     currentTrack: 'origin', // 'origin' | 'overture' | 'bgm2' | 'bomb'
     bgmTimeout: null,
     
     mp3Audio: null,
+    ambientAudio: null, // 新增环境音效对象 (bgm3.mp3)
     isCritical: false,
 
     init: function() { 
         if (this.ctx) return; 
         const AC = window.AudioContext || window.webkitAudioContext; 
         this.ctx = new AC(); 
-        this.startBGM(); 
+        this.startBGM();
+        // 初始化时检查是否需要播放环境音 (如果是春季)
+        if (window.BackgroundEngine && window.BackgroundEngine.activeSeason === 'spring') {
+            this.playAmbient();
+        }
     },
     
     toggle: function() { 
         if (!this.ctx) this.init(); 
         this.isMuted = !this.isMuted; 
         document.querySelector('.sound-toggle').innerText = this.isMuted ? '🔇' : '🎵'; 
-        this.isMuted ? this.stopBGM() : this.startBGM(); 
+        if (this.isMuted) {
+            this.stopBGM();
+            this.stopAmbient();
+        } else {
+            this.startBGM();
+            // 如果解除静音时是春季，恢复雨声
+            if (window.BackgroundEngine && window.BackgroundEngine.activeSeason === 'spring') {
+                this.playAmbient();
+            }
+        }
     },
 
     setMusicVolume: function(v) {
         this.musicVolume = v;
         if(this.mp3Audio) this.mp3Audio.volume = v;
+    },
+
+    // 新增：设置环境音量
+    setAmbientVolume: function(v) {
+        this.ambientVolume = v;
+        if (this.ambientAudio) this.ambientAudio.volume = v;
     },
 
     setCritical: function(critical) {
@@ -120,7 +142,6 @@ const SoundEngine = {
         this.bgmTimeout = setTimeout(() => this.playOriginLoop(), d * 800);
     },
 
-    // 核心修改：支持 bgm2.mp3
     playMp3Loop: function() {
         if (!this.mp3Audio) {
             let filename = 'bgm.mp3';
@@ -158,5 +179,27 @@ const SoundEngine = {
 
         this.bombStep++;
         this.bgmTimeout = setTimeout(() => this.playBombLoop(), stepTime);
+    },
+
+    // --- 新增：环境音效逻辑 (Ambient) ---
+    playAmbient: function() {
+        if (this.isMuted) return;
+        if (!this.ambientAudio) {
+            this.ambientAudio = new Audio('bgm3.mp3');
+            this.ambientAudio.loop = true;
+        }
+        this.ambientAudio.volume = this.ambientVolume;
+        // 如果未播放，则播放
+        if (this.ambientAudio.paused) {
+            this.ambientAudio.play().catch(e => console.log("Ambient play blocked/waiting", e));
+        }
+    },
+
+    stopAmbient: function() {
+        if (this.ambientAudio) {
+            this.ambientAudio.pause();
+            // 不重置 currentTime，以便下次接着播放，或者你也可以重置
+            // this.ambientAudio.currentTime = 0; 
+        }
     }
 };

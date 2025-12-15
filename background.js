@@ -1,10 +1,9 @@
 /**
- * Project Lysh Visual Engine - Alpha 0.7.4.9 (Spring Sun Polish)
- * * [春阳重铸] 
- * 1. 范围扩大：光晕半径从150px提升至300px (对标夏阳)，穿透雨幕。
- * 2. 色调升温：抛弃惨白，改用暖金/嫩黄色调 (Morning Gold)，作为"清晨最亮的灯"。
- * 3. 核心强化：增强本体发光力度，使其更具朝气。
- * * [全季节保留] 完整包含夏(烈日)、秋(无堆积落叶)、冬(积雪+暖阳)的所有逻辑。
+ * Project Lysh Visual Engine - Alpha 0.7.5 (Ambient Audio)
+ * * [新增特性] 环境音效联动
+ * 1. 春季：调用 SoundEngine.playAmbient() 播放雨声。
+ * 2. 夏/秋/冬：调用 SoundEngine.stopAmbient() 停止雨声。
+ * * [视觉保持] 完美保留 0.7.4.9 的所有视觉效果 (春日天光、极夜冬雪、上暖下冷秋色)。
  */
 
 window.BackgroundEngine = {
@@ -43,12 +42,21 @@ window.BackgroundEngine = {
         this.clearCanvas();
         this.time = 0;
 
-        // 清空所有对象，防止串味
+        // 清空所有对象
         this.drops = [];
         this.splashes = [];
         this.clouds = [];
         this.leaves = [];
         this.snowflakes = [];
+
+        // 核心改动：音频联动
+        if (typeof SoundEngine !== 'undefined') {
+            if (season === 'spring') {
+                SoundEngine.playAmbient(); // 播放雨声
+            } else {
+                SoundEngine.stopAmbient(); // 停止雨声
+            }
+        }
 
         if (season === 'spring') {
             this.initSpring();
@@ -123,7 +131,7 @@ window.BackgroundEngine = {
             this.updateAutumnLeaves(); 
             this.drawAutumnLeaves();   
         } else if (this.activeSeason === 'winter') {
-            this.drawSpringSun(); // 冬日复用这个升级后的暖阳
+            this.drawSpringSun(); 
             this.drawSnowGround(); 
             this.updateWinterSnow();
             this.drawWinterSnow();
@@ -138,21 +146,21 @@ window.BackgroundEngine = {
     drawSkyBackground: function() {
         const grad = this.ctx.createLinearGradient(0, 0, 0, this.height);
         if (this.activeSeason === 'spring') {
-            // 春：清晨蓝灰
-            grad.addColorStop(0, '#E6E9F0'); 
-            grad.addColorStop(1, '#EEF1F5');
+            // 春：清晨天光
+            grad.addColorStop(0, '#A1C4FD'); 
+            grad.addColorStop(1, '#F1F2F6');
         } else if (this.activeSeason === 'summer') {
             // 夏：正午湛蓝
             grad.addColorStop(0, '#2980B9'); 
             grad.addColorStop(1, '#6DD5FA'); 
         } else if (this.activeSeason === 'autumn') {
             // 秋：傍晚 (上暖下冷)
-            grad.addColorStop(0, '#FF512F'); // 暖顶
+            grad.addColorStop(0, '#FF512F'); 
             grad.addColorStop(0.4, '#DD2476');
-            grad.addColorStop(1, '#2c3e50'); // 冷底
+            grad.addColorStop(1, '#2c3e50'); 
         } else if (this.activeSeason === 'winter') {
             // 冬：黑夜 (极夜蓝)
-            grad.addColorStop(0, '#0f172a'); // 深沉的午夜蓝
+            grad.addColorStop(0, '#0f172a'); 
             grad.addColorStop(0.6, '#1e293b');
             grad.addColorStop(1, '#64748b'); 
         } else {
@@ -165,32 +173,27 @@ window.BackgroundEngine = {
     // =========================================
     // 🌞 太阳系统 (The Sun)
     // =========================================
-    
-    // 🔴 核心更新：春日朝阳 (Spring Morning Sun)
-    // 目标：热烈、暖黄、范围大、清晨最亮的灯
     drawSpringSun: function() {
         const ctx = this.ctx;
-        
-        // 1. 广域晨光 (对标夏阳 300px 范围)
-        // 使用暖黄色 (rgba 255, 238, 88) 代替原本的白色
+        // 广域晨光
         const glow = ctx.createRadialGradient(this.sunX, this.sunY, 60, this.sunX, this.sunY, 300);
-        glow.addColorStop(0, 'rgba(255, 238, 88, 0.35)'); // 核心附近：明亮的暖黄
-        glow.addColorStop(0.5, 'rgba(255, 241, 118, 0.15)'); // 中间：柔和的淡黄
-        glow.addColorStop(1, 'rgba(255, 255, 255, 0)');   // 边缘：透明
+        glow.addColorStop(0, 'rgba(255, 238, 88, 0.35)'); 
+        glow.addColorStop(0.5, 'rgba(255, 241, 118, 0.15)'); 
+        glow.addColorStop(1, 'rgba(255, 255, 255, 0)');   
         ctx.fillStyle = glow;
         ctx.beginPath(); ctx.arc(this.sunX, this.sunY, 300, 0, Math.PI*2); ctx.fill();
 
-        // 2. 内部高光 (Inner Glow) - 金色微染
+        // 内部高光
         const coreGlow = ctx.createRadialGradient(this.sunX, this.sunY, 50, this.sunX, this.sunY, 120);
         coreGlow.addColorStop(0, 'rgba(255, 215, 0, 0.25)'); 
         coreGlow.addColorStop(1, 'rgba(255, 255, 224, 0)');
         ctx.fillStyle = coreGlow;
         ctx.beginPath(); ctx.arc(this.sunX, this.sunY, 120, 0, Math.PI*2); ctx.fill();
 
-        // 3. 太阳本体 (The Lamp) - 更有质感的奶酪黄
+        // 太阳本体
         ctx.fillStyle = '#FFF9C4'; 
-        ctx.shadowBlur = 25; // 增强发光力度
-        ctx.shadowColor = '#FDD835'; // 投影改为明黄色 (不再是惨白)
+        ctx.shadowBlur = 25; 
+        ctx.shadowColor = '#FDD835'; 
         ctx.beginPath(); ctx.arc(this.sunX, this.sunY, 55, 0, Math.PI*2); ctx.fill();
         ctx.shadowBlur = 0;
     },
@@ -199,7 +202,6 @@ window.BackgroundEngine = {
         const ctx = this.ctx;
         const pulse = Math.sin(this.time * 1.5) * 8; 
         
-        // 呼吸热浪
         const heat = ctx.createRadialGradient(this.sunX, this.sunY, 60, this.sunX, this.sunY, 200 + pulse);
         heat.addColorStop(0, 'rgba(255, 200, 0, 0.4)');
         heat.addColorStop(1, 'rgba(255, 255, 0, 0)');
@@ -236,7 +238,7 @@ window.BackgroundEngine = {
     },
 
     // =========================================
-    // 🍁 秋叶系统 (无堆积，飞出屏幕)
+    // 🍁 秋叶系统
     // =========================================
     initAutumn: function() {
         this.leaves = [];
@@ -306,7 +308,7 @@ window.BackgroundEngine = {
     },
 
     // =========================================
-    // ❄️ 冬雪系统 (积雪地面)
+    // ❄️ 冬雪系统
     // =========================================
     initWinter: function() {
         this.snowflakes = [];

@@ -53,10 +53,16 @@ function showScreen(n) {
 
 function openSettings() {
     document.getElementById('settingsModal').style.display = 'flex';
+    // 音乐
     document.getElementById('sliderMusic').value = SoundEngine.musicVolume * 100;
     document.getElementById('valMusic').innerText = Math.round(SoundEngine.musicVolume * 100) + '%';
+    // 音效
     document.getElementById('sliderSfx').value = SoundEngine.sfxVolume * 100;
     document.getElementById('valSfx').innerText = Math.round(SoundEngine.sfxVolume * 100) + '%';
+    // 环境音效 (新增)
+    document.getElementById('sliderAmbient').value = SoundEngine.ambientVolume * 100;
+    document.getElementById('valAmbient').innerText = Math.round(SoundEngine.ambientVolume * 100) + '%';
+    
     updateTrackUI();
     updateSeasonUI(); 
 }
@@ -84,14 +90,18 @@ function updateSkinUI() {
     else document.getElementById('skinClassic').classList.add('active');
 }
 
+// 核心音量控制修改
 function updateVolume(type, val) {
     const v = val / 100;
     if (type === 'music') { 
         SoundEngine.setMusicVolume(v); 
         document.getElementById('valMusic').innerText = val + '%'; 
-    } else { 
+    } else if (type === 'sfx') { 
         SoundEngine.sfxVolume = v; 
         document.getElementById('valSfx').innerText = val + '%'; 
+    } else if (type === 'ambient') { // 新增环境音量控制
+        SoundEngine.setAmbientVolume(v);
+        document.getElementById('valAmbient').innerText = val + '%';
     }
 }
 
@@ -113,7 +123,6 @@ function changeSeason(season) {
     SoundEngine.playPlace();
     currentSeason = season;
     
-    // 安全检查：确保 BackgroundEngine 存在且 switchSeason 是函数
     if (window.BackgroundEngine && typeof window.BackgroundEngine.switchSeason === 'function') {
         window.BackgroundEngine.switchSeason(season);
     } else {

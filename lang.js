@@ -3,7 +3,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "落葉 <span style='font-size:0.5em'>VS</span> 生輝", 
-        subTitle: "Alpha 0.7.4.9", 
+        subTitle: "Alpha 0.7.5", // 版本更新
         btnPvE: "電腦對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -22,7 +22,8 @@ const I18N = {
         pveTag: "電腦: ", 
         names: { 1: "落葉方", 2: "生輝方" },
         titleSettings: "系統設置", 
-        lblMusicVol: "音樂音量", lblSfxVol: "音效音量", lblMusicTrack: "背景音樂",
+        lblMusicVol: "音樂音量", lblSfxVol: "音效音量", lblAmbientVol: "環境音效", // 新增
+        lblMusicTrack: "背景音樂",
         trackOrigin: "原初", trackOverture: "序曲 (MP3)", trackBgm2: "古風 (MP3)",
         
         lblSeason: "背景特效",
@@ -66,7 +67,7 @@ const I18N = {
     'zh': {
         langName: "简", 
         gameTitle: "落叶 <span style='font-size:0.5em'>VS</span> 生辉", 
-        subTitle: "Alpha 0.7.4.9", 
+        subTitle: "Alpha 0.7.5", // 版本更新
         btnPvE: "电脑对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -85,7 +86,8 @@ const I18N = {
         pveTag: "电脑: ", 
         names: { 1: "落叶方", 2: "生辉方" },
         titleSettings: "系统设置", 
-        lblMusicVol: "音乐音量", lblSfxVol: "音效音量", lblMusicTrack: "背景音乐",
+        lblMusicVol: "音乐音量", lblSfxVol: "音效音量", lblAmbientVol: "环境音效", // 新增
+        lblMusicTrack: "背景音乐",
         trackOrigin: "原初", trackOverture: "序曲 (MP3)", trackBgm2: "古风 (MP3)",
         
         lblSeason: "背景特效",
@@ -129,7 +131,7 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Fallen <span style='font-size:0.5em'>VS</span> Radiance", 
-        subTitle: "Alpha 0.7.4.9", 
+        subTitle: "Alpha 0.7.5", // Version Update
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -148,7 +150,8 @@ const I18N = {
         pveTag: "CPU: ", 
         names: { 1: "Autumn", 2: "Radiance" },
         titleSettings: "Settings", 
-        lblMusicVol: "Music Volume", lblSfxVol: "SFX Volume", lblMusicTrack: "Background Music",
+        lblMusicVol: "Music Volume", lblSfxVol: "SFX Volume", lblAmbientVol: "Ambient SFX", // New
+        lblMusicTrack: "Background Music",
         trackOrigin: "Origin", trackOverture: "Overture (MP3)", trackBgm2: "Ancient (MP3)",
         
         lblSeason: "Background FX",
