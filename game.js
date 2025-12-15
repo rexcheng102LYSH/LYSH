@@ -1,9 +1,9 @@
-// ================= 全局变量 =================
+// ================= 全局变量 =================/
 const BOARD_SIZE = 15, EMPTY = 0, MAPLE = 1, SUN = 2, CORRODED = -1;
 const ICONS = { [MAPLE]: '🍁', [SUN]: '☀️' };
 const SKILL_IDS = ['double','voodoo','move_self','move_enemy','zone','bomb','god_hand','chaos','short_battle','swap'];
 
-// SVG 图标库 (Alpha 0.7.4 重绘版 - 绝不重复)
+// SVG 图标库
 const SKILL_ICONS = {
     double: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13l-5-5L15 2l5 5-10 6z"/><path d="M14 17l-5-5L19 6l5 5-10 6z"/><path d="M4 22l6-6"/></svg>',
     voodoo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 13s1.5 1.5 3 0 3 0"/><path d="M9 9h.01"/><path d="M15 9h.01"/></svg>',
@@ -29,7 +29,8 @@ let historyStack = [];
 let selectedCell = null;
 let bombTarget = null; 
 let userMusicPref = 'origin';
-let currentSkin = 'nature'; 
+let currentSkin = 'nature';
+let currentSeason = 'spring';
 
 // ================= 界面控制 =================
 const screens = { 
@@ -57,6 +58,7 @@ function openSettings() {
     document.getElementById('sliderSfx').value = SoundEngine.sfxVolume * 100;
     document.getElementById('valSfx').innerText = Math.round(SoundEngine.sfxVolume * 100) + '%';
     updateTrackUI();
+    updateSeasonUI(); 
 }
 function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
 
@@ -104,6 +106,30 @@ function updateTrackUI() {
     if (userMusicPref === 'origin') document.getElementById('trackOrigin').classList.add('active');
     else if (userMusicPref === 'overture') document.getElementById('trackOverture').classList.add('active');
     else if (userMusicPref === 'bgm2') document.getElementById('trackBgm2').classList.add('active');
+}
+
+// === 安全的季节切换逻辑 ===
+function changeSeason(season) {
+    SoundEngine.playPlace();
+    currentSeason = season;
+    
+    // 安全检查：确保 BackgroundEngine 存在且 switchSeason 是函数
+    if (window.BackgroundEngine && typeof window.BackgroundEngine.switchSeason === 'function') {
+        window.BackgroundEngine.switchSeason(season);
+    } else {
+        console.warn("BackgroundEngine or switchSeason missing!");
+    }
+    updateSeasonUI();
+}
+
+function updateSeasonUI() {
+    const seasons = ['spring', 'summer', 'autumn', 'winter'];
+    seasons.forEach(s => {
+        const btn = document.getElementById('season' + s.charAt(0).toUpperCase() + s.slice(1));
+        if (btn) btn.classList.remove('active');
+    });
+    const activeBtn = document.getElementById('season' + currentSeason.charAt(0).toUpperCase() + currentSeason.slice(1));
+    if (activeBtn) activeBtn.classList.add('active');
 }
 
 // --- 导航与流程 ---
@@ -351,7 +377,7 @@ function handleSkillInteraction(r, c) {
         const c1 = getCell(s1.r, s1.c); if(c1) c1.style.opacity = '1'; board[s1.r][s1.c] = s2.val; board[s2.r][s2.c] = s1.val; 
         if(c1) { c1.innerHTML=''; placePiece(s1.r, s1.c, s2.val, true); } 
         const c2 = getCell(s2.r, s2.c); 
-        if(c2) { c2.innerHTML=''; placePiece(s2.r, s2.c, s1.val, true); }
+        if(c2) { c2.innerHTML=''; placePiece(s2.r, c2.c, s1.val, true); }
         activeEffect = null; b.classList.remove('casting-move-dest'); 
         const wl1 = checkWin(s1.r, s1.c, s2.val); if(wl1) { highlightWin(wl1, s2.val); return; } 
         const wl2 = checkWin(s2.r, s2.c, s1.val); if(wl2) { highlightWin(wl2, s1.val); return; } 
@@ -436,136 +462,3 @@ function startBombTimer() { if(bombInterval) clearInterval(bombInterval); bombIn
 function updateDynamicUI() { const turnTextEl = document.getElementById('turnText'); const newTurnText = t('names')[currentPlayer===MAPLE?1:2]; if (turnTextEl.innerText !== newTurnText) turnTextEl.innerText = newTurnText; const turnIconEl = document.getElementById('turnIcon'); const newTurnIcon = ICONS[currentPlayer]; if (turnIconEl.innerText !== newTurnIcon) turnIconEl.innerText = newTurnIcon; const statusBar = document.getElementById('statusBar'); const newClass = 'status-pill ' + (currentPlayer === MAPLE ? 'turn-maple' : 'turn-sun'); if (statusBar.className !== newClass) statusBar.className = newClass; const t1 = document.getElementById('timer1'); const t2 = document.getElementById('timer2'); const t1Text = `🍁 ${formatTime(timeRemaining[MAPLE])}`; const t2Text = `☀️ ${formatTime(timeRemaining[SUN])}`; if (t1.innerText !== t1Text) t1.innerText = t1Text; if (t2.innerText !== t2Text) t2.innerText = t2Text; const updateTimerVisual = (player, timerEl, time) => { timerEl.className = `timer-pill ${currentPlayer===player?'active':''}`; if (bombTarget === player) { if (time < 30) { timerEl.classList.add('timer-critical'); } else { timerEl.classList.add('timer-bomb'); } } else if (time < 30) { timerEl.classList.add('timer-critical-normal'); } }; updateTimerVisual(MAPLE, t1, timeRemaining[MAPLE]); updateTimerVisual(SUN, t2, timeRemaining[SUN]); const cc = document.getElementById('chaosCounter'); const sbc = document.getElementById('shortBattleCounter'); if (chaosDebuff[currentPlayer] > 0) { cc.style.display = 'block'; const ccText = `${t('chaosLabel', 'toast')} ${chaosDebuff[currentPlayer]}`; if (cc.innerText !== ccText) cc.innerText = ccText; } else { cc.style.display = 'none'; } if (shortBattleTurns > 0) { sbc.style.display = 'block'; const sbcText = `${t('shortBattleLabel', 'toast')} ${shortBattleTurns}`; if (sbc.innerText !== sbcText) sbc.innerText = sbcText; } else { sbc.style.display = 'none'; } const ms = playerSkills[currentPlayer]; const u = skillUsed[currentPlayer]; const btn = document.getElementById('skillBtn'); if (!ms) { btn.disabled = true; if (btn.querySelector('span').innerText !== "---") btn.querySelector('span').innerText = "---"; if (btn.querySelector('small').innerText !== "") btn.querySelector('small').innerText = ""; return; } const so = t(ms, 'skills'); let myC=0, oppC=0; board.forEach(r=>r.forEach(c=>{ if(c===currentPlayer)myC++; else if(c!==0&&c!==-1)oppC++; })); let viable = true; if(ms==='move_self' && myC===0) viable=false; else if(ms==='move_enemy' && oppC===0) viable=false; else if((ms==='god_hand'||ms==='voodoo') && (myC+oppC)===0) viable=false; else if(ms==='swap' && (myC===0 || oppC===0)) viable=false; const span = btn.querySelector('span'); const small = btn.querySelector('small'); if(u || !viable) { btn.disabled=true; const newSpan = (so?so.name:t('skillName')) + " " + (u?t('skillUsed'):t('skillNoTarget')); if (span.innerText !== newSpan) span.innerText = newSpan; if (small.innerText !== "") small.innerText = ""; } else { btn.disabled=false; const newSpan = so?so.name:t('skillName'); const newSmall = t('skillReady'); if (span.innerText !== newSpan) span.innerText = newSpan; if (small.innerText !== newSmall) small.innerText = newSmall; } }
 function formatTime(s) { if(s<0) s=0; const m=Math.floor(s/60).toString().padStart(2,'0'); const sec=(s%60).toString().padStart(2,'0'); return `${m}:${sec}`; }
 function showToast(m){ const t=document.getElementById('toast'); t.innerText=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0,3000); }
-
-// ================== Spring Rain Engine 2.0 (Crystal Edition) ==================
-const BackgroundEngine = {
-    canvas: null,
-    ctx: null,
-    width: 0,
-    height: 0,
-    drops: [],
-    splashes: [], // 水花粒子系统
-    numDrops: 120, 
-    animationId: null,
-
-    init: function() {
-        this.canvas = document.getElementById('bgCanvas');
-        if (!this.canvas) return;
-        this.ctx = this.canvas.getContext('2d');
-        this.resize();
-        window.addEventListener('resize', () => this.resize());
-        this.createDrops();
-        this.start();
-    },
-
-    resize: function() {
-        this.width = window.innerWidth;
-        this.height = window.innerHeight;
-        this.canvas.width = this.width;
-        this.canvas.height = this.height;
-    },
-
-    createDrops: function() {
-        this.drops = [];
-        for (let i = 0; i < this.numDrops; i++) {
-            this.drops.push(this.newDrop());
-        }
-    },
-
-    newDrop: function() {
-        return {
-            x: Math.random() * this.width,
-            y: Math.random() * this.height - this.height,
-            length: Math.random() * 25 + 15,
-            speed: Math.random() * 8 + 8, // 更快的下落速度，增加穿透感
-            width: Math.random() * 1.5 + 0.5
-        };
-    },
-
-    createSplash: function(x, y) {
-        // 每个雨滴落地生成 3-5 个水花粒子
-        const count = Math.floor(Math.random() * 3) + 3;
-        for(let i=0; i<count; i++) {
-            this.splashes.push({
-                x: x,
-                y: y,
-                vx: (Math.random() - 0.5) * 4, // 横向飞溅
-                vy: -(Math.random() * 3 + 1), // 向上弹起
-                life: 1.0, // 透明度生命周期
-                radius: Math.random() * 1.5 + 0.5
-            });
-        }
-    },
-
-    draw: function() {
-        this.ctx.clearRect(0, 0, this.width, this.height);
-        this.ctx.lineCap = 'round';
-
-        // 1. 绘制雨滴 (Crystal Blue Gradient)
-        this.drops.forEach(d => {
-            // 使用线性渐变模拟水滴的“头部实、尾部虚”
-            const grad = this.ctx.createLinearGradient(d.x, d.y, d.x, d.y + d.length);
-            grad.addColorStop(0, 'rgba(66, 165, 245, 0)');   // 尾部完全透明
-            grad.addColorStop(1, 'rgba(33, 150, 243, 0.8)'); // 头部亮蓝，高不透明度
-            
-            this.ctx.strokeStyle = grad;
-            this.ctx.lineWidth = d.width;
-            
-            this.ctx.beginPath();
-            this.ctx.moveTo(d.x, d.y);
-            this.ctx.lineTo(d.x, d.y + d.length);
-            this.ctx.stroke();
-        });
-
-        // 2. 绘制水花溅射 (Splashes)
-        this.splashes.forEach(s => {
-            this.ctx.fillStyle = `rgba(33, 150, 243, ${s.life})`;
-            this.ctx.beginPath();
-            this.ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
-            this.ctx.fill();
-        });
-    },
-
-    update: function() {
-        // 更新雨滴
-        for (let i = 0; i < this.drops.length; i++) {
-            const d = this.drops[i];
-            d.y += d.speed;
-
-            if (d.y > this.height) {
-                // 落地生花
-                this.createSplash(d.x, this.height);
-                // 重置雨滴
-                this.drops[i] = this.newDrop();
-                this.drops[i].y = -this.drops[i].length; // 从屏幕外重新开始
-            }
-        }
-
-        // 更新水花
-        for (let i = this.splashes.length - 1; i >= 0; i--) {
-            const s = this.splashes[i];
-            s.x += s.vx;
-            s.y += s.vy;
-            s.vy += 0.2; // 重力模拟
-            s.life -= 0.05; // 快速消散
-
-            if (s.life <= 0) {
-                this.splashes.splice(i, 1);
-            }
-        }
-    },
-
-    loop: function() {
-        this.update();
-        this.draw();
-        this.animationId = requestAnimationFrame(() => this.loop());
-    },
-
-    start: function() {
-        if (!this.animationId) this.loop();
-    }
-};
-
-window.addEventListener('load', () => {
-    BackgroundEngine.init();
-});

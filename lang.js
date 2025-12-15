@@ -1,69 +1,9 @@
 // ================== I18N (语言包独立文件) ==================
 const I18N = {
-    'zh': {
-        langName: "简", 
-        gameTitle: "落叶 <span style='font-size:0.5em'>VS</span> 生辉", 
-        subTitle: "Alpha 0.7.3",
-        btnPvE: "电脑对战 (PvE)", 
-        btnPvPSingle: "双人单局 (PvP)", 
-        btnPvPBO3: "三番战 (PvP BO3)", 
-        hintSound: "点击任意处开启音效",
-        titleDiff: "选择难度", 
-        diffEasy: "简单", diffMedium: "中等", diffHard: "困难", diffMaster: "大师", 
-        btnBack: "返回",
-        titlePickSide: "猜先/选边", 
-        descPickSide: "选择身份", 
-        descPickSideLoser: "上一局失利者选边",
-        sideFirst: "先手(黑)", sideSecond: "后手(白)",
-        draftTitle: "{icon} {name} (选技能)", 
-        btnUndo: "悔棋", btnExit: "退出", 
-        skillReady: "点击释放", skillUsed: "(已用)", skillName: "技能", skillNoTarget: "(缺目标)",
-        confirmExit: "确定要退出吗？棋局将丢失。", 
-        pveTag: "电脑: ", 
-        names: { 1: "落叶方", 2: "生辉方" },
-        titleSettings: "系统设置", 
-        lblMusicVol: "音乐音量", lblSfxVol: "音效音量", lblMusicTrack: "背景音乐",
-        trackOrigin: "原初", trackOverture: "序曲 (MP3)", trackBgm2: "古风 (MP3)",
-        btnClose: "关闭",
-        // 新增错误提示
-        errNoSkinInGame: "对局进行中无法更换皮肤！",
-        skills: {
-            double: { name: "双连", desc: "本回合落两子" },
-            voodoo: { name: "巫毒", desc: "腐蚀一格，继续落子" },
-            move_self: { name: "移花接木", desc: "移己方一子，继续落子" },
-            move_enemy: { name: "乾坤大挪移", desc: "移敌方一子，继续落子" },
-            zone: { name: "领地", desc: "划定3x3禁区(6回合)" },
-            bomb: { name: "时间炸弹", desc: "扣除对方2分钟！(致死)" },
-            god_hand: { name: "上帝之手", desc: "移任意两子，结束回合" },
-            chaos: { name: "混乱骰子", desc: "对手下两步随机偏移" },
-            short_battle: { name: "短兵战", desc: "6回合内四子即胜" },
-            swap: { name: "置换反应", desc: "换敌我各一子，继续落子" }
-        },
-        toast: {
-            skillUsed: "技能已用尽", casting: "释放：", 
-            doubleStart: "双连：请下第1子", doubleNext: "双连：请下第2子！",
-            voodooPick: "选择腐蚀目标", voodooDone: "腐蚀完成，请落子", 
-            moveSrcSelf: "选择己方棋子", moveSrcEnemy: "选择敌方棋子",
-            moveDest: "选择新位置", moveDone: "移动完成，请落子", 
-            zonePick: "选择领地中心", zoneDone: "领地生成，请落子",
-            bombStart: "炸弹爆炸！对方-2分钟", 
-            errInvalid: "无效操作", errZone: "禁区无法落子", undoPvP: "竞技模式无悔棋！",
-            godPick1: "上帝之手：选第1子", godDest1: "选第1落点", godPick2: "上帝之手：选第2子", godDest2: "选第2落点",
-            chaosTrigger: "混乱触发！落点偏移", chaosLabel: "🎲 混乱:", 
-            shortBattleLabel: "⚔️ 短兵:", shortBattleStart: "短兵战！四子即胜",
-            swapPickSelf: "置换：选己方子", swapPickEnemy: "置换：选敌方子", swapDone: "置换完成，请落子", 
-            undoDone: "悔棋成功", timeOut: "时间耗尽！"
-        },
-        end: { 
-            win: "获胜！", lose: "挑战失败", 
-            grandWin: "👑 大胜利！", grandWinDesc: "{name} 赢得三番战", 
-            score: "比分", btnNext: "下一局", btnMenu: "主菜单", btnRestart: "再来一局", btnQuitMatch: "退出比赛" 
-        }
-    },
     'zh-TW': {
         langName: "繁", 
         gameTitle: "落葉 <span style='font-size:0.5em'>VS</span> 生輝", 
-        subTitle: "Alpha 0.7.3",
+        subTitle: "Alpha 0.7.4.3",
         btnPvE: "電腦對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -84,6 +24,12 @@ const I18N = {
         titleSettings: "系統設置", 
         lblMusicVol: "音樂音量", lblSfxVol: "音效音量", lblMusicTrack: "背景音樂",
         trackOrigin: "原初", trackOverture: "序曲 (MP3)", trackBgm2: "古風 (MP3)",
+        
+        // === 0.7.4.3 新增 keys (保持繁体) ===
+        lblSeason: "背景特效",
+        seasonSpring: "春雨", seasonSummer: "夏陽", seasonAutumn: "秋葉", seasonWinter: "冬雪",
+        // ===================================
+
         btnClose: "關閉",
         errNoSkinInGame: "對局進行中無法更換皮膚！",
         skills: {
@@ -119,10 +65,75 @@ const I18N = {
             score: "比分", btnNext: "下一局", btnMenu: "主菜單", btnRestart: "再來一局", btnQuitMatch: "退出比賽" 
         }
     },
+    'zh': {
+        langName: "简", 
+        gameTitle: "落叶 <span style='font-size:0.5em'>VS</span> 生辉", 
+        subTitle: "Alpha 0.7.4.3",
+        btnPvE: "电脑对战 (PvE)", 
+        btnPvPSingle: "双人单局 (PvP)", 
+        btnPvPBO3: "三番战 (PvP BO3)", 
+        hintSound: "点击任意处开启音效",
+        titleDiff: "选择难度", 
+        diffEasy: "简单", diffMedium: "中等", diffHard: "困难", diffMaster: "大师", 
+        btnBack: "返回",
+        titlePickSide: "猜先/选边", 
+        descPickSide: "选择身份", 
+        descPickSideLoser: "上一局失利者选边",
+        sideFirst: "先手(黑)", sideSecond: "后手(白)",
+        draftTitle: "{icon} {name} (选技能)", 
+        btnUndo: "悔棋", btnExit: "退出", 
+        skillReady: "点击释放", skillUsed: "(已用)", skillName: "技能", skillNoTarget: "(缺目标)",
+        confirmExit: "确定要退出吗？棋局将丢失。", 
+        pveTag: "电脑: ", 
+        names: { 1: "落叶方", 2: "生辉方" },
+        titleSettings: "系统设置", 
+        lblMusicVol: "音乐音量", lblSfxVol: "音效音量", lblMusicTrack: "背景音乐",
+        trackOrigin: "原初", trackOverture: "序曲 (MP3)", trackBgm2: "古风 (MP3)",
+        
+        // === 0.7.4.3 新增 keys (保持简体) ===
+        lblSeason: "背景特效",
+        seasonSpring: "春雨", seasonSummer: "夏阳", seasonAutumn: "秋叶", seasonWinter: "冬雪",
+        // ===================================
+
+        btnClose: "关闭",
+        errNoSkinInGame: "对局进行中无法更换皮肤！",
+        skills: {
+            double: { name: "双连", desc: "本回合落两子" },
+            voodoo: { name: "巫毒", desc: "腐蚀一格，继续落子" },
+            move_self: { name: "移花接木", desc: "移己方一子，继续落子" },
+            move_enemy: { name: "乾坤大挪移", desc: "移敌方一子，继续落子" },
+            zone: { name: "领地", desc: "划定3x3禁区(6回合)" },
+            bomb: { name: "时间炸弹", desc: "扣除对方2分钟！(致死)" },
+            god_hand: { name: "上帝之手", desc: "移任意两子，结束回合" },
+            chaos: { name: "混乱骰子", desc: "对手下两步随机偏移" },
+            short_battle: { name: "短兵战", desc: "6回合内四子即胜" },
+            swap: { name: "置换反应", desc: "换敌我各一子，继续落子" }
+        },
+        toast: {
+            skillUsed: "技能已用尽", casting: "释放：", 
+            doubleStart: "双连：请下第1子", doubleNext: "双连：请下第2子！",
+            voodooPick: "选择腐蚀目标", voodooDone: "腐蚀完成，请落子", 
+            moveSrcSelf: "选择己方棋子", moveSrcEnemy: "选择敌方棋子",
+            moveDest: "选择新位置", moveDone: "移动完成，请落子", 
+            zonePick: "选择领地中心", zoneDone: "领地生成，请落子",
+            bombStart: "炸弹爆炸！对方-2分钟", 
+            errInvalid: "无效操作", errZone: "禁区无法落子", undoPvP: "竞技模式无悔棋！",
+            godPick1: "上帝之手：选第1子", godDest1: "选第1落点", godPick2: "上帝之手：选第2子", godDest2: "选第2落点",
+            chaosTrigger: "混乱触发！落点偏移", chaosLabel: "🎲 混乱:", 
+            shortBattleLabel: "⚔️ 短兵:", shortBattleStart: "短兵战！四子即胜",
+            swapPickSelf: "置换：选己方子", swapPickEnemy: "置换：选敌方子", swapDone: "置换完成，请落子", 
+            undoDone: "悔棋成功", timeOut: "时间耗尽！"
+        },
+        end: { 
+            win: "获胜！", lose: "挑战失败", 
+            grandWin: "👑 大胜利！", grandWinDesc: "{name} 赢得三番战", 
+            score: "比分", btnNext: "下一局", btnMenu: "主菜单", btnRestart: "再来一局", btnQuitMatch: "退出比赛" 
+        }
+    },
     'en': {
         langName: "En", 
-        gameTitle: "Autumn <span style='font-size:0.5em'>VS</span> Radiance", 
-        subTitle: "Alpha 0.7.3",
+        gameTitle: "Fallen <span style='font-size:0.5em'>VS</span> Radiance", 
+        subTitle: "Alpha 0.7.4.3",
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -143,6 +154,12 @@ const I18N = {
         titleSettings: "Settings", 
         lblMusicVol: "Music Volume", lblSfxVol: "SFX Volume", lblMusicTrack: "Background Music",
         trackOrigin: "Origin", trackOverture: "Overture (MP3)", trackBgm2: "Ancient (MP3)",
+        
+        // === 0.7.4.3 New Keys (English) ===
+        lblSeason: "Background FX",
+        seasonSpring: "Spring Rain", seasonSummer: "Summer Sun", seasonAutumn: "Autumn Leaves", seasonWinter: "Winter Snow",
+        // =================================
+
         btnClose: "Close",
         errNoSkinInGame: "Cannot change skin during game!",
         skills: {
@@ -180,15 +197,39 @@ const I18N = {
     }
 };
 
-let curLangKey = 'zh';
-const LANG_ORDER = ['zh', 'zh-TW', 'en'];
-function t(key, path=null) { if(path) return I18N[curLangKey][path][key]; return I18N[curLangKey][key]; }
+// 🔴 核心修复：默认语言设为 'zh-TW' (繁体)
+let curLangKey = 'zh-TW';
+const LANG_ORDER = ['zh-TW', 'zh', 'en'];
+
+function t(key, path=null) { 
+    if(path) {
+        if (I18N[curLangKey] && I18N[curLangKey][path] && I18N[curLangKey][path][key]) {
+            return I18N[curLangKey][path][key];
+        }
+        return key; 
+    }
+    if (I18N[curLangKey] && I18N[curLangKey][key]) {
+        return I18N[curLangKey][key];
+    }
+    return key; 
+}
 
 function toggleLanguage() { 
     const idx = LANG_ORDER.indexOf(curLangKey); 
     curLangKey = LANG_ORDER[(idx + 1) % LANG_ORDER.length]; 
-    document.querySelector('.lang-btn').innerText = I18N[curLangKey].langName; 
+    
+    // 更新按钮文字
+    const btn = document.querySelector('.lang-btn');
+    if (btn) btn.innerText = I18N[curLangKey].langName; 
+    
     updateStaticText(); 
+    
+    // 如果设置界面开着，实时更新
+    const settings = document.getElementById('settingsModal');
+    if(settings && settings.style.display === 'flex') {
+        if(typeof openSettings === 'function') openSettings(); 
+    }
+    
     // 检查 game.js 是否已加载且游戏正在运行
     if(typeof updateDynamicUI === 'function' && typeof gameActive !== 'undefined' && gameActive) {
         updateDynamicUI(); 
@@ -201,3 +242,11 @@ function updateStaticText() {
         el.innerHTML = t(key); 
     });
 }
+
+// 🔴 强制初始化：页面加载后立刻刷成繁体
+// 这可以覆盖 index.html 里硬编码的简体字，防止出现“第一次进是简体”的 bug
+window.addEventListener('DOMContentLoaded', () => {
+    const btn = document.querySelector('.lang-btn');
+    if (btn && I18N[curLangKey]) btn.innerText = I18N[curLangKey].langName;
+    updateStaticText();
+});
