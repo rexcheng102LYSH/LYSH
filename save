@@ -1,9 +1,10 @@
 /**
- * Project Lysh Visual Engine - Alpha 0.7.4.7 (Autumn Gradient Flip)
- * * [视觉实验] A/B 测试：上暖下冷配色
- * 1. 背景：顶部为夕阳暖色 (橘红/粉)，底部为暮光冷色 (深蓝灰)。
- * 2. 目的：利用冷暖对比，极大增强底部堆积落叶的辨识度。
- * * [功能保持] 秋叶物理、夕阳、火烧云逻辑不变。
+ * Project Lysh Visual Engine - Alpha 0.7.4.6 (Autumn Engine)
+ * * [秋叶实装] 
+ * 1. 夕阳系统：位置锁定，色调改为温润橘红+紫霞光晕。
+ * 2. 火烧云：扁平、宽大、透光的粉橘色云层。
+ * 3. 落叶物理：实现翻转、摇摆、落地堆积（渐隐）效果。
+ * 4. 天空背景：紫-橙渐变，模拟黄昏。
  */
 
 window.BackgroundEngine = {
@@ -120,7 +121,7 @@ window.BackgroundEngine = {
     },
 
     // =========================================
-    // 🎨 背景绘制 (Sky Background) - 核心修改
+    // 🎨 背景绘制 (Sky Background)
     // =========================================
     drawSkyBackground: function() {
         const grad = this.ctx.createLinearGradient(0, 0, 0, this.height);
@@ -131,13 +132,10 @@ window.BackgroundEngine = {
             grad.addColorStop(0, '#2980B9'); 
             grad.addColorStop(1, '#6DD5FA'); 
         } else if (this.activeSeason === 'autumn') {
-            // 🔴 A/B 测试：上暖下冷 (Warm Top -> Cold Bottom)
-            // 顶部：夕阳余晖 (橘红/暖粉)
-            grad.addColorStop(0, '#FF512F'); 
-            // 中部：过渡 (紫罗兰)
-            grad.addColorStop(0.4, '#DD2476');
-            // 底部：暮光阴影 (深灰蓝) - 这能完美衬托金色的落叶
-            grad.addColorStop(1, '#2c3e50');   
+            // 秋：黄昏渐变 (深紫蓝 -> 橘红)
+            grad.addColorStop(0, '#4b3f72'); // 顶部的深紫
+            grad.addColorStop(0.6, '#ff8c42'); // 中间的橘色
+            grad.addColorStop(1, '#ff3c38');   // 底部的红晕
         } else {
             grad.addColorStop(0, '#fff'); grad.addColorStop(1, '#eee');
         }
@@ -187,17 +185,18 @@ window.BackgroundEngine = {
 
     drawAutumnSun: function() {
         const ctx = this.ctx;
-        // 夕阳 (温润琥珀)
+        // 1. 晚霞光晕 (紫红调)
         const glow = ctx.createRadialGradient(this.sunX, this.sunY, 60, this.sunX, this.sunY, 250);
-        glow.addColorStop(0, 'rgba(255, 140, 0, 0.4)'); 
-        glow.addColorStop(0.5, 'rgba(200, 50, 50, 0.2)'); 
-        glow.addColorStop(1, 'rgba(100, 0, 100, 0)');     
+        glow.addColorStop(0, 'rgba(255, 140, 0, 0.4)'); // 橘色
+        glow.addColorStop(0.5, 'rgba(200, 50, 50, 0.2)'); // 红紫
+        glow.addColorStop(1, 'rgba(100, 0, 100, 0)');     // 透明
         ctx.fillStyle = glow;
         ctx.beginPath(); ctx.arc(this.sunX, this.sunY, 300, 0, Math.PI*2); ctx.fill();
 
+        // 2. 夕阳本体 (温润的琥珀色)
         ctx.fillStyle = '#FFB74D'; 
         ctx.shadowBlur = 30;
-        ctx.shadowColor = '#E64A19'; 
+        ctx.shadowColor = '#E64A19'; // 边缘发红
         ctx.beginPath(); ctx.arc(this.sunX, this.sunY, 60, 0, Math.PI*2); ctx.fill();
         ctx.shadowBlur = 0;
     },
@@ -207,11 +206,11 @@ window.BackgroundEngine = {
     // =========================================
     initAutumn: function() {
         this.leaves = [];
-        // 初始生成
+        // 初始生成一些已经在空中的叶子
         for(let i=0; i<30; i++) {
             this.leaves.push(this.createLeaf(true));
         }
-        // 火烧云
+        // 生成火烧云
         this.clouds = [];
         for(let i=0; i<6; i++) this.clouds.push(this.createCloud('autumn', true));
     },
@@ -219,22 +218,22 @@ window.BackgroundEngine = {
     createLeaf: function(randomY) {
         return {
             x: Math.random() * this.width,
-            y: randomY ? Math.random() * (this.height - 50) : -20, 
-            size: 8 + Math.random() * 8,       
-            vx: (Math.random() - 0.5) * 1.5,   
-            vy: 1 + Math.random() * 1.5,       
-            rotation: Math.random() * Math.PI * 2, 
-            rotSpeed: (Math.random() - 0.5) * 0.05, 
+            y: randomY ? Math.random() * (this.height - 50) : -20, // 初始位置
+            size: 8 + Math.random() * 8,       // 大小
+            vx: (Math.random() - 0.5) * 1.5,   // 水平风速
+            vy: 1 + Math.random() * 1.5,       // 下落速度 (温柔)
+            rotation: Math.random() * Math.PI * 2, // 初始角度
+            rotSpeed: (Math.random() - 0.5) * 0.05, // 旋转速度
             flip: 0, 
-            flipSpeed: 0.02 + Math.random() * 0.03, 
-            color: Math.random() > 0.6 ? '#D84315' : (Math.random() > 0.5 ? '#EF6C00' : '#FF8F00'), 
-            state: 'falling', 
-            life: 1.0 
+            flipSpeed: 0.02 + Math.random() * 0.03, // 翻转速度
+            color: Math.random() > 0.6 ? '#D84315' : (Math.random() > 0.5 ? '#EF6C00' : '#FF8F00'), // 深红/橘/金
+            state: 'falling', // falling | landed
+            life: 1.0 // 透明度 (用于落地后渐隐)
         };
     },
 
     updateAutumnLeaves: function() {
-        // 持续生成
+        // 持续生成新叶子 (控制密度)
         if (Math.random() < 0.03) {
             this.leaves.push(this.createLeaf(false));
         }
@@ -243,20 +242,20 @@ window.BackgroundEngine = {
             let l = this.leaves[i];
 
             if (l.state === 'falling') {
-                // 正弦风场
+                // 空气动力学：正弦波摇摆
                 l.x += l.vx + Math.sin(this.time + l.y * 0.01) * 0.5;
                 l.y += l.vy;
                 l.rotation += l.rotSpeed;
                 l.flip += l.flipSpeed;
 
-                // 落地检测
+                // 落地检测 (堆积效果)
                 if (l.y > this.height - 25) { 
                     l.state = 'landed';
-                    l.y = this.height - 25 + Math.random() * 15; 
+                    l.y = this.height - 25 + Math.random() * 15; // 稍微错开位置
                 }
             } else {
-                // 落地堆积，缓慢消失
-                l.life -= 0.003; 
+                // 落地后：停留一段时间，然后慢慢变透明消失
+                l.life -= 0.003; // 非常缓慢地消失
                 if (l.life <= 0) {
                     this.leaves.splice(i, 1);
                 }
@@ -270,19 +269,21 @@ window.BackgroundEngine = {
             ctx.save();
             ctx.translate(l.x, l.y);
             ctx.rotate(l.rotation);
+            // 模拟 3D 翻转 (X轴缩放)
             const flipScale = Math.sin(l.flip); 
             ctx.scale(flipScale, 1);
             
             ctx.globalAlpha = l.life;
             ctx.fillStyle = l.color;
             
+            // 绘制枫叶形状 (简化版五角枫)
             ctx.beginPath();
             ctx.moveTo(0, -l.size);
             ctx.lineTo(l.size * 0.3, -l.size * 0.3);
             ctx.lineTo(l.size, -l.size * 0.5);
             ctx.lineTo(l.size * 0.5, 0);
             ctx.lineTo(l.size, l.size * 0.5);
-            ctx.lineTo(0, l.size * 0.3); 
+            ctx.lineTo(0, l.size * 0.3); // 茎部
             ctx.lineTo(-l.size, l.size * 0.5);
             ctx.lineTo(-l.size * 0.5, 0);
             ctx.lineTo(-l.size, -l.size * 0.5);
@@ -295,11 +296,12 @@ window.BackgroundEngine = {
     },
 
     // =========================================
-    // ☁️ 云朵系统 (通用)
+    // ☁️ 云朵系统 (通用 + 火烧云)
     // =========================================
     createCloud: function(type, randomX) {
         const puffs = [];
         
+        // 云朵参数配置
         let puffCount = 5, scaleY = 1.0, color = '255, 255, 255', opacity = 0.8;
         let speedBase = 0.2;
 
@@ -308,17 +310,17 @@ window.BackgroundEngine = {
         } else if (type === 'summer') {
             puffCount = 6; scaleY = 1.0; opacity = 0.9; speedBase = 0.3;
         } else if (type === 'autumn') {
-            // 火烧云：粉橘色
+            // 火烧云：扁平、宽大、半透明、带颜色
             puffCount = 8; 
-            scaleY = 0.4; 
-            color = '255, 160, 122'; 
-            opacity = 0.35; 
-            speedBase = 0.05; 
+            scaleY = 0.4; // 非常扁
+            color = '255, 160, 122'; // 浅鲑鱼色/粉橘
+            opacity = 0.35; // 透光
+            speedBase = 0.05; // 缓慢移动
         }
         
         for(let i=0; i<puffCount; i++) {
             puffs.push({
-                x: (Math.random() - 0.5) * (type==='autumn' ? 150 : 100), 
+                x: (Math.random() - 0.5) * (type==='autumn' ? 150 : 100), // 秋云更宽
                 y: (Math.random() - 0.5) * 40,
                 r: 30 + Math.random() * 30
             });
@@ -326,7 +328,7 @@ window.BackgroundEngine = {
         return {
             x: randomX ? Math.random() * this.width : -250,
             y: Math.random() * (this.height * 0.4),
-            scale: (0.5 + Math.random() * 0.5) * (type==='autumn'?1.5:1), 
+            scale: (0.5 + Math.random() * 0.5) * (type==='autumn'?1.5:1), // 秋云更大
             speed: speedBase + Math.random() * 0.1,
             puffs: puffs,
             opacity: opacity,
@@ -362,6 +364,7 @@ window.BackgroundEngine = {
             ctx.translate(c.x, c.y);
             ctx.scale(c.scale, c.scale * c.scaleY);
             
+            // 使用自定义颜色
             const col = c.color || '255, 255, 255';
             ctx.fillStyle = `rgba(${col}, ${c.opacity})`;
             
@@ -374,7 +377,9 @@ window.BackgroundEngine = {
         });
     },
 
-    // ... (Rain & Rainbow unchanged) ...
+    // ... (其他原有函数 drawRainbow, drawRainbow, newDrop 等保持不变) ...
+    // 为了代码完整性，这里必须包含之前的彩虹和雨水代码，避免覆盖后丢失功能
+
     drawRainbow: function() {
         const ctx = this.ctx;
         const radius = this.width * 0.6;
