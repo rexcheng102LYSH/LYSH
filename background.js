@@ -1,9 +1,11 @@
 /**
- * Project Lysh Visual Engine - Alpha 0.7.4.7 (Autumn Gradient Flip)
- * * [视觉实验] A/B 测试：上暖下冷配色
- * 1. 背景：顶部为夕阳暖色 (橘红/粉)，底部为暮光冷色 (深蓝灰)。
- * 2. 目的：利用冷暖对比，极大增强底部堆积落叶的辨识度。
- * * [功能保持] 秋叶物理、夕阳、火烧云逻辑不变。
+ * Project Lysh Visual Engine - Alpha 0.7.4.7 (Winter Snow)
+ * * [冬雪实装]
+ * 1. 太阳：沿用春日暖阳参数 (奶黄+柔光)，在冷色背景下提供温暖对比。
+ * 2. 天空：极夜蓝 (Deep Night Blue) -> 雾霾蓝渐变，高对比度。
+ * 3. 雪花：静谧垂直飘落，带轻微正弦摇摆，三层景深 (大小/速度/模糊)。
+ * 4. 积雪：屏幕底部绘制起伏的白色雪堆，模拟积雪地面。
+ * * [其他] 保留春夏秋所有特效逻辑。
  */
 
 window.BackgroundEngine = {
@@ -24,7 +26,8 @@ window.BackgroundEngine = {
     splashes: [],
     numDrops: 120,
     clouds: [],
-    leaves: [], // 秋叶数组
+    leaves: [],
+    snowflakes: [], // 冬雪数组
 
     init: function() {
         this.canvas = document.getElementById('bgCanvas');
@@ -46,6 +49,7 @@ window.BackgroundEngine = {
         this.splashes = [];
         this.clouds = [];
         this.leaves = [];
+        this.snowflakes = [];
 
         if (season === 'spring') {
             this.initSpring();
@@ -55,6 +59,9 @@ window.BackgroundEngine = {
             this.start();
         } else if (season === 'autumn') {
             this.initAutumn();
+            this.start();
+        } else if (season === 'winter') {
+            this.initWinter();
             this.start();
         } else {
             this.clearCanvas();
@@ -74,6 +81,7 @@ window.BackgroundEngine = {
         if (this.activeSeason === 'spring') this.initSpring();
         else if (this.activeSeason === 'summer') this.initSummer();
         else if (this.activeSeason === 'autumn') this.initAutumn();
+        else if (this.activeSeason === 'winter') this.initWinter();
     },
 
     clearCanvas: function() {
@@ -109,18 +117,25 @@ window.BackgroundEngine = {
             this.updateClouds();
             this.drawClouds();
         } else if (this.activeSeason === 'autumn') {
-            this.drawAutumnSun();   // 夕阳
-            this.updateClouds();    // 动云
-            this.drawClouds();      // 火烧云
-            this.updateAutumnLeaves(); // 落叶物理
-            this.drawAutumnLeaves();   // 绘制落叶
+            this.drawAutumnSun();   
+            this.updateClouds();    
+            this.drawClouds();      
+            this.updateAutumnLeaves(); 
+            this.drawAutumnLeaves();   
+        } else if (this.activeSeason === 'winter') {
+            // 冬：暖阳 -> 积雪 -> 雪花
+            // 直接复用春日暖阳 (你要求的健康太阳)
+            this.drawSpringSun(); 
+            this.drawSnowGround(); // 积雪地面
+            this.updateWinterSnow();
+            this.drawWinterSnow();
         }
 
         this.animationId = requestAnimationFrame(() => this.loop());
     },
 
     // =========================================
-    // 🎨 背景绘制 (Sky Background) - 核心修改
+    // 🎨 背景绘制 (Sky Background)
     // =========================================
     drawSkyBackground: function() {
         const grad = this.ctx.createLinearGradient(0, 0, 0, this.height);
@@ -131,13 +146,14 @@ window.BackgroundEngine = {
             grad.addColorStop(0, '#2980B9'); 
             grad.addColorStop(1, '#6DD5FA'); 
         } else if (this.activeSeason === 'autumn') {
-            // 🔴 A/B 测试：上暖下冷 (Warm Top -> Cold Bottom)
-            // 顶部：夕阳余晖 (橘红/暖粉)
-            grad.addColorStop(0, '#FF512F'); 
-            // 中部：过渡 (紫罗兰)
+            grad.addColorStop(0, '#FF512F'); // 暖顶
             grad.addColorStop(0.4, '#DD2476');
-            // 底部：暮光阴影 (深灰蓝) - 这能完美衬托金色的落叶
-            grad.addColorStop(1, '#2c3e50');   
+            grad.addColorStop(1, '#2c3e50'); // 冷底 (保留你的A/B选择)
+        } else if (this.activeSeason === 'winter') {
+            // 冬：极夜蓝 -> 雾霾蓝
+            grad.addColorStop(0, '#0f172a'); // 深沉的午夜蓝
+            grad.addColorStop(0.6, '#1e293b');
+            grad.addColorStop(1, '#64748b'); // 底部的灰蓝色，衔接积雪
         } else {
             grad.addColorStop(0, '#fff'); grad.addColorStop(1, '#eee');
         }
@@ -146,7 +162,83 @@ window.BackgroundEngine = {
     },
 
     // =========================================
-    // 🌞 太阳系统 (Sun System)
+    // ❄️ 冬雪系统 (Winter Engine)
+    // =========================================
+    initWinter: function() {
+        this.snowflakes = [];
+        const count = 150; // 雪花数量
+        for(let i=0; i<count; i++) {
+            this.snowflakes.push(this.createSnowflake(true));
+        }
+    },
+
+    createSnowflake: function(randomY) {
+        // 景深逻辑：z 越大，离镜头越近 (更大、更快、更透)
+        const z = Math.random(); 
+        return {
+            x: Math.random() * this.width,
+            y: randomY ? Math.random() * this.height : -10,
+            z: z,
+            size: 2 + z * 3, // 2px ~ 5px
+            speed: 0.5 + z * 1.5, // 近处快，远处慢
+            sway: Math.random() * Math.PI * 2, // 摇摆相位
+            swayAmp: 0.5 + Math.random() * 1.0, // 摇摆幅度
+            opacity: 0.4 + z * 0.5 // 近处实，远处虚
+        };
+    },
+
+    updateWinterSnow: function() {
+        this.snowflakes.forEach(s => {
+            s.y += s.speed;
+            s.sway += 0.02; // 缓慢摇摆频率
+            s.x += Math.sin(s.sway) * s.swayAmp; // 正弦波飘落
+
+            // 循环 (落到积雪层下方重置)
+            // 积雪层大约在 height - 30 左右
+            if (s.y > this.height) {
+                // 重置到顶部
+                Object.assign(s, this.createSnowflake(false));
+            }
+        });
+    },
+
+    drawWinterSnow: function() {
+        const ctx = this.ctx;
+        ctx.fillStyle = '#fff';
+        
+        this.snowflakes.forEach(s => {
+            ctx.beginPath();
+            ctx.globalAlpha = s.opacity;
+            // 简单的圆形雪花 (性能最好)
+            ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1.0; // 重置
+    },
+
+    // 绘制积雪地面 (Decor)
+    drawSnowGround: function() {
+        const ctx = this.ctx;
+        ctx.fillStyle = '#f1f5f9'; // 略带冷色的白
+        
+        // 画一个起伏的白色小山丘
+        ctx.beginPath();
+        ctx.moveTo(0, this.height);
+        ctx.lineTo(0, this.height - 40);
+        
+        // 贝塞尔曲线模拟雪堆
+        ctx.bezierCurveTo(
+            this.width * 0.3, this.height - 60, 
+            this.width * 0.7, this.height - 20, 
+            this.width, this.height - 40
+        );
+        
+        ctx.lineTo(this.width, this.height);
+        ctx.fill();
+    },
+
+    // =========================================
+    // 🌞 太阳系统 (复用)
     // =========================================
     drawSpringSun: function() {
         const ctx = this.ctx;
@@ -187,7 +279,6 @@ window.BackgroundEngine = {
 
     drawAutumnSun: function() {
         const ctx = this.ctx;
-        // 夕阳 (温润琥珀)
         const glow = ctx.createRadialGradient(this.sunX, this.sunY, 60, this.sunX, this.sunY, 250);
         glow.addColorStop(0, 'rgba(255, 140, 0, 0.4)'); 
         glow.addColorStop(0.5, 'rgba(200, 50, 50, 0.2)'); 
@@ -203,15 +294,11 @@ window.BackgroundEngine = {
     },
 
     // =========================================
-    // 🍁 秋叶系统 (Autumn Leaves)
+    // 🍁 秋叶系统 (保持 0.7.4.7 上暖下冷配色)
     // =========================================
     initAutumn: function() {
         this.leaves = [];
-        // 初始生成
-        for(let i=0; i<30; i++) {
-            this.leaves.push(this.createLeaf(true));
-        }
-        // 火烧云
+        for(let i=0; i<30; i++) this.leaves.push(this.createLeaf(true));
         this.clouds = [];
         for(let i=0; i<6; i++) this.clouds.push(this.createCloud('autumn', true));
     },
@@ -234,32 +321,21 @@ window.BackgroundEngine = {
     },
 
     updateAutumnLeaves: function() {
-        // 持续生成
-        if (Math.random() < 0.03) {
-            this.leaves.push(this.createLeaf(false));
-        }
-
+        if (Math.random() < 0.03) this.leaves.push(this.createLeaf(false));
         for (let i = this.leaves.length - 1; i >= 0; i--) {
             let l = this.leaves[i];
-
             if (l.state === 'falling') {
-                // 正弦风场
                 l.x += l.vx + Math.sin(this.time + l.y * 0.01) * 0.5;
                 l.y += l.vy;
                 l.rotation += l.rotSpeed;
                 l.flip += l.flipSpeed;
-
-                // 落地检测
                 if (l.y > this.height - 25) { 
                     l.state = 'landed';
                     l.y = this.height - 25 + Math.random() * 15; 
                 }
             } else {
-                // 落地堆积，缓慢消失
                 l.life -= 0.003; 
-                if (l.life <= 0) {
-                    this.leaves.splice(i, 1);
-                }
+                if (l.life <= 0) this.leaves.splice(i, 1);
             }
         }
     },
@@ -272,10 +348,8 @@ window.BackgroundEngine = {
             ctx.rotate(l.rotation);
             const flipScale = Math.sin(l.flip); 
             ctx.scale(flipScale, 1);
-            
             ctx.globalAlpha = l.life;
             ctx.fillStyle = l.color;
-            
             ctx.beginPath();
             ctx.moveTo(0, -l.size);
             ctx.lineTo(l.size * 0.3, -l.size * 0.3);
@@ -289,17 +363,15 @@ window.BackgroundEngine = {
             ctx.lineTo(-l.size * 0.3, -l.size * 0.3);
             ctx.closePath();
             ctx.fill();
-            
             ctx.restore();
         });
     },
 
     // =========================================
-    // ☁️ 云朵系统 (通用)
+    // ☁️ 云朵 & 其他
     // =========================================
     createCloud: function(type, randomX) {
         const puffs = [];
-        
         let puffCount = 5, scaleY = 1.0, color = '255, 255, 255', opacity = 0.8;
         let speedBase = 0.2;
 
@@ -308,12 +380,7 @@ window.BackgroundEngine = {
         } else if (type === 'summer') {
             puffCount = 6; scaleY = 1.0; opacity = 0.9; speedBase = 0.3;
         } else if (type === 'autumn') {
-            // 火烧云：粉橘色
-            puffCount = 8; 
-            scaleY = 0.4; 
-            color = '255, 160, 122'; 
-            opacity = 0.35; 
-            speedBase = 0.05; 
+            puffCount = 8; scaleY = 0.4; color = '255, 160, 122'; opacity = 0.35; speedBase = 0.05; 
         }
         
         for(let i=0; i<puffCount; i++) {
@@ -361,10 +428,8 @@ window.BackgroundEngine = {
             ctx.save();
             ctx.translate(c.x, c.y);
             ctx.scale(c.scale, c.scale * c.scaleY);
-            
             const col = c.color || '255, 255, 255';
             ctx.fillStyle = `rgba(${col}, ${c.opacity})`;
-            
             c.puffs.forEach(p => {
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
@@ -374,7 +439,6 @@ window.BackgroundEngine = {
         });
     },
 
-    // ... (Rain & Rainbow unchanged) ...
     drawRainbow: function() {
         const ctx = this.ctx;
         const radius = this.width * 0.6;
