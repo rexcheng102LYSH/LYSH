@@ -59,7 +59,7 @@ function openSettings() {
     // 音效
     document.getElementById('sliderSfx').value = SoundEngine.sfxVolume * 100;
     document.getElementById('valSfx').innerText = Math.round(SoundEngine.sfxVolume * 100) + '%';
-    // 环境音效 (新增)
+    // 环境音效
     document.getElementById('sliderAmbient').value = SoundEngine.ambientVolume * 100;
     document.getElementById('valAmbient').innerText = Math.round(SoundEngine.ambientVolume * 100) + '%';
     
@@ -90,7 +90,7 @@ function updateSkinUI() {
     else document.getElementById('skinClassic').classList.add('active');
 }
 
-// 核心音量控制修改
+// 核心音量控制
 function updateVolume(type, val) {
     const v = val / 100;
     if (type === 'music') { 
@@ -99,7 +99,7 @@ function updateVolume(type, val) {
     } else if (type === 'sfx') { 
         SoundEngine.sfxVolume = v; 
         document.getElementById('valSfx').innerText = val + '%'; 
-    } else if (type === 'ambient') { // 新增环境音量控制
+    } else if (type === 'ambient') {
         SoundEngine.setAmbientVolume(v);
         document.getElementById('valAmbient').innerText = val + '%';
     }
@@ -111,11 +111,32 @@ function changeTrack(track) {
     SoundEngine.switchTrack(track); 
     updateTrackUI(); 
 }
+
 function updateTrackUI() {
+    // 清除所有高亮
     document.querySelectorAll('.music-opt').forEach(el => el.classList.remove('active'));
-    if (userMusicPref === 'origin') document.getElementById('trackOrigin').classList.add('active');
-    else if (userMusicPref === 'overture') document.getElementById('trackOverture').classList.add('active');
-    else if (userMusicPref === 'bgm2') document.getElementById('trackBgm2').classList.add('active');
+    
+    // 根据当前偏好点亮对应按钮 (更新为 5 个按钮逻辑)
+    if (userMusicPref === 'origin') {
+        const el = document.getElementById('trackOrigin');
+        if(el) el.classList.add('active');
+    }
+    else if (userMusicPref === 'bgm1') {
+        const el = document.getElementById('trackBgm1');
+        if(el) el.classList.add('active');
+    }
+    else if (userMusicPref === 'bgm2') {
+        const el = document.getElementById('trackBgm2');
+        if(el) el.classList.add('active');
+    }
+    else if (userMusicPref === 'bgm3') {
+        const el = document.getElementById('trackBgm3');
+        if(el) el.classList.add('active');
+    }
+    else if (userMusicPref === 'bgm4') {
+        const el = document.getElementById('trackBgm4');
+        if(el) el.classList.add('active');
+    }
 }
 
 // === 安全的季节切换逻辑 ===

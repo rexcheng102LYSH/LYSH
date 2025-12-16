@@ -5,13 +5,14 @@ const SoundEngine = {
     
     musicVolume: 0.5, 
     sfxVolume: 1.0,
-    ambientVolume: 1.0, // 新增环境音效音量 (默认 100%)
+    ambientVolume: 1.0, 
     
-    currentTrack: 'origin', // 'origin' | 'overture' | 'bgm2' | 'bomb'
+    // 当前轨道：'origin' | 'bgm1' | 'bgm2' | 'bgm3' | 'bgm4' | 'bomb'
+    currentTrack: 'origin', 
     bgmTimeout: null,
     
     mp3Audio: null,
-    ambientAudio: null, // 新增环境音效对象 (bgm3.mp3)
+    ambientAudio: null, 
     isCritical: false,
 
     init: function() { 
@@ -19,7 +20,7 @@ const SoundEngine = {
         const AC = window.AudioContext || window.webkitAudioContext; 
         this.ctx = new AC(); 
         this.startBGM();
-        // 初始化时检查是否需要播放环境音 (如果是春季)
+        // 保持：环境音效独立于 BGM，只与季节(视觉)挂钩
         if (window.BackgroundEngine && window.BackgroundEngine.activeSeason === 'spring') {
             this.playAmbient();
         }
@@ -34,7 +35,6 @@ const SoundEngine = {
             this.stopAmbient();
         } else {
             this.startBGM();
-            // 如果解除静音时是春季，恢复雨声
             if (window.BackgroundEngine && window.BackgroundEngine.activeSeason === 'spring') {
                 this.playAmbient();
             }
@@ -46,7 +46,6 @@ const SoundEngine = {
         if(this.mp3Audio) this.mp3Audio.volume = v;
     },
 
-    // 新增：设置环境音量
     setAmbientVolume: function(v) {
         this.ambientVolume = v;
         if (this.ambientAudio) this.ambientAudio.volume = v;
@@ -56,7 +55,7 @@ const SoundEngine = {
         this.isCritical = critical;
     },
 
-    // --- SFX ---
+    // --- SFX (保持不变) ---
     playNote: function(freq, duration, type, volume, attack=0.05, release=0.1) {
         if (this.isMuted || !this.ctx || volume <= 0) return;
         const o = this.ctx.createOscillator();
@@ -144,10 +143,14 @@ const SoundEngine = {
 
     playMp3Loop: function() {
         if (!this.mp3Audio) {
-            let filename = 'bgm.mp3';
-            if (this.currentTrack === 'bgm2') {
-                filename = 'bgm2.mp3';
-            }
+            let filename = 'bgm1.mp3'; // 默认 fallback
+            
+            // 映射逻辑更新
+            if (this.currentTrack === 'bgm1') filename = 'bgm1.mp3';
+            else if (this.currentTrack === 'bgm2') filename = 'bgm2.mp3';
+            else if (this.currentTrack === 'bgm3') filename = 'bgm3.mp3';
+            else if (this.currentTrack === 'bgm4') filename = 'bgm4.mp3';
+            
             this.mp3Audio = new Audio(filename); 
             this.mp3Audio.loop = true;
             this.mp3Audio.volume = this.musicVolume;
@@ -181,15 +184,14 @@ const SoundEngine = {
         this.bgmTimeout = setTimeout(() => this.playBombLoop(), stepTime);
     },
 
-    // --- 新增：环境音效逻辑 (Ambient) ---
     playAmbient: function() {
         if (this.isMuted) return;
         if (!this.ambientAudio) {
-            this.ambientAudio = new Audio('bgm3.mp3');
+            // 注意：这里使用的是上一轮修正后的 bgs1.mp3
+            this.ambientAudio = new Audio('bgs1.mp3'); 
             this.ambientAudio.loop = true;
         }
         this.ambientAudio.volume = this.ambientVolume;
-        // 如果未播放，则播放
         if (this.ambientAudio.paused) {
             this.ambientAudio.play().catch(e => console.log("Ambient play blocked/waiting", e));
         }
@@ -198,8 +200,6 @@ const SoundEngine = {
     stopAmbient: function() {
         if (this.ambientAudio) {
             this.ambientAudio.pause();
-            // 不重置 currentTime，以便下次接着播放，或者你也可以重置
-            // this.ambientAudio.currentTime = 0; 
         }
     }
 };

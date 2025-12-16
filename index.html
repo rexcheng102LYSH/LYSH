@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>落叶 VS 生辉 - Alpha 0.7.5</title>
-    <link rel="stylesheet" href="style.css?v=alpha_0_7_5">
+    <title>落叶 VS 生辉 - Alpha 0.7.5.1</title>
+    <link rel="stylesheet" href="style.css?v=alpha_0_7_5_1">
 </head>
 <body onclick="SoundEngine.init()">
 
@@ -21,7 +21,7 @@
         <div class="glass-panel menu-panel">
             <h1 data-i18n="gameTitle">落叶 <span style="font-size:0.5em">VS</span> 生辉</h1>
             <h2 style="margin-top:-5px; font-size:1.2rem; color:#666;">
-                <span data-i18n="subTitle">Spring Rain</span> <span class="version-tag">Alpha 0.7.5</span>
+                <span data-i18n="subTitle">Spring Rain</span> <span class="version-tag">Alpha 0.7.5.1</span>
             </h2>
             <button class="btn primary" onclick="SoundEngine.playPlace(); showDifficultyScreen()" data-i18n="btnPvE">电脑对战 (PvE)</button>
             <button class="btn" onclick="startPvPFlow('single')" data-i18n="btnPvPSingle">双人单局 (PvP)</button>
@@ -118,10 +118,12 @@
             
             <div class="setting-item">
                 <label data-i18n="lblMusicTrack">背景音乐</label>
-                <div class="capsule-selector music-selector">
+                <div class="capsule-selector music-selector" style="flex-wrap: wrap;">
                     <button class="capsule-opt music-opt active" id="trackOrigin" onclick="changeTrack('origin')" data-i18n="trackOrigin">原初</button>
-                    <button class="capsule-opt music-opt" id="trackOverture" onclick="changeTrack('overture')" data-i18n="trackOverture">序曲</button>
-                    <button class="capsule-opt music-opt" id="trackBgm2" onclick="changeTrack('bgm2')" data-i18n="trackBgm2">古风</button>
+                    <button class="capsule-opt music-opt" id="trackBgm1" onclick="changeTrack('bgm1')" data-i18n="trackBgm1">春筝</button>
+                    <button class="capsule-opt music-opt" id="trackBgm2" onclick="changeTrack('bgm2')" data-i18n="trackBgm2">夏笛</button>
+                    <button class="capsule-opt music-opt" id="trackBgm3" onclick="changeTrack('bgm3')" data-i18n="trackBgm3">秋琴</button>
+                    <button class="capsule-opt music-opt" id="trackBgm4" onclick="changeTrack('bgm4')" data-i18n="trackBgm4">冬弦</button>
                 </div>
             </div>
             
@@ -161,11 +163,11 @@
     <div id="toast"></div>
     <div id="explosionOverlay"></div>
 
-    <script src="audio.js?v=alpha_0_7_5"></script>
-    <script src="lang.js?v=alpha_0_7_5"></script> 
-    <script src="background.js?v=alpha_0_7_5"></script>
-    <script src="game.js?v=alpha_0_7_5"></script>
-    <script src="ai.js?v=alpha_0_7_5"></script>
+    <script src="audio.js?v=alpha_0_7_5_1"></script>
+    <script src="lang.js?v=alpha_0_7_5_1"></script> 
+    <script src="background.js?v=alpha_0_7_5_1"></script>
+    <script src="game.js?v=alpha_0_7_5_1"></script>
+    <script src="ai.js?v=alpha_0_7_5_1"></script>
     <script>
         window.onload = function() {
             if (typeof initGame === 'function') {}

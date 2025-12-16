@@ -87,8 +87,30 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 
 .setting-divider { height: 1px; background: #eee; margin: 25px 0; width: 100%; }
 
-.capsule-selector { display: flex; gap: 8px; background: #f5f6fa; padding: 5px; border-radius: 12px; }
-.capsule-opt { flex: 1; padding: 10px 0; font-size: 0.85rem; border: none; border-radius: 8px; background: transparent; color: #636e72; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.capsule-selector { 
+    display: flex; 
+    gap: 8px; 
+    background: #f5f6fa; 
+    padding: 5px; 
+    border-radius: 12px; 
+    /* 允许换行，适应多按钮布局 */
+    flex-wrap: wrap; 
+}
+.capsule-opt { 
+    flex: 1; 
+    padding: 10px 0; 
+    font-size: 0.85rem; 
+    border: none; 
+    border-radius: 8px; 
+    background: transparent; 
+    color: #636e72; 
+    font-weight: 600; 
+    cursor: pointer; 
+    transition: all 0.2s; 
+    /* 防止文字换行并设置最小宽度 */
+    white-space: nowrap; 
+    min-width: 60px;
+}
 .capsule-opt:hover { background: rgba(0,0,0,0.03); }
 .capsule-opt.active { background: #fff; color: #2d3436; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transform: scale(1.02); }
 
