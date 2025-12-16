@@ -435,7 +435,9 @@ function handleSkillInteraction(r, c) {
 
 function highlightWin(line, winner) {
     gameActive = false;
-    SoundEngine.playWin();
+    
+    // 核心改动：不再只播放 playWin，而是根据皮肤播放特定音效
+    SoundEngine.playWinEffect(winEffect);
     
     // 调用 VisualFX 绘制特效线 (确保 FX 引擎存在)
     if (typeof VisualFX !== 'undefined') {

@@ -55,7 +55,7 @@ const SoundEngine = {
         this.isCritical = critical;
     },
 
-    // --- SFX (保持不变) ---
+    // --- 基础波形发生器 ---
     playNote: function(freq, duration, type, volume, attack=0.05, release=0.1) {
         if (this.isMuted || !this.ctx || volume <= 0) return;
         const o = this.ctx.createOscillator();
@@ -77,7 +77,8 @@ const SoundEngine = {
         this.playNote(freq, duration, 'sawtooth', volume * 0.6, 0.2, 0.5);
     },
 
-    playExplosion: function() {
+    // --- 专用：爆炸与噪音 (用于炸弹和闪电) ---
+    playExplosion: function(duration = 1.0, filterFreq = 1000) {
         if (this.isMuted || !this.ctx) return;
         const bufferSize = this.ctx.sampleRate * 2; 
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
@@ -89,25 +90,90 @@ const SoundEngine = {
         noise.buffer = buffer;
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'lowpass';
-        filter.frequency.value = 1000; 
+        filter.frequency.value = filterFreq; 
         const gain = this.ctx.createGain();
         noise.connect(filter);
         filter.connect(gain);
         gain.connect(this.ctx.destination);
         const now = this.ctx.currentTime;
         gain.gain.setValueAtTime(this.sfxVolume, now);
-        filter.frequency.exponentialRampToValueAtTime(100, now + 1); 
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+        filter.frequency.exponentialRampToValueAtTime(100, now + duration); 
+        gain.gain.exponentialRampToValueAtTime(0.01, now + duration + 0.5);
         noise.start();
     },
 
+    // --- 简单的短音效 ---
     tone: function(f, type, d, v=0.1) { this.playNote(f, d, type, v * this.sfxVolume, 0.01, 0.1); },
     playPlace: function() { this.tone(400, 'sine', 0.1, 0.3); },
     playSkill: function() { this.tone(600, 'triangle', 0.1, 0.2); setTimeout(() => this.tone(800, 'triangle', 0.2, 0.1), 100); },
-    playWin: function() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => this.tone(f, 'sine', 0.2, 0.4), i * 150)); },
-    playGrandWin: function() { [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => setTimeout(() => this.tone(f, 'square', 0.2, 0.4), i * 120)); },
     playError: function() { this.tone(150, 'sawtooth', 0.2, 0.2); },
     playChaos: function() { [800, 400, 600, 200].forEach((f, i) => setTimeout(() => this.tone(f, 'sawtooth', 0.1, 0.1), i * 60)); },
+
+    // --- 胜利音效路由 ---
+    playWinEffect: function(type) {
+        if (type === 'lightning') this.playLightningSound();
+        else if (type === 'gold') this.playGoldSound();
+        else if (type === 'future') this.playFutureSound();
+        else this.playWin(); // default
+    },
+
+    // 1. 默认胜利 (保持经典)
+    playWin: function() { 
+        [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => this.tone(f, 'sine', 0.2, 0.4), i * 150)); 
+    },
+
+    // 2. 闪电音效 (噪音 + 锯齿波打击)
+    playLightningSound: function() {
+        if (this.isMuted || !this.ctx) return;
+        // 模拟雷声 (Lowpass Noise)
+        this.playExplosion(0.8, 800);
+        // 模拟电击 (High Sawtooth Drop)
+        this.playNote(2000, 0.1, 'sawtooth', 0.15 * this.sfxVolume, 0.01, 0.1);
+        setTimeout(() => this.playNote(1500, 0.1, 'sawtooth', 0.1 * this.sfxVolume, 0.01, 0.1), 100);
+    },
+
+    // 3. 黄金音效 (清脆的高频琶音)
+    playGoldSound: function() {
+        if (this.isMuted || !this.ctx) return;
+        const notes = [1046.50, 1318.51, 1567.98, 2093.00, 2637.02]; // C6, E6, G6, C7, E7
+        notes.forEach((f, i) => {
+            setTimeout(() => {
+                this.playNote(f, 0.3, 'sine', 0.2 * this.sfxVolume, 0.01, 0.4);
+                // 叠加一点点三角波增加质感
+                this.playNote(f * 2, 0.1, 'triangle', 0.05 * this.sfxVolume, 0.01, 0.1);
+            }, i * 60);
+        });
+    },
+
+    // 4. 未来音效 (频率滑动的方波)
+    playFutureSound: function() {
+        if (this.isMuted || !this.ctx) return;
+        const o = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        const now = this.ctx.currentTime;
+        
+        o.type = 'square';
+        o.frequency.setValueAtTime(220, now);
+        // 频率快速爬升再回落 (Laser/Powerup effect)
+        o.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+        o.frequency.exponentialRampToValueAtTime(440, now + 0.4);
+        
+        g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(0.2 * this.sfxVolume, now + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        
+        o.connect(g);
+        g.connect(this.ctx.destination);
+        o.start();
+        o.stop(now + 0.5);
+        
+        // 伴随一个底层的嗡嗡声
+        this.playNote(110, 0.5, 'sawtooth', 0.1 * this.sfxVolume, 0.1, 0.3);
+    },
+
+    playGrandWin: function() { 
+        [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => setTimeout(() => this.tone(f, 'square', 0.2, 0.4), i * 120)); 
+    },
 
     switchTrack: function(track) {
         if(this.currentTrack === track) return;
@@ -143,9 +209,7 @@ const SoundEngine = {
 
     playMp3Loop: function() {
         if (!this.mp3Audio) {
-            let filename = 'bgm1.mp3'; // 默认 fallback
-            
-            // 映射逻辑更新
+            let filename = 'bgm1.mp3'; 
             if (this.currentTrack === 'bgm1') filename = 'bgm1.mp3';
             else if (this.currentTrack === 'bgm2') filename = 'bgm2.mp3';
             else if (this.currentTrack === 'bgm3') filename = 'bgm3.mp3';
@@ -187,7 +251,6 @@ const SoundEngine = {
     playAmbient: function() {
         if (this.isMuted) return;
         if (!this.ambientAudio) {
-            // 注意：这里使用的是上一轮修正后的 bgs1.mp3
             this.ambientAudio = new Audio('bgs1.mp3'); 
             this.ambientAudio.loop = true;
         }
