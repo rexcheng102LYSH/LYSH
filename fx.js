@@ -14,7 +14,7 @@ const SKILL_ICONS = {
     swap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v-3a3 3 0 0 1 3-3h13m-3-3l3 3-3 3"/><path d="M20 12v3a3 3 0 0 1-3 3H4m3 3l-3-3 3-3"/></svg>'
 };
 
-// 视觉特效引擎 (VisualFX Engine) (从 game.js 移出)
+// 视觉特效引擎 (VisualFX Engine)
 const VisualFX = {
     canvas: null,
     ctx: null,
@@ -55,6 +55,7 @@ const VisualFX = {
         };
     },
 
+    // === 核心：连珠特效绘制 ===
     drawWinLine: function(lineCells, type) {
         if (!this.ctx || lineCells.length < 2) return;
         
@@ -76,37 +77,104 @@ const VisualFX = {
             ctx.lineCap = 'round';
             ctx.stroke();
             
-            // 白色核心
             ctx.lineWidth = 2;
             ctx.strokeStyle = '#fff';
             ctx.shadowBlur = 0;
             ctx.stroke();
         } 
         else if (type === 'lightning') {
-            // 闪电：锯齿状高能电弧
-            ctx.shadowColor = '#03a9f4';
-            ctx.shadowBlur = 20;
-            ctx.strokeStyle = '#e1f5fe';
-            ctx.lineWidth = 3;
-            
+            // === ⚡ 宙斯之怒：高级分形闪电 (v0.7.6.3 优化版) ===
             const start = points[0];
             const end = points[points.length-1];
-            const dist = Math.hypot(end.x - start.x, end.y - start.y);
-            const steps = dist / 10;
             
-            ctx.beginPath();
-            ctx.moveTo(start.x, start.y);
+            // 1. 中点位移算法 (Midpoint Displacement)
+            // displace: 震动幅度，随着递归深度减小
+            const createLightningPoints = (p1, p2, displace) => {
+                if (displace < 2) return [p1, p2]; // 递归终止条件
+                
+                let midX = (p1.x + p2.x) / 2;
+                let midY = (p1.y + p2.y) / 2;
+                
+                // 计算垂直于线段的方向向量，确保震动主要发生在垂直方向
+                // 这样可以减少闪电在沿线方向的“回缩”，看起来更有冲劲
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
+                const len = Math.sqrt(dx*dx + dy*dy);
+                const normalX = -dy / len;
+                const normalY = dx / len;
+
+                // 施加偏移 (Range: -0.5 to 0.5 * displace)
+                const offset = (Math.random() - 0.5) * displace;
+                midX += normalX * offset;
+                midY += normalY * offset;
+                
+                const mid = {x: midX, y: midY};
+                
+                // 递归：震动幅度衰减 (0.5 是平滑，0.6 是狂暴)
+                const seg1 = createLightningPoints(p1, mid, displace * 0.55);
+                const seg2 = createLightningPoints(mid, p2, displace * 0.55);
+                
+                return seg1.concat(seg2.slice(1));
+            };
+
+            // 2. 绘制闪电路径
+            const drawBolt = (pts, width, alpha) => {
+                ctx.beginPath();
+                ctx.moveTo(pts[0].x, pts[0].y);
+                for(let i=1; i<pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+                ctx.lineWidth = width;
+                // 电浆色：核心白 -> 外围蓝
+                ctx.strokeStyle = `rgba(225, 245, 255, ${alpha})`; 
+                ctx.stroke();
+            };
+
+            // 3. 生成主干 (降低震动幅度 80 -> 35，防止出界)
+            const mainBolt = createLightningPoints(start, end, 35); 
+
+            // 4. 渲染光晕系统 (Bloom)
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
             
-            for (let i = 1; i < steps; i++) {
-                const t = i / steps;
-                const tx = start.x + (end.x - start.x) * t;
-                const ty = start.y + (end.y - start.y) * t;
-                // 随机抖动
-                const jitter = (Math.random() - 0.5) * 20;
-                ctx.lineTo(tx + (end.y-start.y)*0.05 * (Math.random()-0.5), ty + (end.x-start.x)*0.05 * (Math.random()-0.5) + jitter);
+            // Layer 1: 大气辉光 (蓝色光晕)
+            ctx.shadowColor = '#00B0FF'; 
+            ctx.shadowBlur = 40;
+            drawBolt(mainBolt, 6, 0.4); 
+            
+            // Layer 2: 电离层 (深蓝核心)
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#40C4FF';
+            drawBolt(mainBolt, 3, 0.8);
+
+            // Layer 3: 极亮核心 (纯白)
+            ctx.shadowBlur = 0; // 核心不发光，保持锐利
+            ctx.strokeStyle = '#FFFFFF';
+            drawBolt(mainBolt, 1.5, 1.0);
+
+            // 5. 生成分支 (Branches) - 增加细节
+            // 只有主干足够长时才生成分支
+            const totalDist = Math.hypot(end.x - start.x, end.y - start.y);
+            const numBranches = Math.floor(totalDist / 50); // 每50px一个分支几率
+
+            for (let i = 0; i < numBranches; i++) {
+                // 随机选择主干上的一个点作为起点
+                const idx = Math.floor(Math.random() * (mainBolt.length - 1));
+                const root = mainBolt[idx];
+                
+                // 随机方向
+                const angle = Math.random() * Math.PI * 2;
+                const branchLen = 20 + Math.random() * 30; // 短分支
+                const tip = {
+                    x: root.x + Math.cos(angle) * branchLen,
+                    y: root.y + Math.sin(angle) * branchLen
+                };
+                
+                // 分支震动幅度小
+                const branchPts = createLightningPoints(root, tip, 10);
+                
+                // 绘制分支 (较细，较暗)
+                ctx.shadowBlur = 10;
+                drawBolt(branchPts, 1, 0.5);
             }
-            ctx.lineTo(end.x, end.y);
-            ctx.stroke();
         }
         else if (type === 'gold') {
             // 金黄：奢华流光

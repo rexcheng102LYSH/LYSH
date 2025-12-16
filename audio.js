@@ -97,7 +97,8 @@ const SoundEngine = {
         gain.connect(this.ctx.destination);
         const now = this.ctx.currentTime;
         gain.gain.setValueAtTime(this.sfxVolume, now);
-        filter.frequency.exponentialRampToValueAtTime(100, now + duration); 
+        // 频率快速下降模拟爆炸扩散
+        filter.frequency.exponentialRampToValueAtTime(50, now + duration); 
         gain.gain.exponentialRampToValueAtTime(0.01, now + duration + 0.5);
         noise.start();
     },
@@ -122,14 +123,41 @@ const SoundEngine = {
         [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => this.tone(f, 'sine', 0.2, 0.4), i * 150)); 
     },
 
-    // 2. 闪电音效 (噪音 + 锯齿波打击)
+    // 2. 闪电音效 (重构：雷声轰鸣 + 尖锐电击)
     playLightningSound: function() {
         if (this.isMuted || !this.ctx) return;
-        // 模拟雷声 (Lowpass Noise)
-        this.playExplosion(0.8, 800);
-        // 模拟电击 (High Sawtooth Drop)
-        this.playNote(2000, 0.1, 'sawtooth', 0.15 * this.sfxVolume, 0.01, 0.1);
-        setTimeout(() => this.playNote(1500, 0.1, 'sawtooth', 0.1 * this.sfxVolume, 0.01, 0.1), 100);
+        
+        // 层1: 沉闷的雷声 (低频，长尾音)
+        // 持续 2.5秒，初始频率 180Hz 下潜
+        this.playExplosion(2.5, 180);
+        
+        // 层2: 撕裂空气的脆响 (高频，极短)
+        // 持续 0.2秒，初始频率 4000Hz 急速下潜
+        this.playExplosion(0.2, 4000);
+
+        // 层3: 电流乱窜的滋滋声 (快速锯齿波序列)
+        const now = this.ctx.currentTime;
+        const volume = 0.15 * this.sfxVolume;
+        
+        // 快速播放 5 个随机音高，模拟电流跳动
+        [0, 0.05, 0.1, 0.15, 0.2].forEach(offset => {
+            const freq = 1000 + Math.random() * 2000; // 1000~3000Hz 随机
+            const o = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            
+            o.type = 'sawtooth';
+            o.frequency.setValueAtTime(freq, now + offset);
+            // 瞬间滑音
+            o.frequency.exponentialRampToValueAtTime(freq / 2, now + offset + 0.05);
+            
+            g.gain.setValueAtTime(volume, now + offset);
+            g.gain.exponentialRampToValueAtTime(0.01, now + offset + 0.05);
+            
+            o.connect(g);
+            g.connect(this.ctx.destination);
+            o.start(now + offset);
+            o.stop(now + offset + 0.05);
+        });
     },
 
     // 3. 黄金音效 (清脆的高频琶音)
