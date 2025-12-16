@@ -93,7 +93,6 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
     background: #f5f6fa; 
     padding: 5px; 
     border-radius: 12px; 
-    /* 允许换行，适应多按钮布局 */
     flex-wrap: wrap; 
 }
 .capsule-opt { 
@@ -107,17 +106,23 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
     font-weight: 600; 
     cursor: pointer; 
     transition: all 0.2s; 
-    /* 防止文字换行并设置最小宽度 */
     white-space: nowrap; 
     min-width: 60px;
 }
 .capsule-opt:hover { background: rgba(0,0,0,0.03); }
 .capsule-opt.active { background: #fff; color: #2d3436; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transform: scale(1.02); }
 
-#seasonSpring.active { color: #00b894; }
-#seasonSummer.active { color: #e17055; }
-#seasonAutumn.active { color: #d35400; }
-#seasonWinter.active { color: #0984e3; }
+/* === 季节与音乐色彩联动 === */
+#seasonSpring.active, #trackBgm1.active { color: #00b894; text-shadow: 0 0 12px rgba(0, 184, 148, 0.4); }
+#seasonSummer.active, #trackBgm2.active { color: #fbc02d; text-shadow: 0 0 10px rgba(251, 192, 45, 0.6); }
+#seasonAutumn.active, #trackBgm3.active { color: #d35400; text-shadow: 0 3px 4px rgba(211, 84, 0, 0.25); }
+#seasonWinter.active, #trackBgm4.active { color: #0984e3; text-shadow: 0 0 6px rgba(130, 204, 221, 0.6); }
+
+/* === 连珠特效按钮样式 === */
+.skin-section-title { font-size: 0.9rem; color: #888; margin-bottom: 10px; text-align: left; width: 100%; font-weight: 600; }
+#winLightning.active { color: #03a9f4; text-shadow: 0 0 8px rgba(3, 169, 244, 0.5); }
+#winGold.active { color: #ffb300; text-shadow: 0 0 8px rgba(255, 179, 0, 0.5); }
+#winFuture.active { color: #d500f9; text-shadow: 0 0 8px rgba(213, 0, 249, 0.5); }
 
 .skill-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; max-width: 500px; max-height: 60vh; overflow-y: auto; padding: 5px; box-sizing: border-box; }
 .skill-card { background: rgba(255,255,255,0.8); padding: 12px; border-radius: 16px; border: 2px solid transparent; cursor: pointer; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.03); text-align: left; display: flex; flex-direction: row; align-items: center; gap: 10px; min-height: 70px; transition: transform 0.2s, box-shadow 0.2s; }
@@ -148,6 +153,17 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .cell::before { content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: var(--line-ink); z-index: 0; }
 .cell::after { content: ''; position: absolute; left: 50%; top: 0; height: 100%; width: 1px; background: var(--line-ink); z-index: 0; }
 .cell[data-star="true"] .dot { width: 18%; height: 18%; background: var(--line-ink); border-radius: 50%; position: absolute; z-index: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+
+/* === FX Canvas (新增) === */
+.fx-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* 穿透点击 */
+    z-index: 20; /* 在棋子上方 */
+}
 
 .piece { width: 88%; height: 88%; z-index: 2; pointer-events: none; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; line-height: 1; animation: drop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 @media (max-width: 600px) { .piece { font-size: 5.5vw; } }

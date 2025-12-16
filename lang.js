@@ -3,7 +3,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "落葉 <span style='font-size:0.5em'>VS</span> 生輝", 
-        subTitle: "Alpha 0.7.5.1", // Update
+        subTitle: "Alpha 0.7.6", // Update
         btnPvE: "電腦對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -25,7 +25,6 @@ const I18N = {
         lblMusicVol: "音樂音量", lblSfxVol: "音效音量", lblAmbientVol: "環境音效",
         lblMusicTrack: "背景音樂",
         
-        // 音乐名称更新
         trackOrigin: "原初", 
         trackBgm1: "春箏", 
         trackBgm2: "夏笛",
@@ -73,7 +72,7 @@ const I18N = {
     'zh': {
         langName: "简", 
         gameTitle: "落叶 <span style='font-size:0.5em'>VS</span> 生辉", 
-        subTitle: "Alpha 0.7.5.1", // Update
+        subTitle: "Alpha 0.7.6", // Update
         btnPvE: "电脑对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -95,7 +94,6 @@ const I18N = {
         lblMusicVol: "音乐音量", lblSfxVol: "音效音量", lblAmbientVol: "环境音效",
         lblMusicTrack: "背景音乐",
         
-        // 音乐名称更新
         trackOrigin: "原初", 
         trackBgm1: "春筝", 
         trackBgm2: "夏笛",
@@ -143,7 +141,7 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Fallen <span style='font-size:0.5em'>VS</span> Radiance", 
-        subTitle: "Alpha 0.7.5.1", // Update
+        subTitle: "Alpha 0.7.6", // Update
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -165,7 +163,6 @@ const I18N = {
         lblMusicVol: "Music Volume", lblSfxVol: "SFX Volume", lblAmbientVol: "Ambient SFX",
         lblMusicTrack: "Background Music",
         
-        // Music Names Update
         trackOrigin: "Origin", 
         trackBgm1: "Spring Zither", 
         trackBgm2: "Summer Flute",

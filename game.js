@@ -30,7 +30,162 @@ let selectedCell = null;
 let bombTarget = null; 
 let userMusicPref = 'origin';
 let currentSkin = 'nature';
+let winEffect = 'default';
 let currentSeason = 'spring';
+
+// ================= 视觉特效引擎 (VisualFX Engine) =================
+const VisualFX = {
+    canvas: null,
+    ctx: null,
+    
+    init: function() {
+        this.canvas = document.getElementById('fxCanvas');
+        if (this.canvas) {
+            this.ctx = this.canvas.getContext('2d');
+            this.resize();
+            window.addEventListener('resize', () => this.resize());
+        }
+    },
+
+    resize: function() {
+        if (!this.canvas) return;
+        const wrapper = document.querySelector('.board-wrapper');
+        if (wrapper) {
+            this.canvas.width = wrapper.offsetWidth;
+            this.canvas.height = wrapper.offsetHeight;
+        }
+    },
+
+    clear: function() {
+        if (this.ctx) this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    },
+
+    getCoords: function(r, c) {
+        const cell = document.getElementById(`c-${r}-${c}`);
+        const wrapper = document.querySelector('.board-wrapper');
+        if (!cell || !wrapper) return null;
+        
+        const cRect = cell.getBoundingClientRect();
+        const wRect = wrapper.getBoundingClientRect();
+        
+        return {
+            x: cRect.left - wRect.left + cRect.width / 2,
+            y: cRect.top - wRect.top + cRect.height / 2
+        };
+    },
+
+    drawWinLine: function(lineCells, type) {
+        if (!this.ctx || lineCells.length < 2) return;
+        
+        const points = lineCells.map(p => this.getCoords(p.r, p.c)).filter(p => p);
+        if (points.length < 2) return;
+
+        const ctx = this.ctx;
+        ctx.save();
+        
+        if (type === 'default') {
+            // 默认：优雅的绿色发光线
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            ctx.lineTo(points[points.length-1].x, points[points.length-1].y);
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = '#00e676';
+            ctx.shadowColor = '#00e676';
+            ctx.shadowBlur = 15;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            
+            // 白色核心
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#fff';
+            ctx.shadowBlur = 0;
+            ctx.stroke();
+        } 
+        else if (type === 'lightning') {
+            // 闪电：锯齿状高能电弧
+            ctx.shadowColor = '#03a9f4';
+            ctx.shadowBlur = 20;
+            ctx.strokeStyle = '#e1f5fe';
+            ctx.lineWidth = 3;
+            
+            const start = points[0];
+            const end = points[points.length-1];
+            const dist = Math.hypot(end.x - start.x, end.y - start.y);
+            const steps = dist / 10;
+            
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            
+            for (let i = 1; i < steps; i++) {
+                const t = i / steps;
+                const tx = start.x + (end.x - start.x) * t;
+                const ty = start.y + (end.y - start.y) * t;
+                // 随机抖动
+                const jitter = (Math.random() - 0.5) * 20;
+                ctx.lineTo(tx + (end.y-start.y)*0.05 * (Math.random()-0.5), ty + (end.x-start.x)*0.05 * (Math.random()-0.5) + jitter);
+            }
+            ctx.lineTo(end.x, end.y);
+            ctx.stroke();
+        }
+        else if (type === 'gold') {
+            // 金黄：奢华流光
+            const start = points[0];
+            const end = points[points.length-1];
+            const grad = ctx.createLinearGradient(start.x, start.y, end.x, end.y);
+            grad.addColorStop(0, 'rgba(255, 215, 0, 0)');
+            grad.addColorStop(0.2, 'rgba(255, 215, 0, 1)');
+            grad.addColorStop(0.8, 'rgba(255, 223, 0, 1)');
+            grad.addColorStop(1, 'rgba(255, 215, 0, 0)');
+            
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.lineWidth = 10;
+            ctx.strokeStyle = grad;
+            ctx.shadowColor = '#ffb300';
+            ctx.shadowBlur = 25;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            
+            // 粒子火花
+            ctx.fillStyle = '#fff';
+            points.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+                ctx.fill();
+            });
+        }
+        else if (type === 'future') {
+            // 未来：赛博朋克霓虹
+            const start = points[0];
+            const end = points[points.length-1];
+            
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.lineWidth = 14;
+            ctx.strokeStyle = 'rgba(213, 0, 249, 0.3)'; // 外晕
+            ctx.shadowColor = '#d500f9';
+            ctx.shadowBlur = 20;
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#ea80fc'; // 核心
+            ctx.stroke();
+            
+            // 连接点方块
+            ctx.fillStyle = '#fff';
+            points.forEach(p => {
+                ctx.fillRect(p.x-3, p.y-3, 6, 6);
+            });
+        }
+        
+        ctx.restore();
+    }
+};
 
 // ================= 界面控制 =================
 const screens = { 
@@ -49,6 +204,11 @@ function showScreen(n) {
         if(s && !s.classList.contains('modal')) s.classList.remove('active'); 
     }); 
     if (screens[n]) screens[n].classList.add('active'); 
+    
+    // 初始化 FX Canvas
+    if (n === 'game') {
+        setTimeout(() => VisualFX.init(), 100);
+    }
 }
 
 function openSettings() {
@@ -76,18 +236,34 @@ function openSkinMenu() {
     }
     document.getElementById('skinModal').style.display = 'flex';
     updateSkinUI();
+    updateWinEffectUI();
 }
 function closeSkinMenu() { document.getElementById('skinModal').style.display = 'none'; }
+
 function changeSkin(skin) {
     SoundEngine.playPlace();
     currentSkin = skin;
     updateSkinUI();
-    if (gameActive) restoreState(historyStack.length > 0 ? historyStack[historyStack.length-1] : {board, currentPlayer, skillUsed, territoryZones, chaosDebuff, shortBattleTurns, timeRemaining, bombTarget});
 }
+
+function changeWinEffect(effect) {
+    SoundEngine.playPlace();
+    winEffect = effect;
+    updateWinEffectUI();
+}
+
 function updateSkinUI() {
     document.querySelectorAll('.skin-option').forEach(el => el.classList.remove('active'));
     if (currentSkin === 'nature') document.getElementById('skinNature').classList.add('active');
     else document.getElementById('skinClassic').classList.add('active');
+}
+
+function updateWinEffectUI() {
+    document.querySelectorAll('.effect-opt').forEach(el => el.classList.remove('active'));
+    if (winEffect === 'default') document.getElementById('winDefault').classList.add('active');
+    else if (winEffect === 'lightning') document.getElementById('winLightning').classList.add('active');
+    else if (winEffect === 'gold') document.getElementById('winGold').classList.add('active');
+    else if (winEffect === 'future') document.getElementById('winFuture').classList.add('active');
 }
 
 // 核心音量控制
@@ -116,7 +292,7 @@ function updateTrackUI() {
     // 清除所有高亮
     document.querySelectorAll('.music-opt').forEach(el => el.classList.remove('active'));
     
-    // 根据当前偏好点亮对应按钮 (更新为 5 个按钮逻辑)
+    // 根据当前偏好点亮对应按钮
     if (userMusicPref === 'origin') {
         const el = document.getElementById('trackOrigin');
         if(el) el.classList.add('active');
@@ -168,6 +344,7 @@ function goToMenu() {
     clearInterval(gameTicker); clearTimeout(aiTimer); 
     document.getElementById('winnerModal').style.display='none'; 
     showScreen('main'); 
+    VisualFX.clear();
 }
 function confirmExit() { if(confirm(t('confirmExit'))) goToMenu(); }
 function showDifficultyScreen() { SoundEngine.playPlace(); showScreen('diff'); }
@@ -216,6 +393,7 @@ function initGame() {
     
     SoundEngine.setCritical(false);
     SoundEngine.switchTrack(userMusicPref);
+    VisualFX.clear();
 
     clearInterval(gameTicker); clearTimeout(aiTimer); 
     updateStaticText(); updateDynamicUI(); renderBoard();
@@ -263,6 +441,7 @@ function renderBoard() {
         } 
         b.appendChild(cell); 
     } 
+    VisualFX.init();
 }
 function getCell(r, c) { return document.getElementById(`c-${r}-${c}`); }
 
@@ -271,6 +450,7 @@ function saveState() { historyStack.push({ board: JSON.parse(JSON.stringify(boar
 function restoreState(state) { 
     board = state.board; currentPlayer = state.currentPlayer; skillUsed = state.skillUsed; territoryZones = state.territoryZones; chaosDebuff = state.chaosDebuff; shortBattleTurns = state.shortBattleTurns; timeRemaining = state.timeRemaining; bombTarget = state.bombTarget; 
     SoundEngine.setCritical(false);
+    VisualFX.clear(); // 清除连珠特效
     
     document.querySelectorAll('.win-highlight').forEach(el => el.classList.remove('win-highlight'));
 
@@ -418,6 +598,10 @@ function handleSkillInteraction(r, c) {
 function highlightWin(line, winner) {
     gameActive = false;
     SoundEngine.playWin();
+    
+    // 调用 VisualFX 绘制特效线
+    VisualFX.drawWinLine(line, winEffect);
+
     line.forEach(pos => {
         const cell = getCell(pos.r, pos.c);
         if (cell) cell.classList.add('win-highlight');
@@ -489,6 +673,100 @@ function isZoneRestricted(r, c, p) { for(let z of territoryZones) { if (Math.abs
 function updateTerritoriesUI() { document.querySelectorAll('.territory-zone').forEach(el => el.classList.remove('territory-zone')); territoryZones.forEach(z => { for(let i=z.r-1; i<=z.r+1; i++) { for(let j=z.c-1; j<=z.c+1; j++) { const c = getCell(i, j); if(c) c.classList.add('territory-zone'); } } }); }
 function checkWin(r, c, p) { const d = [[0,1], [1,0], [1,1], [1,-1]]; const limit = shortBattleTurns > 0 ? 4 : 5; for(let k of d) { let ct = 1; let line = [{r,c}]; let i = r + k[0], j = c + k[1]; while(isValid(i,j) && board[i][j] === p) { line.push({r:i, c:j}); i += k[0]; j += k[1]; ct++; } i = r - k[0]; j = c - k[1]; while(isValid(i,j) && board[i][j] === p) { line.push({r:i, c:j}); i -= k[0]; j -= k[1]; ct++; } if(ct >= limit) return line; } return null; }
 function startBombTimer() { if(bombInterval) clearInterval(bombInterval); bombInterval = setInterval(() => { if(!gameActive) return; if(currentPlayer !== bombOwner) { bombTime--; const m = Math.floor(bombTime/60).toString().padStart(2,'0'); const s = (bombTime%60).toString().padStart(2,'0'); document.getElementById('bombTimer').innerText=`${m}:${s}`; if(bombTime <= 0) handleMatchEnd(bombOwner); } }, 1000); }
-function updateDynamicUI() { const turnTextEl = document.getElementById('turnText'); const newTurnText = t('names')[currentPlayer===MAPLE?1:2]; if (turnTextEl.innerText !== newTurnText) turnTextEl.innerText = newTurnText; const turnIconEl = document.getElementById('turnIcon'); const newTurnIcon = ICONS[currentPlayer]; if (turnIconEl.innerText !== newTurnIcon) turnIconEl.innerText = newTurnIcon; const statusBar = document.getElementById('statusBar'); const newClass = 'status-pill ' + (currentPlayer === MAPLE ? 'turn-maple' : 'turn-sun'); if (statusBar.className !== newClass) statusBar.className = newClass; const t1 = document.getElementById('timer1'); const t2 = document.getElementById('timer2'); const t1Text = `🍁 ${formatTime(timeRemaining[MAPLE])}`; const t2Text = `☀️ ${formatTime(timeRemaining[SUN])}`; if (t1.innerText !== t1Text) t1.innerText = t1Text; if (t2.innerText !== t2Text) t2.innerText = t2Text; const updateTimerVisual = (player, timerEl, time) => { timerEl.className = `timer-pill ${currentPlayer===player?'active':''}`; if (bombTarget === player) { if (time < 30) { timerEl.classList.add('timer-critical'); } else { timerEl.classList.add('timer-bomb'); } } else if (time < 30) { timerEl.classList.add('timer-critical-normal'); } }; updateTimerVisual(MAPLE, t1, timeRemaining[MAPLE]); updateTimerVisual(SUN, t2, timeRemaining[SUN]); const cc = document.getElementById('chaosCounter'); const sbc = document.getElementById('shortBattleCounter'); if (chaosDebuff[currentPlayer] > 0) { cc.style.display = 'block'; const ccText = `${t('chaosLabel', 'toast')} ${chaosDebuff[currentPlayer]}`; if (cc.innerText !== ccText) cc.innerText = ccText; } else { cc.style.display = 'none'; } if (shortBattleTurns > 0) { sbc.style.display = 'block'; const sbcText = `${t('shortBattleLabel', 'toast')} ${shortBattleTurns}`; if (sbc.innerText !== sbcText) sbc.innerText = sbcText; } else { sbc.style.display = 'none'; } const ms = playerSkills[currentPlayer]; const u = skillUsed[currentPlayer]; const btn = document.getElementById('skillBtn'); if (!ms) { btn.disabled = true; if (btn.querySelector('span').innerText !== "---") btn.querySelector('span').innerText = "---"; if (btn.querySelector('small').innerText !== "") btn.querySelector('small').innerText = ""; return; } const so = t(ms, 'skills'); let myC=0, oppC=0; board.forEach(r=>r.forEach(c=>{ if(c===currentPlayer)myC++; else if(c!==0&&c!==-1)oppC++; })); let viable = true; if(ms==='move_self' && myC===0) viable=false; else if(ms==='move_enemy' && oppC===0) viable=false; else if((ms==='god_hand'||ms==='voodoo') && (myC+oppC)===0) viable=false; else if(ms==='swap' && (myC===0 || oppC===0)) viable=false; const span = btn.querySelector('span'); const small = btn.querySelector('small'); if(u || !viable) { btn.disabled=true; const newSpan = (so?so.name:t('skillName')) + " " + (u?t('skillUsed'):t('skillNoTarget')); if (span.innerText !== newSpan) span.innerText = newSpan; if (small.innerText !== "") small.innerText = ""; } else { btn.disabled=false; const newSpan = so?so.name:t('skillName'); const newSmall = t('skillReady'); if (span.innerText !== newSpan) span.innerText = newSpan; if (small.innerText !== newSmall) small.innerText = newSmall; } }
+
+// 修复：展开并格式化 updateDynamicUI，确保括号匹配
+function updateDynamicUI() {
+    const turnTextEl = document.getElementById('turnText');
+    const newTurnText = t('names')[currentPlayer === MAPLE ? 1 : 2];
+    if (turnTextEl.innerText !== newTurnText) turnTextEl.innerText = newTurnText;
+    
+    const turnIconEl = document.getElementById('turnIcon');
+    const newTurnIcon = ICONS[currentPlayer];
+    if (turnIconEl.innerText !== newTurnIcon) turnIconEl.innerText = newTurnIcon;
+    
+    const statusBar = document.getElementById('statusBar');
+    const newClass = 'status-pill ' + (currentPlayer === MAPLE ? 'turn-maple' : 'turn-sun');
+    if (statusBar.className !== newClass) statusBar.className = newClass;
+    
+    const t1 = document.getElementById('timer1');
+    const t2 = document.getElementById('timer2');
+    const t1Text = `🍁 ${formatTime(timeRemaining[MAPLE])}`;
+    const t2Text = `☀️ ${formatTime(timeRemaining[SUN])}`;
+    if (t1.innerText !== t1Text) t1.innerText = t1Text;
+    if (t2.innerText !== t2Text) t2.innerText = t2Text;
+    
+    const updateTimerVisual = (player, timerEl, time) => {
+        timerEl.className = `timer-pill ${currentPlayer === player ? 'active' : ''}`;
+        if (bombTarget === player) {
+            if (time < 30) {
+                timerEl.classList.add('timer-critical');
+            } else {
+                timerEl.classList.add('timer-bomb');
+            }
+        } else if (time < 30) {
+            timerEl.classList.add('timer-critical-normal');
+        }
+    };
+    updateTimerVisual(MAPLE, t1, timeRemaining[MAPLE]);
+    updateTimerVisual(SUN, t2, timeRemaining[SUN]);
+    
+    const cc = document.getElementById('chaosCounter');
+    const sbc = document.getElementById('shortBattleCounter');
+    if (chaosDebuff[currentPlayer] > 0) {
+        cc.style.display = 'block';
+        const ccText = `${t('chaosLabel', 'toast')} ${chaosDebuff[currentPlayer]}`;
+        if (cc.innerText !== ccText) cc.innerText = ccText;
+    } else {
+        cc.style.display = 'none';
+    }
+    if (shortBattleTurns > 0) {
+        sbc.style.display = 'block';
+        const sbcText = `${t('shortBattleLabel', 'toast')} ${shortBattleTurns}`;
+        if (sbc.innerText !== sbcText) sbc.innerText = sbcText;
+    } else {
+        sbc.style.display = 'none';
+    }
+    
+    const ms = playerSkills[currentPlayer];
+    const u = skillUsed[currentPlayer];
+    const btn = document.getElementById('skillBtn');
+    
+    if (!ms) {
+        btn.disabled = true;
+        if (btn.querySelector('span').innerText !== "---") btn.querySelector('span').innerText = "---";
+        if (btn.querySelector('small').innerText !== "") btn.querySelector('small').innerText = "";
+        return;
+    }
+    
+    const so = t(ms, 'skills');
+    let myC = 0, oppC = 0;
+    board.forEach(r => r.forEach(c => {
+        if (c === currentPlayer) myC++;
+        else if (c !== 0 && c !== -1) oppC++;
+    }));
+    
+    let viable = true;
+    if (ms === 'move_self' && myC === 0) viable = false;
+    else if (ms === 'move_enemy' && oppC === 0) viable = false;
+    else if ((ms === 'god_hand' || ms === 'voodoo') && (myC + oppC) === 0) viable = false;
+    else if (ms === 'swap' && (myC === 0 || oppC === 0)) viable = false;
+    
+    const span = btn.querySelector('span');
+    const small = btn.querySelector('small');
+    
+    if (u || !viable) {
+        btn.disabled = true;
+        const newSpan = (so ? so.name : t('skillName')) + " " + (u ? t('skillUsed') : t('skillNoTarget'));
+        if (span.innerText !== newSpan) span.innerText = newSpan;
+        if (small.innerText !== "") small.innerText = "";
+    } else {
+        btn.disabled = false;
+        const newSpan = so ? so.name : t('skillName');
+        const newSmall = t('skillReady');
+        if (span.innerText !== newSpan) span.innerText = newSpan;
+        if (small.innerText !== newSmall) small.innerText = newSmall;
+    }
+}
+
 function formatTime(s) { if(s<0) s=0; const m=Math.floor(s/60).toString().padStart(2,'0'); const sec=(s%60).toString().padStart(2,'0'); return `${m}:${sec}`; }
 function showToast(m){ const t=document.getElementById('toast'); t.innerText=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0,3000); }
