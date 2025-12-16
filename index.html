@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>落叶 VS 生辉 - Alpha 0.7.7.1</title>
-    <link rel="stylesheet" href="style.css?v=alpha_0_7_7_1">
+    <title>技能五子棋 - Alpha 0.7.7.2</title>
+    <link rel="stylesheet" href="style.css?v=alpha_0_7_7_2">
 </head>
 <body onclick="SoundEngine.init()">
 
@@ -19,9 +19,9 @@
 
     <div id="mainMenu" class="screen active">
         <div class="glass-panel menu-panel">
-            <h1 data-i18n="gameTitle">落叶 <span style="font-size:0.5em">VS</span> 生辉</h1>
+            <h1 data-i18n="gameTitle">技能五子棋 <span style="font-size:0.5em">Alpha</span></h1>
             <h2 style="margin-top:-5px; font-size:1.2rem; color:#666;">
-                <span data-i18n="subTitle">Visual Update</span> <span class="version-tag">Alpha 0.7.7.1</span>
+                <span data-i18n="subTitle">v0.7.7.2</span> <span class="version-tag">Reborn</span>
             </h2>
             <button class="btn primary" onclick="SoundEngine.playPlace(); showDifficultyScreen()" data-i18n="btnPvE">电脑对战 (PvE)</button>
             <button class="btn" onclick="startPvPFlow('single')" data-i18n="btnPvPSingle">双人单局 (PvP)</button>
@@ -156,15 +156,15 @@
             
             <div class="skin-section-title">棋子样式</div>
             <div class="skin-selector">
+                <div class="skin-option active" id="skinClassic" onclick="changeSkin('classic')">
+                    <div class="skin-preview">
+                        <div class="classic-demo" style="background:#000; border-radius:50%; width:100%; height:100%;"></div>
+                    </div>
+                    <span>默认</span>
+                </div>
                 <div class="skin-option" id="skinNature" onclick="changeSkin('nature')">
                     <div class="skin-preview" style="color: #d32f2f; font-size: 2rem;">🍁</div> 
                     <span>自然</span>
-                </div>
-                <div class="skin-option active" id="skinClassic" onclick="changeSkin('classic')">
-                    <div class="skin-preview">
-                        <div class="classic-demo"></div>
-                    </div>
-                    <span>经典</span>
                 </div>
             </div>
 
@@ -183,12 +183,12 @@
     <div id="toast"></div>
     <div id="explosionOverlay"></div>
 
-    <script src="audio.js?v=alpha_0_7_7_1"></script>
-    <script src="lang.js?v=alpha_0_7_7_1"></script> 
-    <script src="background.js?v=alpha_0_7_7_1"></script>
-    <script src="fx.js?v=alpha_0_7_7_1"></script>
-    <script src="game.js?v=alpha_0_7_7_1"></script>
-    <script src="ai.js?v=alpha_0_7_7_1"></script>
+    <script src="audio.js?v=alpha_0_7_7_2"></script>
+    <script src="lang.js?v=alpha_0_7_7_2"></script> 
+    <script src="background.js?v=alpha_0_7_7_2"></script>
+    <script src="fx.js?v=alpha_0_7_7_2"></script>
+    <script src="game.js?v=alpha_0_7_7_2"></script>
+    <script src="ai.js?v=alpha_0_7_7_2"></script>
     <script>
         window.onload = function() {
             if (typeof initGame === 'function') {}

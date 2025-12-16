@@ -1,15 +1,33 @@
 // ================= 视觉特效资源与引擎 (Visual Effects & Art Assets) =================
 
 /**
- * [Alpha 0.7.7.1 - Critical Fix] Safe Vector Art Library
- * Completely removed gradients, filters, and IDs to prevent rendering crashes.
- * Using high-contrast SOLID colors.
+ * [Alpha 0.7.7.2] Vector Art Library
+ * Introduction of Classic Black & White Stones (Vectorized).
+ * High-contrast, scalable, and crash-proof (No ID conflicts).
  */
 
 // 1. 棋子皮肤库 (The Pieces)
 const PIECE_ICONS = {
-    // 🍁 落叶：纯色填充，无渐变，无 ID，确保绝对稳定
-    maple: `
+    // 经典黑子：纯矢量，带高光
+    classic_black: `
+        <svg viewBox="0 0 512 512" fill="none" class="piece-svg">
+            <circle cx="256" cy="256" r="230" fill="#111"/>
+            <path d="M256 50 Q380 50 450 150" stroke="white" stroke-width="10" stroke-opacity="0.1" fill="none"/>
+            <circle cx="180" cy="180" r="60" fill="white" fill-opacity="0.1"/>
+        </svg>
+    `,
+    
+    // 经典白子：纯矢量，带阴影
+    classic_white: `
+        <svg viewBox="0 0 512 512" fill="none" class="piece-svg">
+            <circle cx="256" cy="256" r="230" fill="#f0f0f0" stroke="#ccc" stroke-width="2"/>
+            <circle cx="256" cy="256" r="210" fill="white"/>
+            <path d="M100 400 Q256 500 412 400" stroke="#ccc" stroke-width="10" stroke-opacity="0.2" fill="none"/>
+        </svg>
+    `,
+
+    // 自然落叶：纯色填充，无渐变
+    nature_maple: `
         <svg viewBox="0 0 512 512" fill="none" class="piece-svg maple-piece">
             <g>
                 <path d="M256 32 C250 32 230 80 220 110 C180 100 120 80 110 90 C105 95 120 140 130 160 C90 150 40 130 30 140 C20 150 60 200 80 220 C50 210 20 200 10 215 C0 230 50 260 80 280 C60 290 20 310 30 330 C40 350 90 320 120 300 C110 340 100 400 110 410 C120 420 150 360 170 320 C180 360 190 420 200 430 C210 440 230 380 240 340 L250 480 C252 490 260 490 262 480 L272 340 C282 380 302 440 312 430 C322 420 332 360 342 320 C362 360 392 420 402 410 C412 400 402 340 392 300 C422 320 472 350 482 330 C492 310 452 290 432 280 C462 260 512 230 502 215 C492 200 462 210 432 220 C452 200 492 150 482 140 C472 130 422 150 382 160 C392 140 407 95 402 90 C392 80 332 100 292 110 C282 80 262 32 256 32 Z" 
@@ -20,8 +38,8 @@ const PIECE_ICONS = {
         </svg>
     `,
     
-    // ☀️ 生辉：纯色填充，无渐变，高对比度
-    sun: `
+    // 自然生辉：纯色填充，无渐变
+    nature_sun: `
         <svg viewBox="0 0 512 512" fill="none" class="piece-svg sun-piece">
             <g>
                 <path d="M256 20 L256 80 M256 432 L256 492 M492 256 L432 256 M80 256 L20 256 
@@ -37,96 +55,19 @@ const PIECE_ICONS = {
 
 // 2. 技能图标库 (Skill Icons - High Fidelity)
 const SKILL_ICONS = {
-    // 双连
-    double: `
-        <svg viewBox="0 0 64 64" fill="none">
-            <circle cx="24" cy="24" r="14" fill="#E0E0E0" stroke="currentColor" stroke-width="3"/>
-            <circle cx="40" cy="40" r="14" fill="currentColor" stroke="white" stroke-width="3"/>
-            <path d="M48 20 L56 12 M52 24 L58 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>`,
-
-    // 巫毒
-    voodoo: `
-        <svg viewBox="0 0 64 64" fill="none">
-            <circle cx="32" cy="36" r="18" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="3"/>
-            <circle cx="26" cy="32" r="2" fill="currentColor"/>
-            <path d="M36 30 L40 34 M36 34 L40 30" stroke="currentColor" stroke-width="2"/>
-            <path d="M26 44 Q32 48 38 44" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <path d="M10 10 L24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-            <circle cx="10" cy="10" r="3" fill="currentColor"/>
-        </svg>`,
-
-    // 移花接木
-    move_self: `
-        <svg viewBox="0 0 64 64" fill="none">
-            <circle cx="20" cy="32" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="4 2"/>
-            <path d="M32 32 L46 32" stroke="currentColor" stroke-width="3" marker-end="url(#arrow)"/>
-            <circle cx="50" cy="32" r="10" fill="currentColor"/>
-            <path d="M44 26 L50 32 L44 38" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>`,
-
-    // 乾坤大挪移
-    move_enemy: `
-        <svg viewBox="0 0 64 64" fill="none">
-            <circle cx="32" cy="42" r="10" stroke="currentColor" stroke-width="3"/>
-            <path d="M16 10 L24 28 M48 10 L40 28" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-            <path d="M20 28 Q32 36 44 28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-        </svg>`,
-
-    // 领地
-    zone: `
-        <svg viewBox="0 0 64 64" fill="none">
-            <rect x="12" y="12" width="40" height="40" rx="4" stroke="currentColor" stroke-width="3"/>
-            <path d="M25 12 V52 M39 12 V52 M12 25 H52 M12 39 H52" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.5"/>
-            <rect x="26" y="26" width="12" height="12" fill="currentColor"/>
-        </svg>`,
-
-    // 时间炸弹
-    bomb: `
-        <svg viewBox="0 0 64 64" fill="none">
-            <circle cx="32" cy="38" r="16" fill="currentColor"/>
-            <path d="M32 22 V14 M32 14 Q42 14 46 20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-            <path d="M46 16 L50 12 M50 20 L54 22 M44 10 L46 6" stroke="#ff5252" stroke-width="2"/>
-        </svg>`,
-
-    // 上帝之手
-    god_hand: `
-        <svg viewBox="0 0 64 64" fill="none">
-            <path d="M32 54 V40 M20 30 Q20 10 32 10 Q44 10 44 30" stroke="currentColor" stroke-width="3"/>
-            <path d="M20 30 L20 40 Q20 46 26 46 H38 Q44 46 44 40 L44 30" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="2"/>
-            <circle cx="32" cy="24" r="4" fill="currentColor"/>
-        </svg>`,
-
-    // 混乱骰子
-    chaos: `
-        <svg viewBox="0 0 64 64" fill="none">
-            <path d="M32 6 L56 18 V46 L32 58 L8 46 V18 Z" stroke="currentColor" stroke-width="3" stroke-linejoin="round" fill="currentColor" fill-opacity="0.1"/>
-            <path d="M32 6 V30 M56 18 L32 30 L8 18" stroke="currentColor" stroke-width="2"/>
-            <circle cx="32" cy="18" r="2" fill="currentColor"/>
-            <circle cx="20" cy="36" r="2" fill="currentColor"/>
-            <circle cx="44" cy="36" r="2" fill="currentColor"/>
-        </svg>`,
-
-    // 短兵战
-    short_battle: `
-        <svg viewBox="0 0 64 64" fill="none">
-            <path d="M12 52 L52 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
-            <path d="M12 12 L52 52" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
-            <path d="M10 48 L16 54 M48 10 L54 16" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
-            <path d="M10 16 L16 10 M48 54 L54 48" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
-        </svg>`,
-
-    // 置换反應
-    swap: `
-        <svg viewBox="0 0 64 64" fill="none">
-            <path d="M16 32 A 16 16 0 0 1 48 32" stroke="currentColor" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
-            <path d="M48 32 A 16 16 0 0 1 16 32" stroke="currentColor" stroke-width="3" fill="none" transform="rotate(180 32 32)"/>
-            <path d="M44 26 L48 32 L44 38" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M20 38 L16 32 L20 26" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>`
+    double: '<svg viewBox="0 0 64 64" fill="none"><circle cx="24" cy="24" r="14" fill="#E0E0E0" stroke="currentColor" stroke-width="3"/><circle cx="40" cy="40" r="14" fill="currentColor" stroke="white" stroke-width="3"/><path d="M48 20 L56 12 M52 24 L58 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    voodoo: '<svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="36" r="18" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="3"/><circle cx="26" cy="32" r="2" fill="currentColor"/><path d="M36 30 L40 34 M36 34 L40 30" stroke="currentColor" stroke-width="2"/><path d="M26 44 Q32 48 38 44" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 10 L24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="10" cy="10" r="3" fill="currentColor"/></svg>',
+    move_self: '<svg viewBox="0 0 64 64" fill="none"><circle cx="20" cy="32" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="4 2"/><path d="M32 32 L46 32" stroke="currentColor" stroke-width="3" marker-end="url(#arrow)"/><circle cx="50" cy="32" r="10" fill="currentColor"/><path d="M44 26 L50 32 L44 38" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    move_enemy: '<svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="42" r="10" stroke="currentColor" stroke-width="3"/><path d="M16 10 L24 28 M48 10 L40 28" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M20 28 Q32 36 44 28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>',
+    zone: '<svg viewBox="0 0 64 64" fill="none"><rect x="12" y="12" width="40" height="40" rx="4" stroke="currentColor" stroke-width="3"/><path d="M25 12 V52 M39 12 V52 M12 25 H52 M12 39 H52" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.5"/><rect x="26" y="26" width="12" height="12" fill="currentColor"/></svg>',
+    bomb: '<svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="38" r="16" fill="currentColor"/><path d="M32 22 V14 M32 14 Q42 14 46 20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M46 16 L50 12 M50 20 L54 22 M44 10 L46 6" stroke="#ff5252" stroke-width="2"/></svg>',
+    god_hand: '<svg viewBox="0 0 64 64" fill="none"><path d="M32 54 V40 M20 30 Q20 10 32 10 Q44 10 44 30" stroke="currentColor" stroke-width="3"/><path d="M20 30 L20 40 Q20 46 26 46 H38 Q44 46 44 40 L44 30" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="2"/><circle cx="32" cy="24" r="4" fill="currentColor"/></svg>',
+    chaos: '<svg viewBox="0 0 64 64" fill="none"><path d="M32 6 L56 18 V46 L32 58 L8 46 V18 Z" stroke="currentColor" stroke-width="3" stroke-linejoin="round" fill="currentColor" fill-opacity="0.1"/><path d="M32 6 V30 M56 18 L32 30 L8 18" stroke="currentColor" stroke-width="2"/><circle cx="32" cy="18" r="2" fill="currentColor"/><circle cx="20" cy="36" r="2" fill="currentColor"/><circle cx="44" cy="36" r="2" fill="currentColor"/></svg>',
+    short_battle: '<svg viewBox="0 0 64 64" fill="none"><path d="M12 52 L52 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M12 12 L52 52" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M10 48 L16 54 M48 10 L54 16" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><path d="M10 16 L16 10 M48 54 L54 48" stroke="currentColor" stroke-width="6" stroke-linecap="round"/></svg>',
+    swap: '<svg viewBox="0 0 64 64" fill="none"><path d="M16 32 A 16 16 0 0 1 48 32" stroke="currentColor" stroke-width="3" fill="none" marker-end="url(#arrow)"/><path d="M48 32 A 16 16 0 0 1 16 32" stroke="currentColor" stroke-width="3" fill="none" transform="rotate(180 32 32)"/><path d="M44 26 L48 32 L44 38" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 38 L16 32 L20 26" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
 
-// 视觉特效引擎 (VisualFX Engine) - Alpha 0.7.7.1
+// 视觉特效引擎 (VisualFX Engine) - Alpha 0.7.7.2
 const VisualFX = {
     canvas: null,
     ctx: null,
@@ -214,7 +155,7 @@ const VisualFX = {
         this.animationId = requestAnimationFrame(loop);
     },
 
-    // --- Renderers (保留 0.7.6.4 的完美实现) ---
+    // --- Renderers ---
     renderDefault: function(points, elapsed) {
         const ctx = this.ctx;
         const start = points[0];
