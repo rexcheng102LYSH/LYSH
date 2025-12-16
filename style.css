@@ -1,17 +1,17 @@
 :root {
-    --glass-surface: rgba(255, 255, 255, 0.9); 
-    --glass-border: rgba(255, 255, 255, 0.95);
+    --glass-surface: rgba(255, 255, 255, 0.85); 
+    --glass-border: rgba(255, 255, 255, 0.9);
     --glass-shadow: 0 12px 40px rgba(31, 38, 135, 0.15);
-    --glass-blur: blur(20px);
-    --board-wood: #e3c085; /* 更正統的棋盤黃 */
-    --line-ink: rgba(30, 20, 10, 0.85); /* 更深的墨色 */
+    --glass-blur: blur(16px);
+    --board-wood: #e8c384; /* 恢复原版木色 */
+    --line-ink: rgba(60, 40, 30, 0.85); 
     --corrode-color: #2d3436;
-    --black-piece: #111;
-    --white-piece: #fff;
+    --maple-color: #d32f2f;
+    --sun-color: #fbc02d;
     --win-glow: #00e676;
     --warn-glow: #ff5722;
     --chaos-glow: #673ab7;
-    --select-color: #0984e3; /* 經典模式下選中框改為藍色，更清晰 */
+    --select-color: #FFD700;
     --ui-text-main: #2d3436;
     --ui-text-sub: #636e72;
 }
@@ -28,7 +28,7 @@ body {
 #bgCanvas {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     z-index: -1;
-    background: linear-gradient(to bottom, #f5f7fa 0%, #c3cfe2 100%); /* 默認背景更清淡 */
+    background: linear-gradient(to bottom, #fffefb 0%, #f0f4f8 100%);
 }
 
 .top-right-controls {
@@ -37,7 +37,7 @@ body {
 }
 .icon-btn {
     width: 44px; height: 44px; border-radius: 50%; border: none;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.8); /* 回滚透明度 */
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     font-size: 1.2rem; cursor: pointer;
@@ -62,22 +62,26 @@ body {
     border-radius: 28px;
     box-shadow: var(--glass-shadow);
 }
-.menu-panel { padding: 45px 35px; width: 90%; max-width: 420px; text-align: center; }
 
-h1 { font-size: 2.6rem; margin-bottom: 5px; color: var(--ui-text-main); text-shadow: 0 2px 10px rgba(255,255,255,0.8); font-weight: 800; letter-spacing: 1px; margin-top: 0; }
-h2 { color: var(--ui-text-sub); margin-bottom: 30px; font-weight: 500; font-size: 1.1rem; letter-spacing: 0.5px; }
-.version-tag { font-size: 0.65rem; background: #2d3436; color: #fff; padding: 3px 8px; border-radius: 6px; margin-left: 8px; vertical-align: middle; letter-spacing: 0; font-weight: normal; }
+/* [回滚] 恢复紧凑尺寸 */
+.menu-panel { padding: 40px 30px; width: 90%; max-width: 400px; text-align: center; }
 
+/* [回滚] 恢复标题大小 */
+h1 { font-size: 2.5rem; margin-bottom: 5px; color: var(--ui-text-main); text-shadow: 0 2px 10px rgba(255,255,255,0.8); font-weight: 800; letter-spacing: 2px; margin-top: 0; }
+h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size: 1.1rem; }
+.version-tag { font-size: 0.65rem; background: #2d3436; color: #fff; padding: 4px 8px; border-radius: 12px; margin-left: 8px; vertical-align: middle; }
+
+/* [回滚] 恢复按钮尺寸 */
 .btn { 
-    padding: 18px 0; width: 85%; max-width: 320px; margin: 14px auto; display: block;
-    font-size: 1.15rem; border: 1px solid rgba(0,0,0,0.05); border-radius: 16px; 
+    padding: 16px 0; width: 85%; max-width: 320px; margin: 12px auto; display: block;
+    font-size: 1.1rem; border: 1px solid rgba(255,255,255,0.6); border-radius: 50px; 
     cursor: pointer; transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); 
-    background: #fff; color: #333; font-weight: 700; 
+    background: rgba(255,255,255,0.9); color: #333; font-weight: 700; 
     box-shadow: 0 4px 15px rgba(0,0,0,0.05);
 }
-.btn:active { transform: scale(0.98); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-.btn.primary { background: #2d3436; color: white; border: none; box-shadow: 0 10px 25px rgba(45, 52, 54, 0.25); }
-.btn.secondary { background: transparent; border: 1px solid rgba(0,0,0,0.1); color: #666; box-shadow: none; }
+.btn:active { transform: scale(0.96); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+.btn.primary { background: #2d3436; color: white; border: none; box-shadow: 0 8px 20px rgba(45, 52, 54, 0.3); }
+.btn.secondary { background: rgba(255,255,255,0.6); color: #555; }
 .btn.bo3-btn { background: linear-gradient(135deg, #fbc02d, #ff9f43); color: white; border: none; box-shadow: 0 8px 20px rgba(251, 192, 45, 0.3); }
 
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); justify-content: center; align-items: center; z-index: 9999; }
@@ -149,12 +153,11 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .skill-title { font-weight: 800; font-size: 0.9rem; color: #2d3436; margin-bottom: 2px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .skill-desc { font-size: 0.7rem; color: #636e72; line-height: 1.2; display: -webkit-box; line-clamp: 2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-/* 皮肤选择器布局优化 */
+/* [回滚] 皮肤选择器恢复 compact */
 .skin-selector { 
     display: flex; 
     gap: 20px; 
     justify-content: center; 
-    align-items: center;
     margin: 25px 0; 
 }
 .skin-option { 
@@ -163,25 +166,26 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
     padding: 15px; 
     cursor: pointer; 
     width: 100px; 
-    height: 100px;
     transition: all 0.2s; 
     background: #fafafa; 
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
 }
 .skin-option.active { border-color: #2d3436; background: #fff; transform: scale(1.08); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
 .skin-preview { 
     width: 48px; 
     height: 48px; 
-    margin-bottom: 8px; 
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
+    margin: 0 auto 8px; 
     position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 .skin-preview svg { width: 100%; height: 100%; }
+
+.skin-preview .classic-demo {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #666 0%, #111 100%);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
 
 .turn-choice-container { display: flex; gap: 20px; justify-content: center; margin-top: 20px; }
 .turn-card { background: rgba(255,255,255,0.9); padding: 20px; border-radius: 20px; border: 3px solid transparent; cursor: pointer; text-align: center; width: 120px; box-shadow: 0 8px 20px rgba(0,0,0,0.05); transition: transform 0.2s; }
@@ -198,8 +202,8 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 }
 .turn-card .icon svg { width: 100%; height: 100%; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15)); }
 
-.board-wrapper { padding: 12px; background: rgba(255,255,255,0.6); border-radius: 8px; box-shadow: 0 20px 50px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.8); backdrop-filter: blur(15px); margin: 10px 0; position: relative; z-index: 1; border: 1px solid rgba(255,255,255,0.4); }
-.board { position: relative; background-color: var(--board-wood); padding: 10px; display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr); gap: 0; border-radius: 2px; box-shadow: inset 0 2px 8px rgba(0,0,0,0.15); touch-action: none; background-image: linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 20px 20px; }
+.board-wrapper { padding: 12px; background: rgba(255,255,255,0.5); border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.8); backdrop-filter: blur(15px); margin: 10px 0; position: relative; z-index: 1; border: none; }
+.board { position: relative; background-color: var(--board-wood); padding: 10px; display: grid; grid-template-columns: repeat(15, 1fr); grid-template-rows: repeat(15, 1fr); gap: 0; border-radius: 4px; box-shadow: inset 0 2px 8px rgba(0,0,0,0.15); touch-action: none; background-image: linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 20px 20px; }
 @media (min-width: 600px) { .board { width: 500px; height: 500px; } }
 @media (max-width: 600px) { .board { width: 90vw; height: 90vw; padding: 2px; } }
 .cell { position: relative; display: flex; justify-content: center; align-items: center; }
@@ -214,8 +218,12 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
     width: 100%; 
     height: 100%; 
     display: block; 
-    filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.35)); /* 增强棋子立体感 */
+    filter: drop-shadow(0 3px 3px rgba(0,0,0,0.25)); 
 }
+
+.piece.skin-classic { box-shadow: inset 0 -3px 5px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.3); }
+.piece.skin-classic.p1 { background: radial-gradient(circle at 30% 30%, #666 0%, #111 100%); }
+.piece.skin-classic.p2 { background: radial-gradient(circle at 30% 30%, #fff 0%, #ccc 100%); }
 
 .cell.territory-zone { background-color: rgba(211, 47, 47, 0.15) !important; box-shadow: inset 0 0 15px rgba(211, 47, 47, 0.1); } 
 .cell.territory-preview { background-color: rgba(211, 47, 47, 0.1); }
@@ -227,20 +235,46 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .cell.selected-move::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 2px solid var(--select-color); border-radius: 50%; box-sizing: border-box; z-index: 5; animation: breathe 1.5s infinite; box-shadow: 0 0 10px var(--select-color); }
 
 .top-bar { display: flex; gap: 15px; align-items: center; justify-content: center; width: 100%; margin-bottom: 10px; flex-wrap: wrap; position: relative; z-index: 50; }
-.timer-pill { background: rgba(255,255,255,0.95); padding: 6px 14px; border-radius: 20px; font-family: 'Monaco', monospace; font-weight: bold; border: 2px solid transparent; transition: all 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.05); color: #555; display: flex; align-items: center; gap: 6px; }
+
+/* 保持这个防止文字重叠的修复 */
+.timer-pill { 
+    background: rgba(255,255,255,0.9); 
+    padding: 6px 14px; 
+    border-radius: 20px; 
+    font-family: 'Monaco', monospace; 
+    font-weight: bold; 
+    border: 2px solid transparent; 
+    transition: all 0.3s; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
+    color: #555; 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+    min-width: 90px;
+    justify-content: center;
+    white-space: nowrap; 
+}
 .timer-pill.active { border-color: #333; transform: scale(1.05); background: #fff; color: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
 .timer-pill.timer-bomb { background: #ffebee !important; color: #d32f2f !important; border: 2px solid #ff1744 !important; animation: bombPulse 1s infinite alternate !important; }
 .timer-pill.timer-critical { background: #b71c1c !important; color: #fff !important; border: 2px solid #fff !important; animation: criticalShake 0.2s infinite, criticalBlink 0.5s infinite !important; }
 .timer-pill.timer-critical-normal { background: #fff3e0; color: #e65100; border: 2px solid #ff9800; animation: normalCriticalPulse 1s infinite; }
 
-.status-pill { display: flex; align-items: center; gap: 5px; padding: 6px 16px; background: rgba(255,255,255,0.95); border-radius: 20px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-.status-pill .icon-wrapper { width: 24px; height: 24px; }
+.status-pill { display: flex; align-items: center; gap: 5px; padding: 6px 12px; background: rgba(255,255,255,0.9); border-radius: 20px; font-weight: bold; }
+.status-pill .icon-wrapper { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
 .status-pill .icon-wrapper svg { width: 100%; height: 100%; }
 
 .counter-badge { padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; color: white; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 100; align-items: center; gap: 6px; }
 .counter-badge.chaos { background: var(--chaos-glow); position: absolute; bottom: -35px; right: 15%; animation: shake 0.5s; }
 .counter-badge.short-battle { background: var(--warn-glow); position: absolute; bottom: -35px; left: 15%; animation: shake 0.5s; }
-.inline-icon { width: 18px; height: 18px; display: inline-block; vertical-align: text-bottom; }
+
+.inline-icon { 
+    width: 18px; 
+    height: 18px; 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center;
+    vertical-align: text-bottom;
+}
 .inline-icon svg { width: 100%; height: 100%; fill: currentColor; stroke: currentColor; }
 
 .score-board { display: none; background: #2d3436; color: white; padding: 5px 15px; border-radius: 12px; font-family: monospace; font-size: 1rem; position: relative; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.2); letter-spacing: 1px; }

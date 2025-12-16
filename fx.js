@@ -1,59 +1,47 @@
-// ================= 视觉特效资源与引擎 (Visual Effects & Art Assets) =================
+// ================= 视觉特效资源与引擎 (Visual Effects) =================
 
 /**
- * [Alpha 0.7.7.2] Vector Art Library
- * Introduction of Classic Black & White Stones (Vectorized).
- * High-contrast, scalable, and crash-proof (No ID conflicts).
+ * [Alpha 0.7.7.3] Stable Vector Art Library
+ * Fixed: Classic White Stone now has a visible stroke for UI display on white backgrounds.
  */
 
-// 1. 棋子皮肤库 (The Pieces)
+// 1. 棋子皮肤库
+// 注意：Classic 图标主要用于 UI (计时器、选边)；Nature 图标用于 UI 和 棋盤。
 const PIECE_ICONS = {
-    // 经典黑子：纯矢量，带高光
-    classic_black: `
-        <svg viewBox="0 0 512 512" fill="none" class="piece-svg">
-            <circle cx="256" cy="256" r="230" fill="#111"/>
-            <path d="M256 50 Q380 50 450 150" stroke="white" stroke-width="10" stroke-opacity="0.1" fill="none"/>
-            <circle cx="180" cy="180" r="60" fill="white" fill-opacity="0.1"/>
+    // 🍁 落叶 (Nature)
+    maple: `
+        <svg viewBox="0 0 512 512" fill="none" class="piece-svg maple-piece">
+            <path d="M256 32 C250 32 230 80 220 110 C180 100 120 80 110 90 C105 95 120 140 130 160 C90 150 40 130 30 140 C20 150 60 200 80 220 C50 210 20 200 10 215 C0 230 50 260 80 280 C60 290 20 310 30 330 C40 350 90 320 120 300 C110 340 100 400 110 410 C120 420 150 360 170 320 C180 360 190 420 200 430 C210 440 230 380 240 340 L250 480 C252 490 260 490 262 480 L272 340 C282 380 302 440 312 430 C322 420 332 360 342 320 C362 360 392 420 402 410 C412 400 402 340 392 300 C422 320 472 350 482 330 C492 310 452 290 432 280 C462 260 512 230 502 215 C492 200 462 210 432 220 C452 200 492 150 482 140 C472 130 422 150 382 160 C392 140 407 95 402 90 C392 80 332 100 292 110 C282 80 262 32 256 32 Z" 
+            fill="#d32f2f" stroke="#8e0000" stroke-width="12" stroke-linejoin="round"/>
         </svg>
     `,
     
-    // 经典白子：纯矢量，带阴影
-    classic_white: `
-        <svg viewBox="0 0 512 512" fill="none" class="piece-svg">
-            <circle cx="256" cy="256" r="230" fill="#f0f0f0" stroke="#ccc" stroke-width="2"/>
-            <circle cx="256" cy="256" r="210" fill="white"/>
-            <path d="M100 400 Q256 500 412 400" stroke="#ccc" stroke-width="10" stroke-opacity="0.2" fill="none"/>
+    // ☀️ 生辉 (Nature)
+    sun: `
+        <svg viewBox="0 0 512 512" fill="none" class="piece-svg sun-piece">
+            <path d="M256 20 L256 80 M256 432 L256 492 M492 256 L432 256 M80 256 L20 256 M422 90 L380 132 M132 380 L90 422 M422 422 L380 380 M132 132 L90 90" 
+                  stroke="#fbc02d" stroke-width="40" stroke-linecap="round"/>
+            <circle cx="256" cy="256" r="130" fill="#fbc02d" stroke="#f57f17" stroke-width="10"/>
         </svg>
     `,
 
-    // 自然落叶：纯色填充，无渐变
-    nature_maple: `
-        <svg viewBox="0 0 512 512" fill="none" class="piece-svg maple-piece">
-            <g>
-                <path d="M256 32 C250 32 230 80 220 110 C180 100 120 80 110 90 C105 95 120 140 130 160 C90 150 40 130 30 140 C20 150 60 200 80 220 C50 210 20 200 10 215 C0 230 50 260 80 280 C60 290 20 310 30 330 C40 350 90 320 120 300 C110 340 100 400 110 410 C120 420 150 360 170 320 C180 360 190 420 200 430 C210 440 230 380 240 340 L250 480 C252 490 260 490 262 480 L272 340 C282 380 302 440 312 430 C322 420 332 360 342 320 C362 360 392 420 402 410 C412 400 402 340 392 300 C422 320 472 350 482 330 C492 310 452 290 432 280 C462 260 512 230 502 215 C492 200 462 210 432 220 C452 200 492 150 482 140 C472 130 422 150 382 160 C392 140 407 95 402 90 C392 80 332 100 292 110 C282 80 262 32 256 32 Z" 
-                fill="#d32f2f" stroke="#8e0000" stroke-width="12" stroke-linejoin="round"/>
-                <path d="M256 480 L256 180 M256 300 L180 240 M256 300 L332 240 M180 240 L130 180 M332 240 L382 180" 
-                stroke="#8e0000" stroke-width="8" stroke-linecap="round"/>
-            </g>
+    // ⚫ 经典黑子 (用于 UI 显示)
+    classic_black: `
+        <svg viewBox="0 0 100 100" fill="none">
+            <circle cx="50" cy="50" r="42" fill="#111" stroke="#000" stroke-width="2"/>
+            <circle cx="35" cy="35" r="10" fill="#fff" fill-opacity="0.2"/>
         </svg>
     `,
-    
-    // 自然生辉：纯色填充，无渐变
-    nature_sun: `
-        <svg viewBox="0 0 512 512" fill="none" class="piece-svg sun-piece">
-            <g>
-                <path d="M256 20 L256 80 M256 432 L256 492 M492 256 L432 256 M80 256 L20 256 
-                         M422 90 L380 132 M132 380 L90 422 
-                         M422 422 L380 380 M132 132 L90 90" 
-                      stroke="#fbc02d" stroke-width="40" stroke-linecap="round"/>
-                <circle cx="256" cy="256" r="130" fill="#fbc02d" stroke="#f57f17" stroke-width="10"/>
-                <circle cx="256" cy="256" r="100" stroke="#fff" stroke-width="8" stroke-opacity="0.6" fill="none"/>
-            </g>
+
+    // ⚪ 经典白子 (用于 UI 显示) - [修复] 增加深色描边，防止在白底上看不见
+    classic_white: `
+        <svg viewBox="0 0 100 100" fill="none">
+            <circle cx="50" cy="50" r="42" fill="#fff" stroke="#999" stroke-width="3"/>
         </svg>
     `
 };
 
-// 2. 技能图标库 (Skill Icons - High Fidelity)
+// 2. 技能图标库
 const SKILL_ICONS = {
     double: '<svg viewBox="0 0 64 64" fill="none"><circle cx="24" cy="24" r="14" fill="#E0E0E0" stroke="currentColor" stroke-width="3"/><circle cx="40" cy="40" r="14" fill="currentColor" stroke="white" stroke-width="3"/><path d="M48 20 L56 12 M52 24 L58 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     voodoo: '<svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="36" r="18" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="3"/><circle cx="26" cy="32" r="2" fill="currentColor"/><path d="M36 30 L40 34 M36 34 L40 30" stroke="currentColor" stroke-width="2"/><path d="M26 44 Q32 48 38 44" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 10 L24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="10" cy="10" r="3" fill="currentColor"/></svg>',
@@ -67,7 +55,7 @@ const SKILL_ICONS = {
     swap: '<svg viewBox="0 0 64 64" fill="none"><path d="M16 32 A 16 16 0 0 1 48 32" stroke="currentColor" stroke-width="3" fill="none" marker-end="url(#arrow)"/><path d="M48 32 A 16 16 0 0 1 16 32" stroke="currentColor" stroke-width="3" fill="none" transform="rotate(180 32 32)"/><path d="M44 26 L48 32 L44 38" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 38 L16 32 L20 26" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
 
-// 视觉特效引擎 (VisualFX Engine) - Alpha 0.7.7.2
+// 视觉特效引擎
 const VisualFX = {
     canvas: null,
     ctx: null,
