@@ -1,9 +1,12 @@
 // ================= 全局变量 =================/
 const BOARD_SIZE = 15, EMPTY = 0, MAPLE = 1, SUN = 2, CORRODED = -1;
-const ICONS = { [MAPLE]: '🍁', [SUN]: '☀️' };
-const SKILL_IDS = ['double','voodoo','move_self','move_enemy','zone','bomb','god_hand','chaos','short_battle','swap'];
 
-// SVG 图标已移至 fx.js
+// [Alpha 0.7.7] 核心升级：引用 fx.js 中的矢量资源
+const ICONS = { 
+    [MAPLE]: (typeof PIECE_ICONS !== 'undefined') ? PIECE_ICONS.maple : 'M', 
+    [SUN]: (typeof PIECE_ICONS !== 'undefined') ? PIECE_ICONS.sun : 'S' 
+};
+const SKILL_IDS = ['double','voodoo','move_self','move_enemy','zone','bomb','god_hand','chaos','short_battle','swap'];
 
 let board = [], currentPlayer = MAPLE, gameMode = 'pvp', aiDifficulty = 'medium', gameActive = false;
 let isBO3 = false, p1Score = 0, p2Score = 0, playerSides = { [MAPLE]: 'p1', [SUN]: 'p2' }, chooser = 'p1', humanSide = MAPLE;
@@ -20,8 +23,6 @@ let userMusicPref = 'origin';
 let currentSkin = 'nature';
 let winEffect = 'default';
 let currentSeason = 'spring';
-
-// VisualFX 引擎已移至 fx.js
 
 // ================= 界面控制 =================
 const screens = { 
@@ -51,16 +52,12 @@ function showScreen(n) {
 
 function openSettings() {
     document.getElementById('settingsModal').style.display = 'flex';
-    // 音乐
     document.getElementById('sliderMusic').value = SoundEngine.musicVolume * 100;
     document.getElementById('valMusic').innerText = Math.round(SoundEngine.musicVolume * 100) + '%';
-    // 音效
     document.getElementById('sliderSfx').value = SoundEngine.sfxVolume * 100;
     document.getElementById('valSfx').innerText = Math.round(SoundEngine.sfxVolume * 100) + '%';
-    // 环境音效
     document.getElementById('sliderAmbient').value = SoundEngine.ambientVolume * 100;
     document.getElementById('valAmbient').innerText = Math.round(SoundEngine.ambientVolume * 100) + '%';
-    
     updateTrackUI();
     updateSeasonUI(); 
 }
@@ -104,7 +101,6 @@ function updateWinEffectUI() {
     else if (winEffect === 'future') document.getElementById('winFuture').classList.add('active');
 }
 
-// 核心音量控制
 function updateVolume(type, val) {
     const v = val / 100;
     if (type === 'music') { 
@@ -127,41 +123,19 @@ function changeTrack(track) {
 }
 
 function updateTrackUI() {
-    // 清除所有高亮
     document.querySelectorAll('.music-opt').forEach(el => el.classList.remove('active'));
-    
-    // 根据当前偏好点亮对应按钮
-    if (userMusicPref === 'origin') {
-        const el = document.getElementById('trackOrigin');
-        if(el) el.classList.add('active');
-    }
-    else if (userMusicPref === 'bgm1') {
-        const el = document.getElementById('trackBgm1');
-        if(el) el.classList.add('active');
-    }
-    else if (userMusicPref === 'bgm2') {
-        const el = document.getElementById('trackBgm2');
-        if(el) el.classList.add('active');
-    }
-    else if (userMusicPref === 'bgm3') {
-        const el = document.getElementById('trackBgm3');
-        if(el) el.classList.add('active');
-    }
-    else if (userMusicPref === 'bgm4') {
-        const el = document.getElementById('trackBgm4');
-        if(el) el.classList.add('active');
-    }
+    if (userMusicPref === 'origin') document.getElementById('trackOrigin').classList.add('active');
+    else if (userMusicPref === 'bgm1') document.getElementById('trackBgm1').classList.add('active');
+    else if (userMusicPref === 'bgm2') document.getElementById('trackBgm2').classList.add('active');
+    else if (userMusicPref === 'bgm3') document.getElementById('trackBgm3').classList.add('active');
+    else if (userMusicPref === 'bgm4') document.getElementById('trackBgm4').classList.add('active');
 }
 
-// === 安全的季节切换逻辑 ===
 function changeSeason(season) {
     SoundEngine.playPlace();
     currentSeason = season;
-    
     if (window.BackgroundEngine && typeof window.BackgroundEngine.switchSeason === 'function') {
         window.BackgroundEngine.switchSeason(season);
-    } else {
-        console.warn("BackgroundEngine or switchSeason missing!");
     }
     updateSeasonUI();
 }
@@ -187,13 +161,24 @@ function goToMenu() {
 function confirmExit() { if(confirm(t('confirmExit'))) goToMenu(); }
 function showDifficultyScreen() { SoundEngine.playPlace(); showScreen('diff'); }
 function startPvPFlow(subMode) { SoundEngine.playPlace(); isBO3 = (subMode === 'bo3'); p1Score = 0; p2Score = 0; chooser = 'p1'; updateScoreBoard(); enterTurnSelection('pvp', null); }
-function enterTurnSelection(mode, diff) { SoundEngine.playPlace(); document.getElementById('winnerModal').style.display = 'none'; showScreen('turn'); gameMode = mode; aiDifficulty = diff; if (gameMode === 'pve') { isBO3 = false; } const tEl = document.getElementById('turnSelectTitle'), dEl = document.getElementById('turnSelectDesc'); updateStaticText(); if (isBO3 && (p1Score > 0 || p2Score > 0)) { tEl.innerText = t('titlePickSide'); dEl.innerText = `${t('descPickSideLoser')} (${chooser==='p1'?"P1":"P2"})`; } else { tEl.innerText = t('titlePickSide'); dEl.innerText = t('descPickSide'); } }
+function enterTurnSelection(mode, diff) { 
+    SoundEngine.playPlace(); document.getElementById('winnerModal').style.display = 'none'; showScreen('turn'); gameMode = mode; aiDifficulty = diff; if (gameMode === 'pve') { isBO3 = false; } 
+    const tEl = document.getElementById('turnSelectTitle'), dEl = document.getElementById('turnSelectDesc'); updateStaticText(); 
+    if (isBO3 && (p1Score > 0 || p2Score > 0)) { tEl.innerText = t('titlePickSide'); dEl.innerText = `${t('descPickSideLoser')} (${chooser==='p1'?"P1":"P2"})`; } 
+    else { tEl.innerText = t('titlePickSide'); dEl.innerText = t('descPickSide'); } 
+    // [0.7.7] 更新选边图标
+    document.querySelector('.turn-card.maple .icon').innerHTML = ICONS[MAPLE];
+    document.querySelector('.turn-card.sun .icon').innerHTML = ICONS[SUN];
+}
 function goBackFromTurn() { SoundEngine.playPlace(); if (gameMode === 'pve') { showScreen('diff'); } else { goToMenu(); } }
 function handleTurnChoice(c) { SoundEngine.playPlace(); if (gameMode === 'pve') { humanSide = (c === 1) ? MAPLE : SUN; enterDraftPhase(); } else { if (c === 1) { playerSides[MAPLE] = chooser; playerSides[SUN] = (chooser === 'p1' ? 'p2' : 'p1'); } else { playerSides[SUN] = chooser; playerSides[MAPLE] = (chooser === 'p1' ? 'p2' : 'p1'); } enterDraftPhase(); } }
-function enterDraftPhase() { document.getElementById('winnerModal').style.display = 'none'; showScreen('draft'); if (gameMode === 'pve') draftTurn = SUN; else draftTurn = SUN; playerSkills = { [MAPLE]: null, [SUN]: null }; renderSkillGrid(); updateDraftTitle(); SoundEngine.init(); }
+function enterDraftPhase() { 
+    document.getElementById('winnerModal').style.display = 'none'; showScreen('draft'); 
+    if (gameMode === 'pve') draftTurn = SUN; else draftTurn = SUN; 
+    playerSkills = { [MAPLE]: null, [SUN]: null }; renderSkillGrid(); updateDraftTitle(); SoundEngine.init(); 
+}
 let draftTurn = SUN;
 
-// 渲染带图标的技能网格
 function renderSkillGrid() { 
     const g = document.getElementById('skillGrid'); 
     g.innerHTML = ''; 
@@ -215,7 +200,19 @@ function renderSkillGrid() {
     }); 
 }
 
-function updateDraftTitle() { const tEl = document.getElementById('draftTitle'); let pickerName = t('names')[draftTurn]; if (gameMode === 'pve') { const isAITurn = (humanSide === MAPLE && draftTurn === SUN) || (humanSide === SUN && draftTurn === MAPLE); if (isAITurn) pickerName += " (AI)"; else pickerName += " (You)"; if (isAITurn) setTimeout(() => { const avail = SKILL_IDS.filter(s => !Object.values(playerSkills).includes(s)); pickSkill(avail[Math.floor(Math.random()*avail.length)]); }, 800); } tEl.innerHTML = t('draftTitle').replace('{icon}', ICONS[draftTurn]).replace('{name}', pickerName); tEl.style.color = draftTurn === MAPLE ? '#d32f2f' : '#f9a825'; }
+function updateDraftTitle() { 
+    const tEl = document.getElementById('draftTitle'); 
+    let pickerName = t('names')[draftTurn]; 
+    if (gameMode === 'pve') { 
+        const isAITurn = (humanSide === MAPLE && draftTurn === SUN) || (humanSide === SUN && draftTurn === MAPLE); 
+        if (isAITurn) pickerName += " (AI)"; else pickerName += " (You)"; 
+        if (isAITurn) setTimeout(() => { const avail = SKILL_IDS.filter(s => !Object.values(playerSkills).includes(s)); pickSkill(avail[Math.floor(Math.random()*avail.length)]); }, 800); 
+    } 
+    // [0.7.7] SVG 图标支持
+    const iconHTML = `<span style="display:inline-block;width:32px;height:32px;vertical-align:bottom;">${ICONS[draftTurn]}</span>`;
+    tEl.innerHTML = t('draftTitle').replace('{icon}', iconHTML).replace('{name}', pickerName); 
+    tEl.style.color = draftTurn === MAPLE ? '#d32f2f' : '#f9a825'; 
+}
 function pickSkill(id) { SoundEngine.playPlace(); playerSkills[draftTurn] = id; if (draftTurn === SUN) { draftTurn = MAPLE; renderSkillGrid(); updateDraftTitle(); } else initGame(); }
 
 // --- 游戏初始化 ---
@@ -309,7 +306,8 @@ function restoreState(state) {
             } else {
                 const pc = document.createElement('span'); 
                 pc.className = 'piece skin-nature'; 
-                pc.innerText = ICONS[val]; 
+                // [Alpha 0.7.7] 使用 innerHTML 渲染 SVG
+                pc.innerHTML = ICONS[val]; 
                 cell.appendChild(pc); 
             }
         } else if (val === CORRODED) { 
@@ -331,7 +329,8 @@ function placePiece(r, c, p, m=false, chaos=false) {
         } else {
             const pc = document.createElement('span'); 
             pc.className = 'piece skin-nature'; 
-            pc.innerText = ICONS[p]; 
+            // [Alpha 0.7.7] 使用 innerHTML 渲染 SVG
+            pc.innerHTML = ICONS[p]; 
             cell.appendChild(pc); 
         }
         SoundEngine.playPlace(); 
@@ -435,15 +434,10 @@ function handleSkillInteraction(r, c) {
 
 function highlightWin(line, winner) {
     gameActive = false;
-    
-    // 核心改动：不再只播放 playWin，而是根据皮肤播放特定音效
     SoundEngine.playWinEffect(winEffect);
-    
-    // 调用 VisualFX 绘制特效线 (确保 FX 引擎存在)
     if (typeof VisualFX !== 'undefined') {
         VisualFX.drawWinLine(line, winEffect);
     }
-
     line.forEach(pos => {
         const cell = getCell(pos.r, pos.c);
         if (cell) cell.classList.add('win-highlight');
@@ -469,8 +463,15 @@ function handleMatchEnd(winSide) {
     SoundEngine.switchTrack(userMusicPref); 
     const wt = document.getElementById('winnerText'); 
     let title = "";
-    if (gameMode === 'pve' && winSide !== humanSide) { SoundEngine.playError(); title = `${ICONS[winSide]} ${t('lose', 'end')}`; } 
-    else { title = `${ICONS[winSide]} ${t('names')[winSide]} ${t('win', 'end')}`; }
+    // [0.7.7] 结算界面显示 SVG 图标
+    const winIcon = `<span style="display:inline-block;width:40px;height:40px;vertical-align:text-bottom">${ICONS[winSide]}</span>`;
+    if (gameMode === 'pve' && winSide !== humanSide) { 
+        SoundEngine.playError(); 
+        title = `${winIcon} ${t('lose', 'end')}`; 
+    } 
+    else { 
+        title = `${winIcon} ${t('names')[winSide]} ${t('win', 'end')}`; 
+    }
     wt.innerHTML = title; wt.style.color = winSide === MAPLE ? '#d32f2f' : '#fbc02d';
     const bc = document.getElementById('endGameButtons'); bc.innerHTML = '';
     const cBtn = (t,f,p) => { const b=document.createElement('button'); b.className=p?'btn primary':'btn secondary'; b.innerText=t; b.onclick=f; return b; };
@@ -516,25 +517,27 @@ function updateTerritoriesUI() { document.querySelectorAll('.territory-zone').fo
 function checkWin(r, c, p) { const d = [[0,1], [1,0], [1,1], [1,-1]]; const limit = shortBattleTurns > 0 ? 4 : 5; for(let k of d) { let ct = 1; let line = [{r,c}]; let i = r + k[0], j = c + k[1]; while(isValid(i,j) && board[i][j] === p) { line.push({r:i, c:j}); i += k[0]; j += k[1]; ct++; } i = r - k[0]; j = c - k[1]; while(isValid(i,j) && board[i][j] === p) { line.push({r:i, c:j}); i -= k[0]; j -= k[1]; ct++; } if(ct >= limit) return line; } return null; }
 function startBombTimer() { if(bombInterval) clearInterval(bombInterval); bombInterval = setInterval(() => { if(!gameActive) return; if(currentPlayer !== bombOwner) { bombTime--; const m = Math.floor(bombTime/60).toString().padStart(2,'0'); const s = (bombTime%60).toString().padStart(2,'0'); document.getElementById('bombTimer').innerText=`${m}:${s}`; if(bombTime <= 0) handleMatchEnd(bombOwner); } }, 1000); }
 
+// [Alpha 0.7.7] UI 动态更新逻辑重构 (SVG 支持)
 function updateDynamicUI() {
     const turnTextEl = document.getElementById('turnText');
     const newTurnText = t('names')[currentPlayer === MAPLE ? 1 : 2];
     if (turnTextEl.innerText !== newTurnText) turnTextEl.innerText = newTurnText;
     
+    // 更新回合图标 (使用 SVG)
     const turnIconEl = document.getElementById('turnIcon');
-    const newTurnIcon = ICONS[currentPlayer];
-    if (turnIconEl.innerText !== newTurnIcon) turnIconEl.innerText = newTurnIcon;
+    turnIconEl.innerHTML = ICONS[currentPlayer];
     
     const statusBar = document.getElementById('statusBar');
     const newClass = 'status-pill ' + (currentPlayer === MAPLE ? 'turn-maple' : 'turn-sun');
     if (statusBar.className !== newClass) statusBar.className = newClass;
     
+    // 更新计时器 (图标 + 时间)
     const t1 = document.getElementById('timer1');
     const t2 = document.getElementById('timer2');
-    const t1Text = `🍁 ${formatTime(timeRemaining[MAPLE])}`;
-    const t2Text = `☀️ ${formatTime(timeRemaining[SUN])}`;
-    if (t1.innerText !== t1Text) t1.innerText = t1Text;
-    if (t2.innerText !== t2Text) t2.innerText = t2Text;
+    
+    // 使用 icon-wrapper 确保布局对齐
+    t1.innerHTML = `<span class="inline-icon" style="width:20px;height:20px;margin-right:4px">${ICONS[MAPLE]}</span> ${formatTime(timeRemaining[MAPLE])}`;
+    t2.innerHTML = `<span class="inline-icon" style="width:20px;height:20px;margin-right:4px">${ICONS[SUN]}</span> ${formatTime(timeRemaining[SUN])}`;
     
     const updateTimerVisual = (player, timerEl, time) => {
         timerEl.className = `timer-pill ${currentPlayer === player ? 'active' : ''}`;
@@ -551,19 +554,20 @@ function updateDynamicUI() {
     updateTimerVisual(MAPLE, t1, timeRemaining[MAPLE]);
     updateTimerVisual(SUN, t2, timeRemaining[SUN]);
     
+    // 状态徽章 (混亂/短兵) - [0.7.7] SVG 图标化
     const cc = document.getElementById('chaosCounter');
     const sbc = document.getElementById('shortBattleCounter');
+    
     if (chaosDebuff[currentPlayer] > 0) {
-        cc.style.display = 'block';
-        const ccText = `${t('chaosLabel', 'toast')} ${chaosDebuff[currentPlayer]}`;
-        if (cc.innerText !== ccText) cc.innerText = ccText;
+        cc.style.display = 'flex'; // Flex布局对齐图标
+        cc.innerHTML = `<span class="inline-icon">${SKILL_ICONS.chaos}</span> ${t('chaosLabel', 'toast')} ${chaosDebuff[currentPlayer]}`;
     } else {
         cc.style.display = 'none';
     }
+    
     if (shortBattleTurns > 0) {
-        sbc.style.display = 'block';
-        const sbcText = `${t('shortBattleLabel', 'toast')} ${shortBattleTurns}`;
-        if (sbc.innerText !== sbcText) sbc.innerText = sbcText;
+        sbc.style.display = 'flex';
+        sbc.innerHTML = `<span class="inline-icon">${SKILL_ICONS.short_battle}</span> ${t('shortBattleLabel', 'toast')} ${shortBattleTurns}`;
     } else {
         sbc.style.display = 'none';
     }
@@ -574,12 +578,14 @@ function updateDynamicUI() {
     
     if (!ms) {
         btn.disabled = true;
-        if (btn.querySelector('span').innerText !== "---") btn.querySelector('span').innerText = "---";
-        if (btn.querySelector('small').innerText !== "") btn.querySelector('small').innerText = "";
+        // 空状态
+        btn.innerHTML = `<span>---</span><small>---</small>`;
         return;
     }
     
     const so = t(ms, 'skills');
+    const iconSvg = SKILL_ICONS[ms]; // 获取技能图标
+    
     let myC = 0, oppC = 0;
     board.forEach(r => r.forEach(c => {
         if (c === currentPlayer) myC++;
@@ -592,21 +598,27 @@ function updateDynamicUI() {
     else if ((ms === 'god_hand' || ms === 'voodoo') && (myC + oppC) === 0) viable = false;
     else if (ms === 'swap' && (myC === 0 || oppC === 0)) viable = false;
     
-    const span = btn.querySelector('span');
-    const small = btn.querySelector('small');
+    // [0.7.7] 技能按钮：显示图标 + 状态
+    // 如果技能已用，不显示图标，只显示文字
+    // 如果可用，显示图标
     
-    if (u || !viable) {
+    let btnContent = '';
+    if (u) {
+        // 已用：变灰，无图标
         btn.disabled = true;
-        const newSpan = (so ? so.name : t('skillName')) + " " + (u ? t('skillUsed') : t('skillNoTarget'));
-        if (span.innerText !== newSpan) span.innerText = newSpan;
-        if (small.innerText !== "") small.innerText = "";
+        btnContent = `<span>${so.name}</span><small>${t('skillUsed')}</small>`;
+    } else if (!viable) {
+        // 不可用：变灰，无图标
+        btn.disabled = true;
+        btnContent = `<span>${so.name}</span><small>${t('skillNoTarget')}</small>`;
     } else {
+        // 可用：显示大图标
         btn.disabled = false;
-        const newSpan = so ? so.name : t('skillName');
-        const newSmall = t('skillReady');
-        if (span.innerText !== newSpan) span.innerText = newSpan;
-        if (small.innerText !== newSmall) small.innerText = newSmall;
+        btnContent = `<div class="skill-icon-display">${iconSvg}</div><small>${t('skillReady')}</small>`;
     }
+    
+    // 只在内容变化时更新，防止闪烁
+    if (btn.innerHTML !== btnContent) btn.innerHTML = btnContent;
 }
 
 function formatTime(s) { if(s<0) s=0; const m=Math.floor(s/60).toString().padStart(2,'0'); const sec=(s%60).toString().padStart(2,'0'); return `${m}:${sec}`; }

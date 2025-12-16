@@ -1,25 +1,137 @@
-// ================= 视觉特效资源与引擎 (Visual Effects) =================
+// ================= 视觉特效资源与引擎 (Visual Effects & Art Assets) =================
 
-// SVG 图标库
-const SKILL_ICONS = {
-    double: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13l-5-5L15 2l5 5-10 6z"/><path d="M14 17l-5-5L19 6l5 5-10 6z"/><path d="M4 22l6-6"/></svg>',
-    voodoo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 13s1.5 1.5 3 0 3 0"/><path d="M9 9h.01"/><path d="M15 9h.01"/></svg>',
-    move_self: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="3"/><path d="M8 12h11"/><path d="M16 9l3 3-3 3"/></svg>',
-    move_enemy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6"/><path d="M12 12l9 9"/><path d="M16 16l5 5"/></svg>',
-    zone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/></svg>',
-    bomb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="13" r="9"/><path d="M11 4v-1"/><path d="M11 4h2"/><path d="M22 2l-3 3"/><path d="M14.5 9.5L19 5"/></svg>',
-    god_hand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>',
-    chaos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="8" cy="8" r="1"/><circle cx="16" cy="16" r="1"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="8" r="1"/><circle cx="12" cy="12" r="1"/></svg>',
-    short_battle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/><line x1="8" y1="8" x2="4" y2="4"/></svg>',
-    swap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v-3a3 3 0 0 1 3-3h13m-3-3l3 3-3 3"/><path d="M20 12v3a3 3 0 0 1-3 3H4m3 3l-3-3 3-3"/></svg>'
+/**
+ * [Alpha 0.7.7 - Emergency Fix] Vector Art Library
+ * Reverted to Safe Mode: No gradients, no IDs, solid high-contrast colors.
+ * Ensures visibility and stability on all browsers.
+ */
+
+// 1. 棋子皮肤库 (The Pieces)
+const PIECE_ICONS = {
+    // 🍁 落叶：纯色填充，无渐变，确保可见性
+    maple: `
+        <svg viewBox="0 0 512 512" fill="none" class="piece-svg maple-piece">
+            <g>
+                <path d="M256 32 C250 32 230 80 220 110 C180 100 120 80 110 90 C105 95 120 140 130 160 C90 150 40 130 30 140 C20 150 60 200 80 220 C50 210 20 200 10 215 C0 230 50 260 80 280 C60 290 20 310 30 330 C40 350 90 320 120 300 C110 340 100 400 110 410 C120 420 150 360 170 320 C180 360 190 420 200 430 C210 440 230 380 240 340 L250 480 C252 490 260 490 262 480 L272 340 C282 380 302 440 312 430 C322 420 332 360 342 320 C362 360 392 420 402 410 C412 400 402 340 392 300 C422 320 472 350 482 330 C492 310 452 290 432 280 C462 260 512 230 502 215 C492 200 462 210 432 220 C452 200 492 150 482 140 C472 130 422 150 382 160 C392 140 407 95 402 90 C392 80 332 100 292 110 C282 80 262 32 256 32 Z" 
+                fill="#d32f2f" stroke="#8e0000" stroke-width="12" stroke-linejoin="round"/>
+                <path d="M256 480 L256 180 M256 300 L180 240 M256 300 L332 240" 
+                stroke="#8e0000" stroke-width="8" stroke-linecap="round"/>
+            </g>
+        </svg>
+    `,
+    
+    // ☀️ 生辉：纯色填充，不透明，高对比度
+    sun: `
+        <svg viewBox="0 0 512 512" fill="none" class="piece-svg sun-piece">
+            <g>
+                <path d="M256 20 L256 80 M256 432 L256 492 M492 256 L432 256 M80 256 L20 256 
+                         M422 90 L380 132 M132 380 L90 422 
+                         M422 422 L380 380 M132 132 L90 90" 
+                      stroke="#fbc02d" stroke-width="40" stroke-linecap="round"/>
+                <circle cx="256" cy="256" r="140" fill="#fbc02d" stroke="#f57f17" stroke-width="10"/>
+                <circle cx="256" cy="256" r="110" stroke="#fff" stroke-width="5" stroke-opacity="0.5" fill="none"/>
+            </g>
+        </svg>
+    `
 };
 
-// 视觉特效引擎 (VisualFX Engine) - Alpha 0.7.6.4 (Animated)
+// 2. 技能图标库 (Skill Icons - High Fidelity)
+const SKILL_ICONS = {
+    // 双连 (Double): 两个重叠的棋子，带有动感残影
+    double: `
+        <svg viewBox="0 0 64 64" fill="none">
+            <circle cx="24" cy="24" r="14" fill="#E0E0E0" stroke="currentColor" stroke-width="3"/>
+            <circle cx="40" cy="40" r="14" fill="currentColor" stroke="white" stroke-width="3"/>
+            <path d="M48 20 L56 12 M52 24 L58 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>`,
+
+    // 巫毒 (Voodoo): 一个被针扎的玩偶头部，带毒气
+    voodoo: `
+        <svg viewBox="0 0 64 64" fill="none">
+            <circle cx="32" cy="36" r="18" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="3"/>
+            <circle cx="26" cy="32" r="2" fill="currentColor"/>
+            <path d="M36 30 L40 34 M36 34 L40 30" stroke="currentColor" stroke-width="2"/>
+            <path d="M26 44 Q32 48 38 44" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M10 10 L24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="10" cy="10" r="3" fill="currentColor"/>
+        </svg>`,
+
+    // 移花接木 (Move Self): 棋子虚化移动
+    move_self: `
+        <svg viewBox="0 0 64 64" fill="none">
+            <circle cx="20" cy="32" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="4 2"/>
+            <path d="M32 32 L46 32" stroke="currentColor" stroke-width="3" marker-end="url(#arrow)"/>
+            <circle cx="50" cy="32" r="10" fill="currentColor"/>
+            <path d="M44 26 L50 32 L44 38" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`,
+
+    // 乾坤大挪移 (Move Enemy): 抓取敌方棋子
+    move_enemy: `
+        <svg viewBox="0 0 64 64" fill="none">
+            <circle cx="32" cy="42" r="10" stroke="currentColor" stroke-width="3"/>
+            <path d="M16 10 L24 28 M48 10 L40 28" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            <path d="M20 28 Q32 36 44 28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        </svg>`,
+
+    // 领地 (Zone): 3x3 网格，中间高亮
+    zone: `
+        <svg viewBox="0 0 64 64" fill="none">
+            <rect x="12" y="12" width="40" height="40" rx="4" stroke="currentColor" stroke-width="3"/>
+            <path d="M25 12 V52 M39 12 V52 M12 25 H52 M12 39 H52" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.5"/>
+            <rect x="26" y="26" width="12" height="12" fill="currentColor"/>
+        </svg>`,
+
+    // 时间炸弹 (Bomb): 实心炸弹，引线燃烧
+    bomb: `
+        <svg viewBox="0 0 64 64" fill="none">
+            <circle cx="32" cy="38" r="16" fill="currentColor"/>
+            <path d="M32 22 V14 M32 14 Q42 14 46 20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            <path d="M46 16 L50 12 M50 20 L54 22 M44 10 L46 6" stroke="#ff5252" stroke-width="2"/>
+        </svg>`,
+
+    // 上帝之手 (God Hand): 巨大的手掌控制棋盘
+    god_hand: `
+        <svg viewBox="0 0 64 64" fill="none">
+            <path d="M32 54 V40 M20 30 Q20 10 32 10 Q44 10 44 30" stroke="currentColor" stroke-width="3"/>
+            <path d="M20 30 L20 40 Q20 46 26 46 H38 Q44 46 44 40 L44 30" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="2"/>
+            <circle cx="32" cy="24" r="4" fill="currentColor"/>
+        </svg>`,
+
+    // 混乱骰子 (Chaos): 3D 立体骰子 (Isometric)
+    chaos: `
+        <svg viewBox="0 0 64 64" fill="none">
+            <path d="M32 6 L56 18 V46 L32 58 L8 46 V18 Z" stroke="currentColor" stroke-width="3" stroke-linejoin="round" fill="currentColor" fill-opacity="0.1"/>
+            <path d="M32 6 V30 M56 18 L32 30 L8 18" stroke="currentColor" stroke-width="2"/>
+            <circle cx="32" cy="18" r="2" fill="currentColor"/>
+            <circle cx="20" cy="36" r="2" fill="currentColor"/>
+            <circle cx="44" cy="36" r="2" fill="currentColor"/>
+        </svg>`,
+
+    // 短兵战 (Skirmish): 双剑交叉，锋利感
+    short_battle: `
+        <svg viewBox="0 0 64 64" fill="none">
+            <path d="M12 52 L52 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+            <path d="M12 12 L52 52" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+            <path d="M10 48 L16 54 M48 10 L54 16" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+            <path d="M10 16 L16 10 M48 54 L54 48" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+        </svg>`,
+
+    // 置换反應 (Swap): 循环箭头
+    swap: `
+        <svg viewBox="0 0 64 64" fill="none">
+            <path d="M16 32 A 16 16 0 0 1 48 32" stroke="currentColor" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+            <path d="M48 32 A 16 16 0 0 1 16 32" stroke="currentColor" stroke-width="3" fill="none" transform="rotate(180 32 32)"/>
+            <path d="M44 26 L48 32 L44 38" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 38 L16 32 L20 26" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`
+};
+
+// 视觉特效引擎 (VisualFX Engine) - Alpha 0.7.7
 const VisualFX = {
     canvas: null,
     ctx: null,
     animationId: null,
-    particles: [], // 粒子池
+    particles: [], 
     
     init: function() {
         this.canvas = document.getElementById('fxCanvas');
@@ -52,44 +164,33 @@ const VisualFX = {
         const cell = document.getElementById(`c-${r}-${c}`);
         const wrapper = document.querySelector('.board-wrapper');
         if (!cell || !wrapper) return null;
-        
         const cRect = cell.getBoundingClientRect();
         const wRect = wrapper.getBoundingClientRect();
-        
         return {
             x: cRect.left - wRect.left + cRect.width / 2,
             y: cRect.top - wRect.top + cRect.height / 2
         };
     },
 
-    // === 绘图入口 ===
     drawWinLine: function(lineCells, type) {
         if (!this.ctx || lineCells.length < 2) return;
-        this.clear(); // 停止旧动画
-
+        this.clear();
         const points = lineCells.map(p => this.getCoords(p.r, p.c)).filter(p => p);
         if (points.length < 2) return;
-
-        // 启动动画循环
         this.startAnimation(points, type);
     },
 
-    // === 动画控制器 ===
     startAnimation: function(points, type) {
         let startTime = performance.now();
-        
-        // 预处理：如果是闪电，生成一次路径数据（保持 0.7.6.3 的形态）
         let lightningData = null;
         if (type === 'lightning') {
             lightningData = this.generateLightningPath(points[0], points[points.length-1], 35);
         }
-
-        // 预处理：初始化粒子
         if (type === 'default' || type === 'gold') {
-            for(let i=0; i<30; i++) { // 增加粒子数量
+            for(let i=0; i<30; i++) {
                 this.particles.push({
                     t: Math.random(), 
-                    offset: (Math.random() - 0.5) * 20, // 扩散范围
+                    offset: (Math.random() - 0.5) * 20, 
                     speed: 0.002 + Math.random() * 0.005,
                     size: Math.random() * 3 + 1,
                     life: Math.random() * Math.PI * 2,
@@ -100,8 +201,7 @@ const VisualFX = {
 
         const loop = (now) => {
             const elapsed = now - startTime;
-            if (elapsed > 2000) return; // 2秒后自动结束
-
+            if (elapsed > 2000) return; 
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             
             if (type === 'default') this.renderDefault(points, elapsed);
@@ -111,21 +211,17 @@ const VisualFX = {
 
             this.animationId = requestAnimationFrame(loop);
         };
-        
         this.animationId = requestAnimationFrame(loop);
     },
 
-    // --- 1. 默认 (森之灵) ---
+    // --- Renderers (保留 0.7.6.4 的完美实现) ---
     renderDefault: function(points, elapsed) {
         const ctx = this.ctx;
         const start = points[0];
         const end = points[points.length-1];
-        
-        // 呼吸线
         const breath = (Math.sin(elapsed * 0.005) + 1) * 0.5; 
         
         ctx.lineCap = 'round';
-        // 辉光
         ctx.beginPath();
         ctx.moveTo(start.x, start.y);
         ctx.lineTo(end.x, end.y);
@@ -135,26 +231,19 @@ const VisualFX = {
         ctx.shadowBlur = 15 + breath * 10;
         ctx.stroke();
         
-        // 核心
         ctx.lineWidth = 3;
         ctx.strokeStyle = '#e8f5e9';
         ctx.shadowBlur = 0;
         ctx.stroke();
 
-        // 漂浮孢子
         ctx.fillStyle = '#b9f6ca';
         this.particles.forEach(p => {
-            p.t += p.speed; // 沿线移动
+            p.t += p.speed;
             if(p.t > 1) p.t = 0;
-            
             const px = start.x + (end.x - start.x) * p.t;
             const py = start.y + (end.y - start.y) * p.t;
-            
-            // 垂直漂浮 (上升感)
             const floatY = p.offset - (elapsed * 0.02); 
-            
             const alpha = (Math.sin(elapsed * p.blinkSpeed + p.life) + 1) * 0.5;
-            
             ctx.globalAlpha = alpha;
             ctx.beginPath();
             ctx.arc(px, py + floatY, p.size, 0, Math.PI*2);
@@ -163,27 +252,19 @@ const VisualFX = {
         ctx.globalAlpha = 1;
     },
 
-    // --- 2. 闪电 (宙斯之怒 - 完美复刻版) ---
     renderLightning: function(points, data, elapsed) {
         const ctx = this.ctx;
-        
-        // 频闪特效：偶尔消失，模拟真实雷电的视觉残留
         if (Math.random() > 0.85) return; 
-
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        
         const drawPath = (pathData, width, color, blur, alpha) => {
             ctx.beginPath();
             ctx.moveTo(pathData.main[0].x, pathData.main[0].y);
             pathData.main.forEach(p => ctx.lineTo(p.x, p.y));
-            
-            // 绘制分支
             pathData.branches.forEach(branch => {
                 ctx.moveTo(branch[0].x, branch[0].y);
                 branch.forEach(p => ctx.lineTo(p.x, p.y));
             });
-
             ctx.lineWidth = width;
             ctx.strokeStyle = color;
             ctx.globalAlpha = alpha;
@@ -191,23 +272,13 @@ const VisualFX = {
             ctx.shadowBlur = blur;
             ctx.stroke();
         };
-
-        // 完美复刻 0.7.6.3 的三层渲染 + 动态透明度抖动
         const flicker = 0.8 + Math.random() * 0.2;
-
-        // Layer 1: 大气辉光 (Atmosphere)
         drawPath(data, 6, '#00B0FF', 40, 0.4 * flicker);
-        
-        // Layer 2: 电离层 (Ionization)
         drawPath(data, 3, '#40C4FF', 20, 0.8 * flicker);
-
-        // Layer 3: 极亮核心 (Core)
         drawPath(data, 1.5, '#FFFFFF', 0, 1.0 * flicker);
-        
-        ctx.globalAlpha = 1; // 重置
+        ctx.globalAlpha = 1; 
     },
 
-    // 生成闪电几何数据 (复用 0.7.6.3 算法)
     generateLightningPath: function(start, end, displace) {
         const createPts = (p1, p2, dis) => {
             if (dis < 2) return [p1, p2];
@@ -226,12 +297,10 @@ const VisualFX = {
             const seg2 = createPts(mid, p2, dis * 0.55);
             return seg1.concat(seg2.slice(1));
         };
-
-        const main = createPts(start, end, displace); // displace 35, 收束不越界
+        const main = createPts(start, end, displace);
         const branches = [];
         const totalDist = Math.hypot(end.x - start.x, end.y - start.y);
         const numBranches = Math.floor(totalDist / 50);
-
         for (let i = 0; i < numBranches; i++) {
             const idx = Math.floor(Math.random() * (main.length - 1));
             const root = main[idx];
@@ -243,26 +312,18 @@ const VisualFX = {
         return { main, branches };
     },
 
-    // --- 3. 金黄 (财宝流光) ---
     renderGold: function(points, elapsed) {
         const ctx = this.ctx;
         const start = points[0];
         const end = points[points.length-1];
-
-        // 动态流光：光带快速扫过
         const shift = (elapsed * 0.0015) % 1; 
         const grad = ctx.createLinearGradient(start.x, start.y, end.x, end.y);
-        
-        grad.addColorStop(0, '#FFC107'); // 深金
-        // 高光带
+        grad.addColorStop(0, '#FFC107'); 
         grad.addColorStop(Math.max(0, shift - 0.15), '#FFD54F');
-        grad.addColorStop(shift, '#FFFFFF'); // 纯白高光
+        grad.addColorStop(shift, '#FFFFFF'); 
         grad.addColorStop(Math.min(1, shift + 0.15), '#FFD54F');
         grad.addColorStop(1, '#FFC107');
-
         ctx.lineCap = 'round';
-        
-        // 辉光层
         ctx.beginPath();
         ctx.moveTo(start.x, start.y);
         ctx.lineTo(end.x, end.y);
@@ -271,27 +332,19 @@ const VisualFX = {
         ctx.shadowColor = '#FF6F00';
         ctx.shadowBlur = 25;
         ctx.stroke();
-
-        // 实体层
         ctx.lineWidth = 6;
         ctx.strokeStyle = grad;
         ctx.shadowBlur = 5;
         ctx.stroke();
-
-        // 十字星光粒子 (Star Sparkles)
         this.particles.forEach(p => {
             const twinkle = Math.abs(Math.sin(elapsed * p.blinkSpeed * 2));
             if (twinkle < 0.2) return;
-
             const t = p.t; 
             const px = start.x + (end.x - start.x) * t + p.offset;
             const py = start.y + (end.y - start.y) * t + p.offset;
-
             ctx.fillStyle = '#FFF';
             ctx.shadowBlur = 10;
             ctx.shadowColor = '#FFF';
-            
-            // 绘制四角星
             const size = p.size * twinkle * 1.5;
             ctx.beginPath();
             ctx.moveTo(px, py - size);
@@ -303,60 +356,45 @@ const VisualFX = {
         });
     },
 
-    // --- 4. 未来 (信号干扰) ---
     renderFuture: function(points, elapsed) {
         const ctx = this.ctx;
         const start = points[0];
         const end = points[points.length-1];
-        
         ctx.shadowBlur = 20;
         ctx.shadowColor = '#ea80fc';
-        
-        // 1. 基础激光束
         ctx.beginPath();
         ctx.moveTo(start.x, start.y);
         ctx.lineTo(end.x, end.y);
         ctx.lineWidth = 4;
         ctx.strokeStyle = 'rgba(224, 64, 251, 0.3)';
         ctx.stroke();
-
-        // 2. Glitch 故障线段
         const segments = 12;
         const dx = (end.x - start.x) / segments;
         const dy = (end.y - start.y) / segments;
-
         ctx.beginPath();
         for (let i = 0; i < segments; i++) {
             const sX = start.x + dx * i;
             const sY = start.y + dy * i;
             const eX = start.x + dx * (i+1);
             const eY = start.y + dy * (i+1);
-
             let offsetX = 0, offsetY = 0;
-            // 随机故障位移
             if (Math.random() > 0.85) { 
                 offsetX = (Math.random() - 0.5) * 15;
                 offsetY = (Math.random() - 0.5) * 15;
             }
-
             ctx.moveTo(sX + offsetX, sY + offsetY);
             ctx.lineTo(eX + offsetX, eY + offsetY);
         }
         ctx.lineWidth = 2;
-        // 颜色在青色和紫色之间剧烈切换
         ctx.strokeStyle = Math.random() > 0.5 ? '#00e5ff' : '#d500f9';
         ctx.stroke();
-
-        // 3. 数据包传输 (高速移动的矩形)
         const speed = 0.004;
         const runnerT = (elapsed * speed) % 1;
         const rx = start.x + (end.x - start.x) * runnerT;
         const ry = start.y + (end.y - start.y) * runnerT;
-        
         ctx.fillStyle = '#fff';
         ctx.shadowColor = '#fff';
         ctx.shadowBlur = 15;
-        // 绘制长条形数据包
         ctx.save();
         ctx.translate(rx, ry);
         ctx.rotate(Math.atan2(end.y - start.y, end.x - start.x));

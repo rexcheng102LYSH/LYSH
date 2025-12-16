@@ -3,7 +3,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "落葉 <span style='font-size:0.5em'>VS</span> 生輝", 
-        subTitle: "Alpha 0.7.6", // Update
+        subTitle: "Alpha 0.7.7", // Update
         btnPvE: "電腦對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -49,7 +49,7 @@ const I18N = {
             swap: { name: "置換反應", desc: "換敵我各一子，繼續落子" }
         },
         toast: {
-            skillUsed: "技能已用盡", casting: "釋放技能：", 
+            skillUsed: "技能已用盡", casting: "釋放：", 
             doubleStart: "雙連：請下第1子", doubleNext: "雙連：請下第2子！",
             voodooPick: "選擇腐蝕目標", voodooDone: "腐蝕完成，請落子", 
             moveSrcSelf: "選擇己方棋子", moveSrcEnemy: "選擇敵方棋子",
@@ -58,8 +58,10 @@ const I18N = {
             bombStart: "炸彈已啟動", 
             errInvalid: "無效操作", errZone: "禁區無法落子", undoPvP: "競技模式無悔棋！",
             godPick1: "上帝之手：選擇第1顆棋子", godDest1: "選擇第1次落點", godPick2: "上帝之手：選擇第2顆棋子", godDest2: "選擇第2次落點",
-            chaosTrigger: "混亂觸發！落點偏移", chaosLabel: "🎲 混亂:", 
-            shortBattleLabel: "⚔️ 短兵:", shortBattleStart: "短兵戰！四子即勝",
+            chaosTrigger: "混亂觸發！落點偏移", 
+            chaosLabel: "混亂:", // Removed Emoji
+            shortBattleLabel: "短兵:", // Removed Emoji
+            shortBattleStart: "短兵戰！四子即勝",
             swapPickSelf: "置換：選己方子", swapPickEnemy: "置換：選敵方子", swapDone: "置換完成，請落子", 
             undoDone: "悔棋成功", timeOut: "時間耗盡！"
         },
@@ -72,7 +74,7 @@ const I18N = {
     'zh': {
         langName: "简", 
         gameTitle: "落叶 <span style='font-size:0.5em'>VS</span> 生辉", 
-        subTitle: "Alpha 0.7.6", // Update
+        subTitle: "Alpha 0.7.7", // Update
         btnPvE: "电脑对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -127,8 +129,10 @@ const I18N = {
             bombStart: "炸弹爆炸！对方-2分钟", 
             errInvalid: "无效操作", errZone: "禁区无法落子", undoPvP: "竞技模式无悔棋！",
             godPick1: "上帝之手：选第1子", godDest1: "选第1落点", godPick2: "上帝之手：选第2子", godDest2: "选第2落点",
-            chaosTrigger: "混乱触发！落点偏移", chaosLabel: "🎲 混乱:", 
-            shortBattleLabel: "⚔️ 短兵:", shortBattleStart: "短兵战！四子即胜",
+            chaosTrigger: "混乱触发！落点偏移", 
+            chaosLabel: "混乱:", // Removed Emoji
+            shortBattleLabel: "短兵:", // Removed Emoji
+            shortBattleStart: "短兵战！四子即胜",
             swapPickSelf: "置换：选己方子", swapPickEnemy: "置换：选敌方子", swapDone: "置换完成，请落子", 
             undoDone: "悔棋成功", timeOut: "时间耗尽！"
         },
@@ -141,7 +145,7 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Fallen <span style='font-size:0.5em'>VS</span> Radiance", 
-        subTitle: "Alpha 0.7.6", // Update
+        subTitle: "Alpha 0.7.7", // Update
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -196,8 +200,10 @@ const I18N = {
             bombStart: "Bomb! -2 Mins", 
             errInvalid: "Invalid", errZone: "Restricted Zone", undoPvP: "No undo in PvP!",
             godPick1: "God: Pick 1st", godDest1: "Dest 1", godPick2: "God: Pick 2nd", godDest2: "Dest 2",
-            chaosTrigger: "Chaos! Missed!", chaosLabel: "🎲 Chaos:", 
-            shortBattleLabel: "⚔️ Skirmish:", shortBattleStart: "Skirmish Mode!", 
+            chaosTrigger: "Chaos! Missed!", 
+            chaosLabel: "Chaos:", // Removed Emoji
+            shortBattleLabel: "Skirmish:", // Removed Emoji
+            shortBattleStart: "Skirmish Mode!", 
             swapPickSelf: "Swap: Yours", swapPickEnemy: "Swap: Enemy", swapDone: "Done. Move now!", 
             undoDone: "Undone", timeOut: "Time Out!"
         },

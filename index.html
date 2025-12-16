@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>落叶 VS 生辉 - Alpha 0.7.6.4</title>
-    <link rel="stylesheet" href="style.css?v=alpha_0_7_6_4">
+    <title>落叶 VS 生辉 - Alpha 0.7.7</title>
+    <link rel="stylesheet" href="style.css?v=alpha_0_7_7">
 </head>
 <body onclick="SoundEngine.init()">
 
@@ -21,7 +21,7 @@
         <div class="glass-panel menu-panel">
             <h1 data-i18n="gameTitle">落叶 <span style="font-size:0.5em">VS</span> 生辉</h1>
             <h2 style="margin-top:-5px; font-size:1.2rem; color:#666;">
-                <span data-i18n="subTitle">Visual Update</span> <span class="version-tag">Alpha 0.7.6.4</span>
+                <span data-i18n="subTitle">Visual Update</span> <span class="version-tag">Alpha 0.7.7</span>
             </h2>
             <button class="btn primary" onclick="SoundEngine.playPlace(); showDifficultyScreen()" data-i18n="btnPvE">电脑对战 (PvE)</button>
             <button class="btn" onclick="startPvPFlow('single')" data-i18n="btnPvPSingle">双人单局 (PvP)</button>
@@ -48,10 +48,10 @@
             
             <div class="turn-choice-container">
                 <div class="turn-card maple" onclick="handleTurnChoice(1)">
-                    <div class="icon">🍁</div><h3 data-i18n="sideFirst">先手</h3>
+                    <div class="icon"></div><h3 data-i18n="sideFirst">先手</h3>
                 </div>
                 <div class="turn-card sun" onclick="handleTurnChoice(2)">
-                    <div class="icon">☀️</div><h3 data-i18n="sideSecond">后手</h3>
+                    <div class="icon"></div><h3 data-i18n="sideSecond">后手</h3>
                 </div>
             </div>
             
@@ -66,15 +66,19 @@
 
     <div id="gameScreen" class="screen" style="justify-content: flex-start; padding-top: 5vh;">
         <div class="top-bar">
-            <div id="timer1" class="timer-pill">🍁 04:00</div>
+            <div id="timer1" class="timer-pill">04:00</div>
+            
             <div class="status-pill turn-maple" id="statusBar">
-                <span id="diffTag" class="diff-tag" style="display:none;"></span><span id="turnIcon">🍁</span> <span id="turnText">...</span>
+                <span id="diffTag" class="diff-tag" style="display:none;"></span>
+                <span id="turnIcon" class="icon-wrapper" style="width:24px;height:24px;display:inline-block"></span> 
+                <span id="turnText">...</span>
             </div>
-            <div id="timer2" class="timer-pill">☀️ 04:00</div>
+            
+            <div id="timer2" class="timer-pill">04:00</div>
             
             <div style="width:100%; display:flex; justify-content:center; gap:5px; margin-top:5px; position:relative; height: 0;">
-                <div id="shortBattleCounter" class="counter-badge short-battle">⚔️</div>
-                <div id="chaosCounter" class="counter-badge chaos">🎲</div>
+                <div id="shortBattleCounter" class="counter-badge short-battle"></div>
+                <div id="chaosCounter" class="counter-badge chaos"></div>
                 <div id="scoreBoard" class="score-board">P1 0 : 0 P2</div>
             </div>
         </div>
@@ -86,7 +90,9 @@
 
         <div class="bottom-controls">
             <button class="btn secondary" onclick="undoMove()" id="undoBtn" data-i18n="btnUndo">悔棋</button>
-            <button class="skill-btn" id="skillBtn" onclick="activateSkill()"><span>...</span><small>...</small></button>
+            <button class="skill-btn" id="skillBtn" onclick="activateSkill()">
+                <span>...</span><small>...</small>
+            </button>
             <button class="btn secondary" onclick="confirmExit()" data-i18n="btnExit">退出</button>
         </div>
     </div>
@@ -151,8 +157,7 @@
             <div class="skin-section-title">棋子样式</div>
             <div class="skin-selector">
                 <div class="skin-option active" id="skinNature" onclick="changeSkin('nature')">
-                    <div class="skin-preview">🍁</div>
-                    <span>自然</span>
+                    <div class="skin-preview">🍁</div> <span>自然</span>
                 </div>
                 <div class="skin-option" id="skinClassic" onclick="changeSkin('classic')">
                     <div class="skin-preview" style="background: radial-gradient(circle at 30% 30%, #666, #000); border-radius:50%; width:40px; height:40px; margin:0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>
@@ -175,12 +180,12 @@
     <div id="toast"></div>
     <div id="explosionOverlay"></div>
 
-    <script src="audio.js?v=alpha_0_7_6_4"></script>
-    <script src="lang.js?v=alpha_0_7_6_4"></script> 
-    <script src="background.js?v=alpha_0_7_6_4"></script>
-    <script src="fx.js?v=alpha_0_7_6_4"></script>
-    <script src="game.js?v=alpha_0_7_6_4"></script>
-    <script src="ai.js?v=alpha_0_7_6_4"></script>
+    <script src="audio.js?v=alpha_0_7_7"></script>
+    <script src="lang.js?v=alpha_0_7_7"></script> 
+    <script src="background.js?v=alpha_0_7_7"></script>
+    <script src="fx.js?v=alpha_0_7_7"></script>
+    <script src="game.js?v=alpha_0_7_7"></script>
+    <script src="ai.js?v=alpha_0_7_7"></script>
     <script>
         window.onload = function() {
             if (typeof initGame === 'function') {}
