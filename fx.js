@@ -1,26 +1,26 @@
 // ================= 视觉特效资源与引擎 (Visual Effects & Art Assets) =================
 
 /**
- * [Alpha 0.7.7 - Emergency Fix] Vector Art Library
- * Reverted to Safe Mode: No gradients, no IDs, solid high-contrast colors.
- * Ensures visibility and stability on all browsers.
+ * [Alpha 0.7.7.1 - Critical Fix] Safe Vector Art Library
+ * Completely removed gradients, filters, and IDs to prevent rendering crashes.
+ * Using high-contrast SOLID colors.
  */
 
 // 1. 棋子皮肤库 (The Pieces)
 const PIECE_ICONS = {
-    // 🍁 落叶：纯色填充，无渐变，确保可见性
+    // 🍁 落叶：纯色填充，无渐变，无 ID，确保绝对稳定
     maple: `
         <svg viewBox="0 0 512 512" fill="none" class="piece-svg maple-piece">
             <g>
                 <path d="M256 32 C250 32 230 80 220 110 C180 100 120 80 110 90 C105 95 120 140 130 160 C90 150 40 130 30 140 C20 150 60 200 80 220 C50 210 20 200 10 215 C0 230 50 260 80 280 C60 290 20 310 30 330 C40 350 90 320 120 300 C110 340 100 400 110 410 C120 420 150 360 170 320 C180 360 190 420 200 430 C210 440 230 380 240 340 L250 480 C252 490 260 490 262 480 L272 340 C282 380 302 440 312 430 C322 420 332 360 342 320 C362 360 392 420 402 410 C412 400 402 340 392 300 C422 320 472 350 482 330 C492 310 452 290 432 280 C462 260 512 230 502 215 C492 200 462 210 432 220 C452 200 492 150 482 140 C472 130 422 150 382 160 C392 140 407 95 402 90 C392 80 332 100 292 110 C282 80 262 32 256 32 Z" 
                 fill="#d32f2f" stroke="#8e0000" stroke-width="12" stroke-linejoin="round"/>
-                <path d="M256 480 L256 180 M256 300 L180 240 M256 300 L332 240" 
+                <path d="M256 480 L256 180 M256 300 L180 240 M256 300 L332 240 M180 240 L130 180 M332 240 L382 180" 
                 stroke="#8e0000" stroke-width="8" stroke-linecap="round"/>
             </g>
         </svg>
     `,
     
-    // ☀️ 生辉：纯色填充，不透明，高对比度
+    // ☀️ 生辉：纯色填充，无渐变，高对比度
     sun: `
         <svg viewBox="0 0 512 512" fill="none" class="piece-svg sun-piece">
             <g>
@@ -28,8 +28,8 @@ const PIECE_ICONS = {
                          M422 90 L380 132 M132 380 L90 422 
                          M422 422 L380 380 M132 132 L90 90" 
                       stroke="#fbc02d" stroke-width="40" stroke-linecap="round"/>
-                <circle cx="256" cy="256" r="140" fill="#fbc02d" stroke="#f57f17" stroke-width="10"/>
-                <circle cx="256" cy="256" r="110" stroke="#fff" stroke-width="5" stroke-opacity="0.5" fill="none"/>
+                <circle cx="256" cy="256" r="130" fill="#fbc02d" stroke="#f57f17" stroke-width="10"/>
+                <circle cx="256" cy="256" r="100" stroke="#fff" stroke-width="8" stroke-opacity="0.6" fill="none"/>
             </g>
         </svg>
     `
@@ -37,7 +37,7 @@ const PIECE_ICONS = {
 
 // 2. 技能图标库 (Skill Icons - High Fidelity)
 const SKILL_ICONS = {
-    // 双连 (Double): 两个重叠的棋子，带有动感残影
+    // 双连
     double: `
         <svg viewBox="0 0 64 64" fill="none">
             <circle cx="24" cy="24" r="14" fill="#E0E0E0" stroke="currentColor" stroke-width="3"/>
@@ -45,7 +45,7 @@ const SKILL_ICONS = {
             <path d="M48 20 L56 12 M52 24 L58 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>`,
 
-    // 巫毒 (Voodoo): 一个被针扎的玩偶头部，带毒气
+    // 巫毒
     voodoo: `
         <svg viewBox="0 0 64 64" fill="none">
             <circle cx="32" cy="36" r="18" fill="currentColor" fill-opacity="0.2" stroke="currentColor" stroke-width="3"/>
@@ -56,7 +56,7 @@ const SKILL_ICONS = {
             <circle cx="10" cy="10" r="3" fill="currentColor"/>
         </svg>`,
 
-    // 移花接木 (Move Self): 棋子虚化移动
+    // 移花接木
     move_self: `
         <svg viewBox="0 0 64 64" fill="none">
             <circle cx="20" cy="32" r="10" stroke="currentColor" stroke-width="2" stroke-dasharray="4 2"/>
@@ -65,7 +65,7 @@ const SKILL_ICONS = {
             <path d="M44 26 L50 32 L44 38" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>`,
 
-    // 乾坤大挪移 (Move Enemy): 抓取敌方棋子
+    // 乾坤大挪移
     move_enemy: `
         <svg viewBox="0 0 64 64" fill="none">
             <circle cx="32" cy="42" r="10" stroke="currentColor" stroke-width="3"/>
@@ -73,7 +73,7 @@ const SKILL_ICONS = {
             <path d="M20 28 Q32 36 44 28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
         </svg>`,
 
-    // 领地 (Zone): 3x3 网格，中间高亮
+    // 领地
     zone: `
         <svg viewBox="0 0 64 64" fill="none">
             <rect x="12" y="12" width="40" height="40" rx="4" stroke="currentColor" stroke-width="3"/>
@@ -81,7 +81,7 @@ const SKILL_ICONS = {
             <rect x="26" y="26" width="12" height="12" fill="currentColor"/>
         </svg>`,
 
-    // 时间炸弹 (Bomb): 实心炸弹，引线燃烧
+    // 时间炸弹
     bomb: `
         <svg viewBox="0 0 64 64" fill="none">
             <circle cx="32" cy="38" r="16" fill="currentColor"/>
@@ -89,7 +89,7 @@ const SKILL_ICONS = {
             <path d="M46 16 L50 12 M50 20 L54 22 M44 10 L46 6" stroke="#ff5252" stroke-width="2"/>
         </svg>`,
 
-    // 上帝之手 (God Hand): 巨大的手掌控制棋盘
+    // 上帝之手
     god_hand: `
         <svg viewBox="0 0 64 64" fill="none">
             <path d="M32 54 V40 M20 30 Q20 10 32 10 Q44 10 44 30" stroke="currentColor" stroke-width="3"/>
@@ -97,7 +97,7 @@ const SKILL_ICONS = {
             <circle cx="32" cy="24" r="4" fill="currentColor"/>
         </svg>`,
 
-    // 混乱骰子 (Chaos): 3D 立体骰子 (Isometric)
+    // 混乱骰子
     chaos: `
         <svg viewBox="0 0 64 64" fill="none">
             <path d="M32 6 L56 18 V46 L32 58 L8 46 V18 Z" stroke="currentColor" stroke-width="3" stroke-linejoin="round" fill="currentColor" fill-opacity="0.1"/>
@@ -107,7 +107,7 @@ const SKILL_ICONS = {
             <circle cx="44" cy="36" r="2" fill="currentColor"/>
         </svg>`,
 
-    // 短兵战 (Skirmish): 双剑交叉，锋利感
+    // 短兵战
     short_battle: `
         <svg viewBox="0 0 64 64" fill="none">
             <path d="M12 52 L52 12" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
@@ -116,7 +116,7 @@ const SKILL_ICONS = {
             <path d="M10 16 L16 10 M48 54 L54 48" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
         </svg>`,
 
-    // 置换反應 (Swap): 循环箭头
+    // 置换反應
     swap: `
         <svg viewBox="0 0 64 64" fill="none">
             <path d="M16 32 A 16 16 0 0 1 48 32" stroke="currentColor" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
@@ -126,7 +126,7 @@ const SKILL_ICONS = {
         </svg>`
 };
 
-// 视觉特效引擎 (VisualFX Engine) - Alpha 0.7.7
+// 视觉特效引擎 (VisualFX Engine) - Alpha 0.7.7.1
 const VisualFX = {
     canvas: null,
     ctx: null,

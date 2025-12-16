@@ -1,7 +1,7 @@
 // ================= 全局变量 =================/
 const BOARD_SIZE = 15, EMPTY = 0, MAPLE = 1, SUN = 2, CORRODED = -1;
 
-// [Alpha 0.7.7] 核心升级：引用 fx.js 中的矢量资源
+// 引用 fx.js 中的矢量资源
 const ICONS = { 
     [MAPLE]: (typeof PIECE_ICONS !== 'undefined') ? PIECE_ICONS.maple : 'M', 
     [SUN]: (typeof PIECE_ICONS !== 'undefined') ? PIECE_ICONS.sun : 'S' 
@@ -20,7 +20,8 @@ let historyStack = [];
 let selectedCell = null;
 let bombTarget = null; 
 let userMusicPref = 'origin';
-let currentSkin = 'nature';
+// [Alpha 0.7.7.1] 默认皮肤改为经典 (Classic)
+let currentSkin = 'classic';
 let winEffect = 'default';
 let currentSeason = 'spring';
 
@@ -87,10 +88,11 @@ function changeWinEffect(effect) {
     updateWinEffectUI();
 }
 
+// [Alpha 0.7.7.1] 修复 UI 更新逻辑
 function updateSkinUI() {
     document.querySelectorAll('.skin-option').forEach(el => el.classList.remove('active'));
-    if (currentSkin === 'nature') document.getElementById('skinNature').classList.add('active');
-    else document.getElementById('skinClassic').classList.add('active');
+    if (currentSkin === 'classic') document.getElementById('skinClassic').classList.add('active');
+    else document.getElementById('skinNature').classList.add('active');
 }
 
 function updateWinEffectUI() {
@@ -166,7 +168,8 @@ function enterTurnSelection(mode, diff) {
     const tEl = document.getElementById('turnSelectTitle'), dEl = document.getElementById('turnSelectDesc'); updateStaticText(); 
     if (isBO3 && (p1Score > 0 || p2Score > 0)) { tEl.innerText = t('titlePickSide'); dEl.innerText = `${t('descPickSideLoser')} (${chooser==='p1'?"P1":"P2"})`; } 
     else { tEl.innerText = t('titlePickSide'); dEl.innerText = t('descPickSide'); } 
-    // [0.7.7] 更新选边图标
+    
+    // 选边界面图标始终显示 Nature (因为它们代表阵营)
     document.querySelector('.turn-card.maple .icon').innerHTML = ICONS[MAPLE];
     document.querySelector('.turn-card.sun .icon').innerHTML = ICONS[SUN];
 }
@@ -208,7 +211,7 @@ function updateDraftTitle() {
         if (isAITurn) pickerName += " (AI)"; else pickerName += " (You)"; 
         if (isAITurn) setTimeout(() => { const avail = SKILL_IDS.filter(s => !Object.values(playerSkills).includes(s)); pickSkill(avail[Math.floor(Math.random()*avail.length)]); }, 800); 
     } 
-    // [0.7.7] SVG 图标支持
+    // Draft 标题图标始终使用 SVG
     const iconHTML = `<span style="display:inline-block;width:32px;height:32px;vertical-align:bottom;">${ICONS[draftTurn]}</span>`;
     tEl.innerHTML = t('draftTitle').replace('{icon}', iconHTML).replace('{name}', pickerName); 
     tEl.style.color = draftTurn === MAPLE ? '#d32f2f' : '#f9a825'; 
@@ -282,6 +285,8 @@ function getCell(r, c) { return document.getElementById(`c-${r}-${c}`); }
 
 // --- 状态管理 ---
 function saveState() { historyStack.push({ board: JSON.parse(JSON.stringify(board)), currentPlayer: currentPlayer, skillUsed: JSON.parse(JSON.stringify(skillUsed)), territoryZones: JSON.parse(JSON.stringify(territoryZones)), chaosDebuff: JSON.parse(JSON.stringify(chaosDebuff)), shortBattleTurns: shortBattleTurns, timeRemaining: JSON.parse(JSON.stringify(timeRemaining)), bombTarget: bombTarget }); }
+
+// [Alpha 0.7.7.1] 恢复逻辑：Classic 使用 CSS 类，Nature 使用 SVG innerHTML
 function restoreState(state) { 
     board = state.board; currentPlayer = state.currentPlayer; skillUsed = state.skillUsed; territoryZones = state.territoryZones; chaosDebuff = state.chaosDebuff; shortBattleTurns = state.shortBattleTurns; timeRemaining = state.timeRemaining; bombTarget = state.bombTarget; 
     SoundEngine.setCritical(false);
@@ -306,7 +311,7 @@ function restoreState(state) {
             } else {
                 const pc = document.createElement('span'); 
                 pc.className = 'piece skin-nature'; 
-                // [Alpha 0.7.7] 使用 innerHTML 渲染 SVG
+                // SVG Mode
                 pc.innerHTML = ICONS[val]; 
                 cell.appendChild(pc); 
             }
@@ -318,6 +323,7 @@ function restoreState(state) {
     updateDynamicUI(); 
 }
 
+// [Alpha 0.7.7.1] 落子逻辑：Classic 使用 CSS 类，Nature 使用 SVG innerHTML
 function placePiece(r, c, p, m=false, chaos=false) { 
     if(!m) board[r][c]=p; else board[r][c]=p; 
     const cell = getCell(r,c); 
@@ -329,7 +335,7 @@ function placePiece(r, c, p, m=false, chaos=false) {
         } else {
             const pc = document.createElement('span'); 
             pc.className = 'piece skin-nature'; 
-            // [Alpha 0.7.7] 使用 innerHTML 渲染 SVG
+            // SVG Mode
             pc.innerHTML = ICONS[p]; 
             cell.appendChild(pc); 
         }
@@ -463,8 +469,9 @@ function handleMatchEnd(winSide) {
     SoundEngine.switchTrack(userMusicPref); 
     const wt = document.getElementById('winnerText'); 
     let title = "";
-    // [0.7.7] 结算界面显示 SVG 图标
+    // [0.7.7.1] 修复图标显示逻辑，确保图标能正确显示
     const winIcon = `<span style="display:inline-block;width:40px;height:40px;vertical-align:text-bottom">${ICONS[winSide]}</span>`;
+    
     if (gameMode === 'pve' && winSide !== humanSide) { 
         SoundEngine.playError(); 
         title = `${winIcon} ${t('lose', 'end')}`; 
@@ -517,7 +524,7 @@ function updateTerritoriesUI() { document.querySelectorAll('.territory-zone').fo
 function checkWin(r, c, p) { const d = [[0,1], [1,0], [1,1], [1,-1]]; const limit = shortBattleTurns > 0 ? 4 : 5; for(let k of d) { let ct = 1; let line = [{r,c}]; let i = r + k[0], j = c + k[1]; while(isValid(i,j) && board[i][j] === p) { line.push({r:i, c:j}); i += k[0]; j += k[1]; ct++; } i = r - k[0]; j = c - k[1]; while(isValid(i,j) && board[i][j] === p) { line.push({r:i, c:j}); i -= k[0]; j -= k[1]; ct++; } if(ct >= limit) return line; } return null; }
 function startBombTimer() { if(bombInterval) clearInterval(bombInterval); bombInterval = setInterval(() => { if(!gameActive) return; if(currentPlayer !== bombOwner) { bombTime--; const m = Math.floor(bombTime/60).toString().padStart(2,'0'); const s = (bombTime%60).toString().padStart(2,'0'); document.getElementById('bombTimer').innerText=`${m}:${s}`; if(bombTime <= 0) handleMatchEnd(bombOwner); } }, 1000); }
 
-// [Alpha 0.7.7] UI 动态更新逻辑重构 (SVG 支持)
+// UI 动态更新逻辑 (SVG 支持)
 function updateDynamicUI() {
     const turnTextEl = document.getElementById('turnText');
     const newTurnText = t('names')[currentPlayer === MAPLE ? 1 : 2];
