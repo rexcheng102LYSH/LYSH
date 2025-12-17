@@ -618,13 +618,13 @@ function updateDynamicUI() {
     else if ((ms === 'god_hand' || ms === 'voodoo') && (myC + oppC) === 0) viable = false;
     else if (ms === 'swap' && (myC === 0 || oppC === 0)) viable = false;
     
-    // [0.7.7] 技能按钮：显示图标 + 状态
-    // 如果技能已用，不显示图标，只显示文字
-    // 如果可用，显示图标
+    // [0.7.7.5] 技能按钮优化：
+    // 1. 已用 -> 仅显示文字 (Used)
+    // 2. 可用 -> 同时显示 图标 + 文字 (Skill Name)
     
     let btnContent = '';
     if (u) {
-        // 已用：变灰，无图标
+        // 已用：变灰，无图标，只显示文字状态
         btn.disabled = true;
         btnContent = `<span>${so.name}</span><small>${t('skillUsed')}</small>`;
     } else if (!viable) {
@@ -632,9 +632,10 @@ function updateDynamicUI() {
         btn.disabled = true;
         btnContent = `<span>${so.name}</span><small>${t('skillNoTarget')}</small>`;
     } else {
-        // 可用：显示大图标
+        // 可用：显示大图标 + 技能名称
         btn.disabled = false;
-        btnContent = `<div class="skill-icon-display">${iconSvg}</div><small>${t('skillReady')}</small>`;
+        // 注意：这里同时放入了 iconSvg 和 so.name
+        btnContent = `<div class="skill-icon-display">${iconSvg}</div><span>${so.name}</span>`;
     }
     
     // 只在内容变化时更新，防止闪烁
