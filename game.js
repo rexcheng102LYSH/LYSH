@@ -1,9 +1,14 @@
 // ================= 全局变量 =================/
-// [Alpha 0.7.7.3] 变量名 MAPLE/SUN 保持不变以确保逻辑稳定性，但在 UI 上它们代表 黑/白
+// [Alpha 0.7.7.6] Logic Update
+// - 依赖 fx.js 获取 PIECE_ICONS 和 SKILL_ICONS (避免重复定义)
+// - 炸弹数值增强：120s -> 150s
+// - 炸弹UI挂载：动态依附于受害者计时器
+
 const BOARD_SIZE = 15, EMPTY = 0, MAPLE = 1, SUN = 2, CORRODED = -1;
 
-// [Alpha 0.7.7.3] 动态图标获取器 (仅用于 UI 状态栏，棋盘渲染使用獨立邏輯)
+// 动态图标获取器 (仅用于 UI 状态栏，棋盘渲染使用獨立邏輯)
 function getIcon(player) {
+    // 确保 fx.js 已加载
     if (typeof PIECE_ICONS === 'undefined') return (player === MAPLE ? 'B' : 'W');
     
     if (currentSkin === 'nature') {
@@ -14,6 +19,7 @@ function getIcon(player) {
     }
 }
 
+// 技能 ID 列表
 const SKILL_IDS = ['double','voodoo','move_self','move_enemy','zone','bomb','god_hand','chaos','short_battle','swap'];
 
 let board = [], currentPlayer = MAPLE, gameMode = 'pvp', aiDifficulty = 'medium', gameActive = false;
@@ -28,7 +34,6 @@ let historyStack = [];
 let selectedCell = null;
 let bombTarget = null; 
 let userMusicPref = 'origin';
-// [Alpha 0.7.7.3] 默认皮肤强制设为 classic (黑白棋)
 let currentSkin = 'classic';
 let winEffect = 'default';
 let currentSeason = 'spring';
@@ -182,7 +187,7 @@ function enterTurnSelection(mode, diff) {
     if (isBO3 && (p1Score > 0 || p2Score > 0)) { tEl.innerText = t('titlePickSide'); dEl.innerText = `${t('descPickSideLoser')} (${chooser==='p1'?"P1":"P2"})`; } 
     else { tEl.innerText = t('titlePickSide'); dEl.innerText = t('descPickSide'); } 
     
-    // [Alpha 0.7.7.3] 动态更新选边图标
+    // 动态更新选边图标
     document.querySelector('.turn-card.maple .icon').innerHTML = getIcon(MAPLE);
     document.querySelector('.turn-card.sun .icon').innerHTML = getIcon(SUN);
 }
@@ -200,7 +205,8 @@ function renderSkillGrid() {
     g.innerHTML = ''; 
     SKILL_IDS.forEach(sid => { 
         const sd = t(sid, 'skills'); 
-        const iconSvg = SKILL_ICONS[sid] || ''; 
+        // 依赖 fx.js 中的图标
+        const iconSvg = (typeof SKILL_ICONS !== 'undefined' ? SKILL_ICONS[sid] : '') || ''; 
         const c = document.createElement('div'); 
         c.className = 'skill-card'; 
         c.innerHTML = `
@@ -296,10 +302,13 @@ function renderBoard() {
 }
 function getCell(r, c) { return document.getElementById(`c-${r}-${c}`); }
 
+function handleCellHover(r, c) {
+    // 预留: 未来可添加悬停音效或光标
+}
+
 // --- 状态管理 ---
 function saveState() { historyStack.push({ board: JSON.parse(JSON.stringify(board)), currentPlayer: currentPlayer, skillUsed: JSON.parse(JSON.stringify(skillUsed)), territoryZones: JSON.parse(JSON.stringify(territoryZones)), chaosDebuff: JSON.parse(JSON.stringify(chaosDebuff)), shortBattleTurns: shortBattleTurns, timeRemaining: JSON.parse(JSON.stringify(timeRemaining)), bombTarget: bombTarget }); }
 
-// [Alpha 0.7.7.3] 渲染逻辑：Classic 用 CSS，Nature 用 SVG
 function restoreState(state) { 
     board = state.board; currentPlayer = state.currentPlayer; skillUsed = state.skillUsed; territoryZones = state.territoryZones; chaosDebuff = state.chaosDebuff; shortBattleTurns = state.shortBattleTurns; timeRemaining = state.timeRemaining; bombTarget = state.bombTarget; 
     SoundEngine.setCritical(false);
@@ -318,12 +327,10 @@ function restoreState(state) {
         
         if (val === MAPLE || val === SUN) { 
             if (currentSkin === 'classic') {
-                // Classic: 使用 CSS 渲染
                 const pc = document.createElement('div'); 
                 pc.className = `piece skin-classic ${val===MAPLE?'p1':'p2'}`; 
                 cell.appendChild(pc);
             } else {
-                // Nature: 使用 SVG 渲染
                 const pc = document.createElement('span'); 
                 pc.className = 'piece skin-nature'; 
                 pc.innerHTML = (val === MAPLE ? PIECE_ICONS.maple : PIECE_ICONS.sun);
@@ -342,12 +349,10 @@ function placePiece(r, c, p, m=false, chaos=false) {
     const cell = getCell(r,c); 
     if(cell) { 
         if (currentSkin === 'classic') {
-            // Classic: 使用 CSS 渲染
             const pc = document.createElement('div'); 
             pc.className = `piece skin-classic ${p===MAPLE?'p1':'p2'}`; 
             cell.appendChild(pc);
         } else {
-            // Nature: 使用 SVG 渲染
             const pc = document.createElement('span'); 
             pc.className = 'piece skin-nature'; 
             pc.innerHTML = (p === MAPLE ? PIECE_ICONS.maple : PIECE_ICONS.sun);
@@ -407,7 +412,9 @@ function activateSkill() {
     else if (sid === 'zone') { activeEffect = 'zone_pick'; b.classList.add('casting-territory'); showToast(t('zonePick', 'toast')); }
     else if (sid === 'bomb') { 
         const opp = currentPlayer === MAPLE ? SUN : MAPLE;
-        timeRemaining[opp] -= 120; showToast(t('bombStart', 'toast'));
+        // [0.7.7.6] 增强：扣除150秒 (2.5分钟)
+        timeRemaining[opp] -= 150; 
+        showToast(t('bombStart', 'toast'));
         bombTarget = opp;
         if(timeRemaining[opp] <= 0) { triggerExplosion(); return; }
         updateDynamicUI();
@@ -483,7 +490,7 @@ function handleMatchEnd(winSide) {
     SoundEngine.switchTrack(userMusicPref); 
     const wt = document.getElementById('winnerText'); 
     let title = "";
-    // [Alpha 0.7.7.3] 动态图标
+    // 动态图标
     const winIcon = `<span style="display:inline-block;width:40px;height:40px;vertical-align:text-bottom">${getIcon(winSide)}</span>`;
     
     if (gameMode === 'pve' && winSide !== humanSide) { 
@@ -538,13 +545,13 @@ function updateTerritoriesUI() { document.querySelectorAll('.territory-zone').fo
 function checkWin(r, c, p) { const d = [[0,1], [1,0], [1,1], [1,-1]]; const limit = shortBattleTurns > 0 ? 4 : 5; for(let k of d) { let ct = 1; let line = [{r,c}]; let i = r + k[0], j = c + k[1]; while(isValid(i,j) && board[i][j] === p) { line.push({r:i, c:j}); i += k[0]; j += k[1]; ct++; } i = r - k[0]; j = c - k[1]; while(isValid(i,j) && board[i][j] === p) { line.push({r:i, c:j}); i -= k[0]; j -= k[1]; ct++; } if(ct >= limit) return line; } return null; }
 function startBombTimer() { if(bombInterval) clearInterval(bombInterval); bombInterval = setInterval(() => { if(!gameActive) return; if(currentPlayer !== bombOwner) { bombTime--; const m = Math.floor(bombTime/60).toString().padStart(2,'0'); const s = (bombTime%60).toString().padStart(2,'0'); document.getElementById('bombTimer').innerText=`${m}:${s}`; if(bombTime <= 0) handleMatchEnd(bombOwner); } }, 1000); }
 
-// UI 动态更新逻辑 (SVG 支持)
+// [Alpha 0.7.7.6] UI 动态更新逻辑 (SVG + 炸弹挂载)
 function updateDynamicUI() {
     const turnTextEl = document.getElementById('turnText');
     const newTurnText = t('names')[currentPlayer === MAPLE ? 1 : 2];
     if (turnTextEl.innerText !== newTurnText) turnTextEl.innerText = newTurnText;
     
-    // [Alpha 0.7.7.3] 动态获取回合图标
+    // 动态获取回合图标
     const turnIconEl = document.getElementById('turnIcon');
     turnIconEl.innerHTML = getIcon(currentPlayer);
     
@@ -552,12 +559,24 @@ function updateDynamicUI() {
     const newClass = 'status-pill ' + (currentPlayer === MAPLE ? 'turn-maple' : 'turn-sun');
     if (statusBar.className !== newClass) statusBar.className = newClass;
     
-    // [Alpha 0.7.7.3] 更新计时器 (动态获取当前皮肤的图标)
     const t1 = document.getElementById('timer1');
     const t2 = document.getElementById('timer2');
     
-    t1.innerHTML = `<span class="inline-icon" style="width:20px;height:20px;margin-right:4px">${getIcon(MAPLE)}</span> ${formatTime(timeRemaining[MAPLE])}`;
-    t2.innerHTML = `<span class="inline-icon" style="width:20px;height:20px;margin-right:4px">${getIcon(SUN)}</span> ${formatTime(timeRemaining[SUN])}`;
+    // 构造计时器 HTML: 图标 + 时间 + (可选) 炸弹图标
+    // 我们需要在这里检查是否被炸弹锁定
+    const getTimerHTML = (player, time) => {
+        let base = `<span class="inline-icon" style="width:20px;height:20px;margin-right:4px">${getIcon(player)}</span> ${formatTime(time)}`;
+        // [0.7.7.6] 炸弹图标挂载逻辑
+        if (bombTarget === player && typeof SKILL_ICONS !== 'undefined') {
+            // 根据剩余时间决定动画强度
+            const animClass = time < 30 ? 'bomb-status-critical' : 'bomb-status-normal';
+            base += `<span class="bomb-attached-icon ${animClass}">${SKILL_ICONS.bomb}</span>`;
+        }
+        return base;
+    };
+
+    t1.innerHTML = getTimerHTML(MAPLE, timeRemaining[MAPLE]);
+    t2.innerHTML = getTimerHTML(SUN, timeRemaining[SUN]);
     
     const updateTimerVisual = (player, timerEl, time) => {
         timerEl.className = `timer-pill ${currentPlayer === player ? 'active' : ''}`;
@@ -574,20 +593,24 @@ function updateDynamicUI() {
     updateTimerVisual(MAPLE, t1, timeRemaining[MAPLE]);
     updateTimerVisual(SUN, t2, timeRemaining[SUN]);
     
-    // 状态徽章 (混亂/短兵) - [0.7.7] SVG 图标化
+    // 状态徽章 (混亂/短兵)
     const cc = document.getElementById('chaosCounter');
     const sbc = document.getElementById('shortBattleCounter');
     
+    // 依赖全局 SKILL_ICONS
+    const chaosIcon = (typeof SKILL_ICONS !== 'undefined') ? SKILL_ICONS.chaos : '';
+    const sbIcon = (typeof SKILL_ICONS !== 'undefined') ? SKILL_ICONS.short_battle : '';
+
     if (chaosDebuff[currentPlayer] > 0) {
-        cc.style.display = 'flex'; // Flex布局对齐图标
-        cc.innerHTML = `<span class="inline-icon">${SKILL_ICONS.chaos}</span> ${t('chaosLabel', 'toast')} ${chaosDebuff[currentPlayer]}`;
+        cc.style.display = 'flex'; 
+        cc.innerHTML = `<span class="inline-icon">${chaosIcon}</span> ${t('chaosLabel', 'toast')} ${chaosDebuff[currentPlayer]}`;
     } else {
         cc.style.display = 'none';
     }
     
     if (shortBattleTurns > 0) {
         sbc.style.display = 'flex';
-        sbc.innerHTML = `<span class="inline-icon">${SKILL_ICONS.short_battle}</span> ${t('shortBattleLabel', 'toast')} ${shortBattleTurns}`;
+        sbc.innerHTML = `<span class="inline-icon">${sbIcon}</span> ${t('shortBattleLabel', 'toast')} ${shortBattleTurns}`;
     } else {
         sbc.style.display = 'none';
     }
@@ -598,13 +621,12 @@ function updateDynamicUI() {
     
     if (!ms) {
         btn.disabled = true;
-        // 空状态
         btn.innerHTML = `<span>---</span><small>---</small>`;
         return;
     }
     
     const so = t(ms, 'skills');
-    const iconSvg = SKILL_ICONS[ms]; // 获取技能图标
+    const iconSvg = (typeof SKILL_ICONS !== 'undefined') ? SKILL_ICONS[ms] : '';
     
     let myC = 0, oppC = 0;
     board.forEach(r => r.forEach(c => {
@@ -618,27 +640,18 @@ function updateDynamicUI() {
     else if ((ms === 'god_hand' || ms === 'voodoo') && (myC + oppC) === 0) viable = false;
     else if (ms === 'swap' && (myC === 0 || oppC === 0)) viable = false;
     
-    // [0.7.7.5] 技能按钮优化：
-    // 1. 已用 -> 仅显示文字 (Used)
-    // 2. 可用 -> 同时显示 图标 + 文字 (Skill Name)
-    
     let btnContent = '';
     if (u) {
-        // 已用：变灰，无图标，只显示文字状态
         btn.disabled = true;
         btnContent = `<span>${so.name}</span><small>${t('skillUsed')}</small>`;
     } else if (!viable) {
-        // 不可用：变灰，无图标
         btn.disabled = true;
         btnContent = `<span>${so.name}</span><small>${t('skillNoTarget')}</small>`;
     } else {
-        // 可用：显示大图标 + 技能名称
         btn.disabled = false;
-        // 注意：这里同时放入了 iconSvg 和 so.name
         btnContent = `<div class="skill-icon-display">${iconSvg}</div><span>${so.name}</span>`;
     }
     
-    // 只在内容变化时更新，防止闪烁
     if (btn.innerHTML !== btnContent) btn.innerHTML = btnContent;
 }
 

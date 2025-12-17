@@ -259,6 +259,20 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .timer-pill.timer-critical { background: #b71c1c !important; color: #fff !important; border: 2px solid #fff !important; animation: criticalShake 0.2s infinite, criticalBlink 0.5s infinite !important; }
 .timer-pill.timer-critical-normal { background: #fff3e0; color: #e65100; border: 2px solid #ff9800; animation: normalCriticalPulse 1s infinite; }
 
+/* [Alpha 0.7.7.6] 炸弹动态图标 - 附着在 Timer 上 */
+.bomb-attached-icon {
+    width: 24px; height: 24px; 
+    margin-left: 5px; 
+    display: inline-flex;
+    vertical-align: middle;
+}
+.bomb-attached-icon svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 4px rgba(255,0,0,0.3)); }
+
+/* 炸弹常态：如同心脏般危险跳动 */
+.bomb-status-normal { animation: bombIdle 1.5s infinite ease-in-out; }
+/* 炸弹极危：即将爆炸的剧烈膨胀和颤抖 */
+.bomb-status-critical { animation: bombExplode 0.3s infinite alternate; }
+
 .status-pill { display: flex; align-items: center; gap: 5px; padding: 6px 12px; background: rgba(255,255,255,0.9); border-radius: 20px; font-weight: bold; }
 .status-pill .icon-wrapper { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
 .status-pill .icon-wrapper svg { width: 100%; height: 100%; }
@@ -306,3 +320,14 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 @keyframes normalCriticalPulse { 0% { box-shadow: 0 0 0 #ff9800; } 50% { box-shadow: 0 0 10px #ff9800; } 100% { box-shadow: 0 0 0 #ff9800; } }
 @keyframes flash { from{opacity:0.6; transform:scale(0.9);} to{opacity:1; transform:scale(1.15);} }
 @keyframes breathe { 0%{opacity:0.6; transform:scale(0.95);} 50%{opacity:1; transform:scale(1.05);} 100%{opacity:0.6; transform:scale(0.95);} }
+
+/* [Alpha 0.7.7.6] 炸弹特效动画 */
+@keyframes bombIdle {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15) rotate(5deg); filter: drop-shadow(0 0 5px #ff5722); }
+    100% { transform: scale(1); }
+}
+@keyframes bombExplode {
+    0% { transform: scale(1.2) rotate(-10deg); filter: drop-shadow(0 0 10px red); }
+    100% { transform: scale(1.4) rotate(10deg); filter: drop-shadow(0 0 20px red); }
+}
