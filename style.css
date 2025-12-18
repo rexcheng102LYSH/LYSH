@@ -3,7 +3,7 @@
     --glass-border: rgba(255, 255, 255, 0.9);
     --glass-shadow: 0 12px 40px rgba(31, 38, 135, 0.15);
     --glass-blur: blur(16px);
-    --board-wood: #e8c384; /* 恢复原版木色 */
+    --board-wood: #e8c384; /* 经典木纹色 */
     --line-ink: rgba(60, 40, 30, 0.85); 
     --corrode-color: #2d3436;
     --maple-color: #d32f2f;
@@ -37,7 +37,7 @@ body {
 }
 .icon-btn {
     width: 44px; height: 44px; border-radius: 50%; border: none;
-    background: rgba(255, 255, 255, 0.8); /* 回滚透明度 */
+    background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     font-size: 1.2rem; cursor: pointer;
@@ -63,15 +63,12 @@ body {
     box-shadow: var(--glass-shadow);
 }
 
-/* [回滚] 恢复紧凑尺寸 */
 .menu-panel { padding: 40px 30px; width: 90%; max-width: 400px; text-align: center; }
 
-/* [回滚] 恢复标题大小 */
 h1 { font-size: 2.5rem; margin-bottom: 5px; color: var(--ui-text-main); text-shadow: 0 2px 10px rgba(255,255,255,0.8); font-weight: 800; letter-spacing: 2px; margin-top: 0; }
 h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size: 1.1rem; }
 .version-tag { font-size: 0.65rem; background: #2d3436; color: #fff; padding: 4px 8px; border-radius: 12px; margin-left: 8px; vertical-align: middle; }
 
-/* [回滚] 恢复按钮尺寸 */
 .btn { 
     padding: 16px 0; width: 85%; max-width: 320px; margin: 12px auto; display: block;
     font-size: 1.1rem; border: 1px solid rgba(255,255,255,0.6); border-radius: 50px; 
@@ -107,6 +104,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 
 .setting-divider { height: 1px; background: #eee; margin: 25px 0; width: 100%; }
 
+/* UI 胶囊选择器 (音乐/特效) */
 .capsule-selector { 
     display: flex; 
     gap: 8px; 
@@ -153,22 +151,8 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .skill-title { font-weight: 800; font-size: 0.9rem; color: #2d3436; margin-bottom: 2px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .skill-desc { font-size: 0.7rem; color: #636e72; line-height: 1.2; display: -webkit-box; line-clamp: 2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-/* [回滚] 皮肤选择器恢复 compact */
-.skin-selector { 
-    display: flex; 
-    gap: 20px; 
-    justify-content: center; 
-    margin: 25px 0; 
-}
-.skin-option { 
-    border: 2px solid #f0f0f0; 
-    border-radius: 16px; 
-    padding: 15px; 
-    cursor: pointer; 
-    width: 100px; 
-    transition: all 0.2s; 
-    background: #fafafa; 
-}
+.skin-selector { display: flex; gap: 20px; justify-content: center; margin: 25px 0; }
+.skin-option { border: 2px solid #f0f0f0; border-radius: 16px; padding: 15px; cursor: pointer; width: 100px; transition: all 0.2s; background: #fafafa; }
 .skin-option.active { border-color: #2d3436; background: #fff; transform: scale(1.08); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
 .skin-preview { 
     width: 48px; 
@@ -221,9 +205,24 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
     filter: drop-shadow(0 3px 3px rgba(0,0,0,0.25)); 
 }
 
+/* [Alpha 0.7.7.7] PNG 图片样式 */
+.piece-img { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: contain; 
+    display: block; 
+    filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3)); 
+}
+
 .piece.skin-classic { box-shadow: inset 0 -3px 5px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.3); }
 .piece.skin-classic.p1 { background: radial-gradient(circle at 30% 30%, #666 0%, #111 100%); }
 .piece.skin-classic.p2 { background: radial-gradient(circle at 30% 30%, #fff 0%, #ccc 100%); }
+
+/* [Alpha 0.7.7.7 Fix] 强制移除自然棋子的背景色，确保 PNG 透明度正常 */
+.piece.skin-nature {
+    background: transparent !important;
+    box-shadow: none !important;
+}
 
 .cell.territory-zone { background-color: rgba(211, 47, 47, 0.15) !important; box-shadow: inset 0 0 15px rgba(211, 47, 47, 0.1); } 
 .cell.territory-preview { background-color: rgba(211, 47, 47, 0.1); }
@@ -236,7 +235,6 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 
 .top-bar { display: flex; gap: 15px; align-items: center; justify-content: center; width: 100%; margin-bottom: 10px; flex-wrap: wrap; position: relative; z-index: 50; }
 
-/* 保持这个防止文字重叠的修复 */
 .timer-pill { 
     background: rgba(255,255,255,0.9); 
     padding: 6px 14px; 
@@ -259,7 +257,6 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .timer-pill.timer-critical { background: #b71c1c !important; color: #fff !important; border: 2px solid #fff !important; animation: criticalShake 0.2s infinite, criticalBlink 0.5s infinite !important; }
 .timer-pill.timer-critical-normal { background: #fff3e0; color: #e65100; border: 2px solid #ff9800; animation: normalCriticalPulse 1s infinite; }
 
-/* [Alpha 0.7.7.6] 炸弹动态图标 - 附着在 Timer 上 */
 .bomb-attached-icon {
     width: 24px; height: 24px; 
     margin-left: 5px; 
@@ -268,9 +265,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 }
 .bomb-attached-icon svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 4px rgba(255,0,0,0.3)); }
 
-/* 炸弹常态：如同心脏般危险跳动 */
 .bomb-status-normal { animation: bombIdle 1.5s infinite ease-in-out; }
-/* 炸弹极危：即将爆炸的剧烈膨胀和颤抖 */
 .bomb-status-critical { animation: bombExplode 0.3s infinite alternate; }
 
 .status-pill { display: flex; align-items: center; gap: 5px; padding: 6px 12px; background: rgba(255,255,255,0.9); border-radius: 20px; font-weight: bold; }
@@ -300,12 +295,6 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .skill-btn .skill-icon-display { width: 28px; height: 28px; margin-bottom: 2px; }
 .skill-btn .skill-icon-display svg { width: 100%; height: 100%; stroke: white; stroke-width: 2; fill: none; }
 
-.skin-selector { display: flex; gap: 20px; justify-content: center; margin: 25px 0; }
-.skin-option { border: 2px solid #f0f0f0; border-radius: 16px; padding: 15px; cursor: pointer; width: 100px; transition: all 0.2s; background: #fafafa; }
-.skin-option.active { border-color: #2d3436; background: #fff; transform: scale(1.08); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-.skin-preview { font-size: 0; width: 48px; height: 48px; margin: 0 auto 8px; }
-.skin-preview svg { width: 100%; height: 100%; }
-
 #toast { position: fixed; bottom: 15%; background: rgba(45, 52, 54, 0.9); color: white; padding: 12px 24px; border-radius: 30px; opacity: 0; pointer-events: none; z-index: 10000; transition: opacity 0.3s; backdrop-filter: blur(4px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); font-weight: 500; }
 #explosionOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background:white; opacity:0; pointer-events:none; z-index:9998; }
 .explosion-anim { animation: flashWhite 1.5s forwards; }
@@ -321,7 +310,6 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 @keyframes flash { from{opacity:0.6; transform:scale(0.9);} to{opacity:1; transform:scale(1.15);} }
 @keyframes breathe { 0%{opacity:0.6; transform:scale(0.95);} 50%{opacity:1; transform:scale(1.05);} 100%{opacity:0.6; transform:scale(0.95);} }
 
-/* [Alpha 0.7.7.6] 炸弹特效动画 */
 @keyframes bombIdle {
     0% { transform: scale(1); }
     50% { transform: scale(1.15) rotate(5deg); filter: drop-shadow(0 0 5px #ff5722); }

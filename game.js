@@ -1,22 +1,33 @@
 // ================= 全局变量 =================/
-// [Alpha 0.7.7.6] Logic Update
-// - 依赖 fx.js 获取 PIECE_ICONS 和 SKILL_ICONS (避免重复定义)
-// - 炸弹数值增强：120s -> 150s
-// - 炸弹UI挂载：动态依附于受害者计时器
+// [Alpha 0.7.7.7 Fix] Logic Repair
+// - 修复音乐选项高亮逻辑 (UI Mismatch Fix)
+// - 保持混合渲染引擎
+// - 炸弹数值保持：150s
 
 const BOARD_SIZE = 15, EMPTY = 0, MAPLE = 1, SUN = 2, CORRODED = -1;
 
-// 动态图标获取器 (仅用于 UI 状态栏，棋盘渲染使用獨立邏輯)
+// 动态图标获取器 (用于 UI 状态栏、选边、Draft 标题)
 function getIcon(player) {
-    // 确保 fx.js 已加载
+    // 确保 assets.js 已加载
     if (typeof PIECE_ICONS === 'undefined') return (player === MAPLE ? 'B' : 'W');
     
+    let iconData;
     if (currentSkin === 'nature') {
-        return player === MAPLE ? PIECE_ICONS.maple : PIECE_ICONS.sun;
+        iconData = (player === MAPLE ? PIECE_ICONS.maple : PIECE_ICONS.sun);
     } else {
-        // 默认: Classic (Black/White) UI 图标
-        return player === MAPLE ? PIECE_ICONS.classic_black : PIECE_ICONS.classic_white;
+        // 默认: Classic (Black/White) UI 图标通常保持 SVG
+        iconData = (player === MAPLE ? PIECE_ICONS.classic_black : PIECE_ICONS.classic_white);
     }
+
+    // [Alpha 0.7.7.7] 混合渲染逻辑
+    if (typeof iconData === 'string') {
+        // 旧式 SVG 字符串
+        return iconData;
+    } else if (iconData && iconData.type === 'image') {
+        // 新式 PNG 图片对象
+        return `<img src="${iconData.src}" alt="${iconData.alt}" class="piece-img inline-icon-img" style="width:100%;height:100%;object-fit:contain;vertical-align:middle;">`;
+    }
+    return '?';
 }
 
 // 技能 ID 列表
@@ -142,13 +153,26 @@ function changeTrack(track) {
     updateTrackUI(); 
 }
 
+// [Fix] 修复音乐选项高亮 Bug
+// 改为直接根据 ID 操作，不再依赖 CSS 类名查找，确保准确性
 function updateTrackUI() {
-    document.querySelectorAll('.music-opt').forEach(el => el.classList.remove('active'));
-    if (userMusicPref === 'origin') document.getElementById('trackOrigin').classList.add('active');
-    else if (userMusicPref === 'bgm1') document.getElementById('trackBgm1').classList.add('active');
-    else if (userMusicPref === 'bgm2') document.getElementById('trackBgm2').classList.add('active');
-    else if (userMusicPref === 'bgm3') document.getElementById('trackBgm3').classList.add('active');
-    else if (userMusicPref === 'bgm4') document.getElementById('trackBgm4').classList.add('active');
+    const trackIds = ['trackOrigin', 'trackBgm1', 'trackBgm2', 'trackBgm3', 'trackBgm4'];
+    
+    // 1. 清除所有高亮
+    trackIds.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.classList.remove('active');
+    });
+
+    // 2. 高亮当前选中
+    let activeId = 'trackOrigin';
+    if (userMusicPref === 'bgm1') activeId = 'trackBgm1';
+    else if (userMusicPref === 'bgm2') activeId = 'trackBgm2';
+    else if (userMusicPref === 'bgm3') activeId = 'trackBgm3';
+    else if (userMusicPref === 'bgm4') activeId = 'trackBgm4';
+
+    const activeBtn = document.getElementById(activeId);
+    if (activeBtn) activeBtn.classList.add('active');
 }
 
 function changeSeason(season) {
@@ -187,7 +211,7 @@ function enterTurnSelection(mode, diff) {
     if (isBO3 && (p1Score > 0 || p2Score > 0)) { tEl.innerText = t('titlePickSide'); dEl.innerText = `${t('descPickSideLoser')} (${chooser==='p1'?"P1":"P2"})`; } 
     else { tEl.innerText = t('titlePickSide'); dEl.innerText = t('descPickSide'); } 
     
-    // 动态更新选边图标
+    // 动态更新选边图标 (支持图片渲染)
     document.querySelector('.turn-card.maple .icon').innerHTML = getIcon(MAPLE);
     document.querySelector('.turn-card.sun .icon').innerHTML = getIcon(SUN);
 }
@@ -205,7 +229,7 @@ function renderSkillGrid() {
     g.innerHTML = ''; 
     SKILL_IDS.forEach(sid => { 
         const sd = t(sid, 'skills'); 
-        // 依赖 fx.js 中的图标
+        // 技能图标目前仍为 SVG，直接获取
         const iconSvg = (typeof SKILL_ICONS !== 'undefined' ? SKILL_ICONS[sid] : '') || ''; 
         const c = document.createElement('div'); 
         c.className = 'skill-card'; 
@@ -302,11 +326,9 @@ function renderBoard() {
 }
 function getCell(r, c) { return document.getElementById(`c-${r}-${c}`); }
 
-function handleCellHover(r, c) {
-    // 预留: 未来可添加悬停音效或光标
-}
+function handleCellHover(r, c) {}
 
-// --- 状态管理 ---
+// --- 状态管理 (渲染棋子核心) ---
 function saveState() { historyStack.push({ board: JSON.parse(JSON.stringify(board)), currentPlayer: currentPlayer, skillUsed: JSON.parse(JSON.stringify(skillUsed)), territoryZones: JSON.parse(JSON.stringify(territoryZones)), chaosDebuff: JSON.parse(JSON.stringify(chaosDebuff)), shortBattleTurns: shortBattleTurns, timeRemaining: JSON.parse(JSON.stringify(timeRemaining)), bombTarget: bombTarget }); }
 
 function restoreState(state) { 
@@ -326,16 +348,7 @@ function restoreState(state) {
         const val = board[r][c]; 
         
         if (val === MAPLE || val === SUN) { 
-            if (currentSkin === 'classic') {
-                const pc = document.createElement('div'); 
-                pc.className = `piece skin-classic ${val===MAPLE?'p1':'p2'}`; 
-                cell.appendChild(pc);
-            } else {
-                const pc = document.createElement('span'); 
-                pc.className = 'piece skin-nature'; 
-                pc.innerHTML = (val === MAPLE ? PIECE_ICONS.maple : PIECE_ICONS.sun);
-                cell.appendChild(pc); 
-            }
+            renderPieceInCell(cell, val); // [0.7.7.7] 使用统一渲染函数
         } else if (val === CORRODED) { 
             cell.className = 'cell corroded';
         } 
@@ -348,18 +361,34 @@ function placePiece(r, c, p, m=false, chaos=false) {
     if(!m) board[r][c]=p; else board[r][c]=p; 
     const cell = getCell(r,c); 
     if(cell) { 
-        if (currentSkin === 'classic') {
-            const pc = document.createElement('div'); 
-            pc.className = `piece skin-classic ${p===MAPLE?'p1':'p2'}`; 
-            cell.appendChild(pc);
-        } else {
-            const pc = document.createElement('span'); 
-            pc.className = 'piece skin-nature'; 
-            pc.innerHTML = (p === MAPLE ? PIECE_ICONS.maple : PIECE_ICONS.sun);
-            cell.appendChild(pc); 
-        }
+        renderPieceInCell(cell, p); // [0.7.7.7] 使用统一渲染函数
         SoundEngine.playPlace(); 
     } 
+}
+
+// [Alpha 0.7.7.7] 统一棋子渲染函数 (支持 SVG 和 PNG)
+function renderPieceInCell(cell, player) {
+    const pieceDiv = document.createElement('div');
+    
+    if (currentSkin === 'classic') {
+        pieceDiv.className = `piece skin-classic ${player===MAPLE?'p1':'p2'}`;
+    } else {
+        pieceDiv.className = 'piece skin-nature';
+        const iconData = (player === MAPLE ? PIECE_ICONS.maple : PIECE_ICONS.sun);
+        
+        if (typeof iconData === 'string') {
+            // SVG 模式
+            pieceDiv.innerHTML = iconData;
+        } else if (iconData && iconData.type === 'image') {
+            // PNG 模式
+            const img = document.createElement('img');
+            img.src = iconData.src;
+            img.alt = iconData.alt;
+            img.className = 'piece-img'; // 对应 style.css
+            pieceDiv.appendChild(img);
+        }
+    }
+    cell.appendChild(pieceDiv);
 }
 
 function handleCellClick(r, c, bypassConfirm = false) {
@@ -412,7 +441,6 @@ function activateSkill() {
     else if (sid === 'zone') { activeEffect = 'zone_pick'; b.classList.add('casting-territory'); showToast(t('zonePick', 'toast')); }
     else if (sid === 'bomb') { 
         const opp = currentPlayer === MAPLE ? SUN : MAPLE;
-        // [0.7.7.6] 增强：扣除150秒 (2.5分钟)
         timeRemaining[opp] -= 150; 
         showToast(t('bombStart', 'toast'));
         bombTarget = opp;
@@ -545,7 +573,7 @@ function updateTerritoriesUI() { document.querySelectorAll('.territory-zone').fo
 function checkWin(r, c, p) { const d = [[0,1], [1,0], [1,1], [1,-1]]; const limit = shortBattleTurns > 0 ? 4 : 5; for(let k of d) { let ct = 1; let line = [{r,c}]; let i = r + k[0], j = c + k[1]; while(isValid(i,j) && board[i][j] === p) { line.push({r:i, c:j}); i += k[0]; j += k[1]; ct++; } i = r - k[0]; j = c - k[1]; while(isValid(i,j) && board[i][j] === p) { line.push({r:i, c:j}); i -= k[0]; j -= k[1]; ct++; } if(ct >= limit) return line; } return null; }
 function startBombTimer() { if(bombInterval) clearInterval(bombInterval); bombInterval = setInterval(() => { if(!gameActive) return; if(currentPlayer !== bombOwner) { bombTime--; const m = Math.floor(bombTime/60).toString().padStart(2,'0'); const s = (bombTime%60).toString().padStart(2,'0'); document.getElementById('bombTimer').innerText=`${m}:${s}`; if(bombTime <= 0) handleMatchEnd(bombOwner); } }, 1000); }
 
-// [Alpha 0.7.7.6] UI 动态更新逻辑 (SVG + 炸弹挂载)
+// [Alpha 0.7.7.7] UI 动态更新逻辑 (混合渲染支持)
 function updateDynamicUI() {
     const turnTextEl = document.getElementById('turnText');
     const newTurnText = t('names')[currentPlayer === MAPLE ? 1 : 2];
@@ -562,13 +590,9 @@ function updateDynamicUI() {
     const t1 = document.getElementById('timer1');
     const t2 = document.getElementById('timer2');
     
-    // 构造计时器 HTML: 图标 + 时间 + (可选) 炸弹图标
-    // 我们需要在这里检查是否被炸弹锁定
     const getTimerHTML = (player, time) => {
         let base = `<span class="inline-icon" style="width:20px;height:20px;margin-right:4px">${getIcon(player)}</span> ${formatTime(time)}`;
-        // [0.7.7.6] 炸弹图标挂载逻辑
         if (bombTarget === player && typeof SKILL_ICONS !== 'undefined') {
-            // 根据剩余时间决定动画强度
             const animClass = time < 30 ? 'bomb-status-critical' : 'bomb-status-normal';
             base += `<span class="bomb-attached-icon ${animClass}">${SKILL_ICONS.bomb}</span>`;
         }
@@ -597,7 +621,6 @@ function updateDynamicUI() {
     const cc = document.getElementById('chaosCounter');
     const sbc = document.getElementById('shortBattleCounter');
     
-    // 依赖全局 SKILL_ICONS
     const chaosIcon = (typeof SKILL_ICONS !== 'undefined') ? SKILL_ICONS.chaos : '';
     const sbIcon = (typeof SKILL_ICONS !== 'undefined') ? SKILL_ICONS.short_battle : '';
 
