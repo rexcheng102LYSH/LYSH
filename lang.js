@@ -3,7 +3,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "v0.7.7.7", 
+        subTitle: "v0.7.7.8", 
         btnPvE: "人機對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -45,7 +45,7 @@ const I18N = {
             bomb: { name: "時間炸彈", desc: "扣除對方2.5分鐘！(致死)" },
             god_hand: { name: "上帝之手", desc: "移任意兩子，結束回合" },
             chaos: { name: "混亂骰子", desc: "對手下兩步隨機偏移" },
-            short_battle: { name: "短兵戰", desc: "6回合內四子即勝" },
+            short_battle: { name: "短兵戰", desc: "接下來6回合內，由五子連珠改為四子即勝" },
             swap: { name: "置換反應", desc: "換敵我各一子，繼續落子" }
         },
         toast: {
@@ -61,20 +61,21 @@ const I18N = {
             chaosTrigger: "混亂觸發！落點偏移", 
             chaosLabel: "混亂:", 
             shortBattleLabel: "短兵:", 
+            zoneLabel: "領地:", // [New]
             shortBattleStart: "短兵戰！四子即勝",
             swapPickSelf: "置換：選己方子", swapPickEnemy: "置換：選敵方子", swapDone: "置換完成，請落子", 
             undoDone: "悔棋成功", timeOut: "時間耗盡！"
         },
         end: { 
             win: "獲勝！", lose: "挑戰失敗", 
-            grandWin: "👑 大勝利！", grandWinDesc: "{name} 贏得三番戰", 
+            grandWin: "👑 大勝利！", grandWinDesc: "{name} 贏得了三番戰", 
             score: "比分", btnNext: "下一局", btnMenu: "主菜單", btnRestart: "再來一局", btnQuitMatch: "退出比賽" 
         }
     },
     'zh': {
         langName: "简", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "v0.7.7.7", 
+        subTitle: "v0.7.7.8", 
         btnPvE: "人机对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -83,7 +84,7 @@ const I18N = {
         diffEasy: "简单", diffMedium: "中等", diffHard: "困难", diffMaster: "大师", 
         btnBack: "返回",
         titlePickSide: "猜先 / 选边", 
-        descPickSide: "请选择先手(执黑)或后手(执白)", 
+        descPickSide: "请选择执黑(先手)或执白(后手)", 
         descPickSideLoser: "上一局失利者选边",
         sideFirst: "先手 (执黑)", sideSecond: "后手 (执白)",
         draftTitle: "{icon} {name} (选技能)", 
@@ -113,10 +114,10 @@ const I18N = {
             move_self: { name: "移花接木", desc: "移己方一子，继续落子" },
             move_enemy: { name: "乾坤大挪移", desc: "移敌方一子，继续落子" },
             zone: { name: "领地", desc: "划定3x3禁区(6回合)" },
-            bomb: { name: "时间炸弹", desc: "扣除对方2.5分钟！(致死)" },
-            god_hand: { name: "上帝之手", desc: "移任意两子，结束回合" },
-            chaos: { name: "混乱骰子", desc: "对手下两步随机偏移" },
-            short_battle: { name: "短兵战", desc: "6回合内四子即胜" },
+            bomb: { name: "时间炸弹", desc: "对手必须在150秒内获胜，否则判负" },
+            god_hand: { name: "上帝之手", desc: "移除两颗任意棋子，并重新落子" },
+            chaos: { name: "混沌干扰", desc: "对手下两回合落子将随机偏移一格" },
+            short_battle: { name: "短兵相接", desc: "接下来6回合内，由五子连珠改为四子即胜" },
             swap: { name: "置换反应", desc: "换敌我各一子，继续落子" }
         },
         toast: {
@@ -132,6 +133,7 @@ const I18N = {
             chaosTrigger: "混乱触发！落点偏移", 
             chaosLabel: "混乱:", 
             shortBattleLabel: "短兵:", 
+            zoneLabel: "领地:", // [New]
             shortBattleStart: "短兵战！四子即胜",
             swapPickSelf: "置换：选己方子", swapPickEnemy: "置换：选敌方子", swapDone: "置换完成，请落子", 
             undoDone: "悔棋成功", timeOut: "时间耗尽！"
@@ -145,7 +147,7 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Skill Gomoku <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "v0.7.7.7", 
+        subTitle: "v0.7.7.8", 
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -203,6 +205,7 @@ const I18N = {
             chaosTrigger: "Chaos! Missed!", 
             chaosLabel: "Chaos:", 
             shortBattleLabel: "Skirmish:", 
+            zoneLabel: "Zone:", // [New]
             shortBattleStart: "Skirmish Mode!", 
             swapPickSelf: "Swap: Yours", swapPickEnemy: "Swap: Enemy", swapDone: "Done. Move now!", 
             undoDone: "Undone", timeOut: "Time Out!"
@@ -237,11 +240,17 @@ function toggleLanguage() {
     curLangKey = LANG_ORDER[(idx + 1) % LANG_ORDER.length]; 
     const btn = document.querySelector('.lang-btn');
     if (btn) btn.innerText = I18N[curLangKey].langName; 
+    
+    // 强制刷新当前界面文本
     updateStaticText(); 
+    
+    // 如果设置界面开着，刷新设置界面
     const settings = document.getElementById('settingsModal');
     if(settings && settings.style.display === 'flex') {
         if(typeof openSettings === 'function') openSettings(); 
     }
+
+    // 如果游戏正在进行，刷新动态 UI (Toast, Status Bar etc)
     if(typeof updateDynamicUI === 'function' && typeof gameActive !== 'undefined' && gameActive) {
         updateDynamicUI(); 
     }

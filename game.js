@@ -1,36 +1,29 @@
 // ================= 全局变量 =================/
-// [Alpha 0.7.7.7 Fix] Logic Repair
-// - 修复音乐选项高亮逻辑 (UI Mismatch Fix)
-// - 保持混合渲染引擎
-// - 炸弹数值保持：150s
+// [Alpha 0.7.7.8 Fix] Logic Correction
+// - 修正领地技能持续时间：从“己方6回合(共12手)”改为“总计6回合(共6手)”
+// - 修正领地倒计时显示：移至棋盘外，与短兵战风格统一
 
 const BOARD_SIZE = 15, EMPTY = 0, MAPLE = 1, SUN = 2, CORRODED = -1;
 
-// 动态图标获取器 (用于 UI 状态栏、选边、Draft 标题)
+// 动态图标获取器
 function getIcon(player) {
-    // 确保 assets.js 已加载
     if (typeof PIECE_ICONS === 'undefined') return (player === MAPLE ? 'B' : 'W');
     
     let iconData;
     if (currentSkin === 'nature') {
         iconData = (player === MAPLE ? PIECE_ICONS.maple : PIECE_ICONS.sun);
     } else {
-        // 默认: Classic (Black/White) UI 图标通常保持 SVG
         iconData = (player === MAPLE ? PIECE_ICONS.classic_black : PIECE_ICONS.classic_white);
     }
 
-    // [Alpha 0.7.7.7] 混合渲染逻辑
     if (typeof iconData === 'string') {
-        // 旧式 SVG 字符串
         return iconData;
     } else if (iconData && iconData.type === 'image') {
-        // 新式 PNG 图片对象
         return `<img src="${iconData.src}" alt="${iconData.alt}" class="piece-img inline-icon-img" style="width:100%;height:100%;object-fit:contain;vertical-align:middle;">`;
     }
     return '?';
 }
 
-// 技能 ID 列表
 const SKILL_IDS = ['double','voodoo','move_self','move_enemy','zone','bomb','god_hand','chaos','short_battle','swap'];
 
 let board = [], currentPlayer = MAPLE, gameMode = 'pvp', aiDifficulty = 'medium', gameActive = false;
@@ -66,8 +59,6 @@ function showScreen(n) {
         if(s && !s.classList.contains('modal')) s.classList.remove('active'); 
     }); 
     if (screens[n]) screens[n].classList.add('active'); 
-    
-    // 初始化 FX Canvas
     if (n === 'game') {
         setTimeout(() => {
             if (typeof VisualFX !== 'undefined') VisualFX.init();
@@ -104,8 +95,6 @@ function changeSkin(skin) {
     SoundEngine.playPlace();
     currentSkin = skin;
     updateSkinUI();
-    
-    // 切换皮肤时，如果在选边界面，立刻刷新图标
     if (screens.turn.classList.contains('active')) {
         document.querySelector('.turn-card.maple .icon').innerHTML = getIcon(MAPLE);
         document.querySelector('.turn-card.sun .icon').innerHTML = getIcon(SUN);
@@ -153,24 +142,17 @@ function changeTrack(track) {
     updateTrackUI(); 
 }
 
-// [Fix] 修复音乐选项高亮 Bug
-// 改为直接根据 ID 操作，不再依赖 CSS 类名查找，确保准确性
 function updateTrackUI() {
     const trackIds = ['trackOrigin', 'trackBgm1', 'trackBgm2', 'trackBgm3', 'trackBgm4'];
-    
-    // 1. 清除所有高亮
     trackIds.forEach(id => {
         const btn = document.getElementById(id);
         if (btn) btn.classList.remove('active');
     });
-
-    // 2. 高亮当前选中
     let activeId = 'trackOrigin';
     if (userMusicPref === 'bgm1') activeId = 'trackBgm1';
     else if (userMusicPref === 'bgm2') activeId = 'trackBgm2';
     else if (userMusicPref === 'bgm3') activeId = 'trackBgm3';
     else if (userMusicPref === 'bgm4') activeId = 'trackBgm4';
-
     const activeBtn = document.getElementById(activeId);
     if (activeBtn) activeBtn.classList.add('active');
 }
@@ -194,7 +176,6 @@ function updateSeasonUI() {
     if (activeBtn) activeBtn.classList.add('active');
 }
 
-// --- 导航与流程 ---
 function goToMenu() { 
     gameActive=false; 
     clearInterval(gameTicker); clearTimeout(aiTimer); 
@@ -210,8 +191,6 @@ function enterTurnSelection(mode, diff) {
     const tEl = document.getElementById('turnSelectTitle'), dEl = document.getElementById('turnSelectDesc'); updateStaticText(); 
     if (isBO3 && (p1Score > 0 || p2Score > 0)) { tEl.innerText = t('titlePickSide'); dEl.innerText = `${t('descPickSideLoser')} (${chooser==='p1'?"P1":"P2"})`; } 
     else { tEl.innerText = t('titlePickSide'); dEl.innerText = t('descPickSide'); } 
-    
-    // 动态更新选边图标 (支持图片渲染)
     document.querySelector('.turn-card.maple .icon').innerHTML = getIcon(MAPLE);
     document.querySelector('.turn-card.sun .icon').innerHTML = getIcon(SUN);
 }
@@ -229,7 +208,6 @@ function renderSkillGrid() {
     g.innerHTML = ''; 
     SKILL_IDS.forEach(sid => { 
         const sd = t(sid, 'skills'); 
-        // 技能图标目前仍为 SVG，直接获取
         const iconSvg = (typeof SKILL_ICONS !== 'undefined' ? SKILL_ICONS[sid] : '') || ''; 
         const c = document.createElement('div'); 
         c.className = 'skill-card'; 
@@ -254,14 +232,12 @@ function updateDraftTitle() {
         if (isAITurn) pickerName += " (AI)"; else pickerName += " (You)"; 
         if (isAITurn) setTimeout(() => { const avail = SKILL_IDS.filter(s => !Object.values(playerSkills).includes(s)); pickSkill(avail[Math.floor(Math.random()*avail.length)]); }, 800); 
     } 
-    // Draft 标题动态图标
     const iconHTML = `<span style="display:inline-block;width:32px;height:32px;vertical-align:bottom;">${getIcon(draftTurn)}</span>`;
     tEl.innerHTML = t('draftTitle').replace('{icon}', iconHTML).replace('{name}', pickerName); 
     tEl.style.color = draftTurn === MAPLE ? '#333' : '#666'; 
 }
 function pickSkill(id) { SoundEngine.playPlace(); playerSkills[draftTurn] = id; if (draftTurn === SUN) { draftTurn = MAPLE; renderSkillGrid(); updateDraftTitle(); } else initGame(); }
 
-// --- 游戏初始化 ---
 function initGame() {
     showScreen('game'); 
     board = Array(BOARD_SIZE).fill(0).map(()=>Array(BOARD_SIZE).fill(EMPTY)); 
@@ -306,7 +282,6 @@ function initGame() {
 
 function updateScoreBoard() { document.getElementById('scoreBoard').innerText = `P1 (${p1Score}) : (${p2Score}) P2`; }
 
-// --- 渲染棋盘 (DOM) ---
 function renderBoard() { 
     const b = document.getElementById('board'); 
     b.innerHTML = ''; 
@@ -328,7 +303,6 @@ function getCell(r, c) { return document.getElementById(`c-${r}-${c}`); }
 
 function handleCellHover(r, c) {}
 
-// --- 状态管理 (渲染棋子核心) ---
 function saveState() { historyStack.push({ board: JSON.parse(JSON.stringify(board)), currentPlayer: currentPlayer, skillUsed: JSON.parse(JSON.stringify(skillUsed)), territoryZones: JSON.parse(JSON.stringify(territoryZones)), chaosDebuff: JSON.parse(JSON.stringify(chaosDebuff)), shortBattleTurns: shortBattleTurns, timeRemaining: JSON.parse(JSON.stringify(timeRemaining)), bombTarget: bombTarget }); }
 
 function restoreState(state) { 
@@ -348,7 +322,7 @@ function restoreState(state) {
         const val = board[r][c]; 
         
         if (val === MAPLE || val === SUN) { 
-            renderPieceInCell(cell, val); // [0.7.7.7] 使用统一渲染函数
+            renderPieceInCell(cell, val);
         } else if (val === CORRODED) { 
             cell.className = 'cell corroded';
         } 
@@ -361,30 +335,25 @@ function placePiece(r, c, p, m=false, chaos=false) {
     if(!m) board[r][c]=p; else board[r][c]=p; 
     const cell = getCell(r,c); 
     if(cell) { 
-        renderPieceInCell(cell, p); // [0.7.7.7] 使用统一渲染函数
+        renderPieceInCell(cell, p); 
         SoundEngine.playPlace(); 
     } 
 }
 
-// [Alpha 0.7.7.7] 统一棋子渲染函数 (支持 SVG 和 PNG)
 function renderPieceInCell(cell, player) {
     const pieceDiv = document.createElement('div');
-    
     if (currentSkin === 'classic') {
         pieceDiv.className = `piece skin-classic ${player===MAPLE?'p1':'p2'}`;
     } else {
         pieceDiv.className = 'piece skin-nature';
         const iconData = (player === MAPLE ? PIECE_ICONS.maple : PIECE_ICONS.sun);
-        
         if (typeof iconData === 'string') {
-            // SVG 模式
             pieceDiv.innerHTML = iconData;
         } else if (iconData && iconData.type === 'image') {
-            // PNG 模式
             const img = document.createElement('img');
             img.src = iconData.src;
             img.alt = iconData.alt;
-            img.className = 'piece-img'; // 对应 style.css
+            img.className = 'piece-img'; 
             pieceDiv.appendChild(img);
         }
     }
@@ -417,7 +386,13 @@ function checkWinAndSwitch(r, c, p) {
 }
 
 function switchTurn() {
-    territoryZones.forEach(z => { if(z.owner===currentPlayer) z.turns--; }); territoryZones = territoryZones.filter(z => z.turns > 0); updateTerritoriesUI();
+    // [Alpha 0.7.7.8 Fix] 领地回合扣除逻辑：
+    // 不再判断 z.owner === currentPlayer，而是每次 switchTurn 都扣除 1 回合
+    // 效果：6 turns = 双方各下3手
+    territoryZones.forEach(z => { z.turns--; }); 
+    territoryZones = territoryZones.filter(z => z.turns > 0); 
+    
+    updateTerritoriesUI();
     if (shortBattleTurns > 0) shortBattleTurns--;
     currentPlayer = currentPlayer === MAPLE ? SUN : MAPLE; 
     if (bombTarget !== null && currentPlayer === bombTarget) { SoundEngine.switchTrack('bomb'); } 
@@ -569,17 +544,29 @@ function getLn(r, c, dr, dc, t) { let ct = 1; let es = 0; let i = 1; while(isVal
 function hasNeighbor(r, c) { for(let i=r-2; i<=r+2; i++) { for(let j=c-2; j<=c+2; j++) { if(isValid(i,j) && board[i][j]!==EMPTY) return true; } } return false; }
 function isValid(r, c) { return r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE; }
 function isZoneRestricted(r, c, p) { for(let z of territoryZones) { if (Math.abs(z.r - r) <= 1 && Math.abs(z.c - c) <= 1 && z.owner !== p) { return true; } } return false; }
-function updateTerritoriesUI() { document.querySelectorAll('.territory-zone').forEach(el => el.classList.remove('territory-zone')); territoryZones.forEach(z => { for(let i=z.r-1; i<=z.r+1; i++) { for(let j=z.c-1; j<=z.c+1; j++) { const c = getCell(i, j); if(c) c.classList.add('territory-zone'); } } }); }
+
+// [Alpha 0.7.7.8 Fix] 还原为原始功能：仅渲染背景颜色，移除中心数字
+function updateTerritoriesUI() { 
+    document.querySelectorAll('.territory-zone').forEach(el => el.classList.remove('territory-zone')); 
+    territoryZones.forEach(z => { 
+        for(let i=z.r-1; i<=z.r+1; i++) { 
+            for(let j=z.c-1; j<=z.c+1; j++) { 
+                const c = getCell(i, j); 
+                if(c) c.classList.add('territory-zone'); 
+            } 
+        } 
+    }); 
+}
+
 function checkWin(r, c, p) { const d = [[0,1], [1,0], [1,1], [1,-1]]; const limit = shortBattleTurns > 0 ? 4 : 5; for(let k of d) { let ct = 1; let line = [{r,c}]; let i = r + k[0], j = c + k[1]; while(isValid(i,j) && board[i][j] === p) { line.push({r:i, c:j}); i += k[0]; j += k[1]; ct++; } i = r - k[0]; j = c - k[1]; while(isValid(i,j) && board[i][j] === p) { line.push({r:i, c:j}); i -= k[0]; j -= k[1]; ct++; } if(ct >= limit) return line; } return null; }
 function startBombTimer() { if(bombInterval) clearInterval(bombInterval); bombInterval = setInterval(() => { if(!gameActive) return; if(currentPlayer !== bombOwner) { bombTime--; const m = Math.floor(bombTime/60).toString().padStart(2,'0'); const s = (bombTime%60).toString().padStart(2,'0'); document.getElementById('bombTimer').innerText=`${m}:${s}`; if(bombTime <= 0) handleMatchEnd(bombOwner); } }, 1000); }
 
-// [Alpha 0.7.7.7] UI 动态更新逻辑 (混合渲染支持)
+// [Alpha 0.7.7.8 Fix] 动态 UI 更新：增加棋盘外领地计数器
 function updateDynamicUI() {
     const turnTextEl = document.getElementById('turnText');
     const newTurnText = t('names')[currentPlayer === MAPLE ? 1 : 2];
     if (turnTextEl.innerText !== newTurnText) turnTextEl.innerText = newTurnText;
     
-    // 动态获取回合图标
     const turnIconEl = document.getElementById('turnIcon');
     turnIconEl.innerHTML = getIcon(currentPlayer);
     
@@ -617,7 +604,6 @@ function updateDynamicUI() {
     updateTimerVisual(MAPLE, t1, timeRemaining[MAPLE]);
     updateTimerVisual(SUN, t2, timeRemaining[SUN]);
     
-    // 状态徽章 (混亂/短兵)
     const cc = document.getElementById('chaosCounter');
     const sbc = document.getElementById('shortBattleCounter');
     
@@ -636,6 +622,28 @@ function updateDynamicUI() {
         sbc.innerHTML = `<span class="inline-icon">${sbIcon}</span> ${t('shortBattleLabel', 'toast')} ${shortBattleTurns}`;
     } else {
         sbc.style.display = 'none';
+    }
+
+    // [New] 动态生成领地计数器 (如果 DOM 不存在则创建)
+    if (territoryZones.length > 0) {
+        let zc = document.getElementById('zoneCounter');
+        if (!zc) {
+            zc = document.createElement('div');
+            zc.id = 'zoneCounter';
+            zc.className = 'counter-badge zone';
+            // 挂载到 board-wrapper 以便定位
+            document.querySelector('.board-wrapper').appendChild(zc);
+        }
+        zc.style.display = 'flex';
+        const zoneIcon = (typeof SKILL_ICONS !== 'undefined') ? SKILL_ICONS.zone : '';
+        // 取最大剩余回合数显示
+        const maxTurns = Math.max(...territoryZones.map(z => z.turns));
+        // 使用 fallback 文本 'Zone' 如果翻译不存在
+        const label = t('zoneLabel', 'toast') || 'Zone:';
+        zc.innerHTML = `<span class="inline-icon">${zoneIcon}</span> ${label} ${maxTurns}`;
+    } else {
+        const zc = document.getElementById('zoneCounter');
+        if (zc) zc.style.display = 'none';
     }
     
     const ms = playerSkills[currentPlayer];

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>技能五子棋 - Alpha 0.7.7.7</title>
-    <link rel="stylesheet" href="style.css?v=alpha_0_7_7_7">
+    <title>技能五子棋 - Alpha 0.7.7.8</title>
+    <link rel="stylesheet" href="style.css?v=alpha_0_7_7_8">
 </head>
 <body onclick="SoundEngine.init()">
 
@@ -21,11 +21,13 @@
         <div class="glass-panel menu-panel">
             <h1 data-i18n="gameTitle">技能五子棋 <span style="font-size:0.5em">Alpha</span></h1>
             <h2 style="margin-top:-5px; font-size:1.2rem; color:#666;">
-                <span data-i18n="subTitle">v0.7.7.7</span> 
-                <span class="version-tag">Alpha 0.7.7.7</span>
+                <span data-i18n="subTitle">v0.7.7.8</span> 
+                <span class="version-tag">Alpha 0.7.7.8</span>
             </h2>
             
-            <button class="btn primary" onclick="enterTurnSelection('pve', 'medium')" data-i18n="btnPvE">人机对战 (PvE)</button>
+            <!-- [Fix] PvE 按钮现在正确跳转到难度选择界面 (showDifficultyScreen)，而不是直接进入选边 -->
+            <button class="btn primary" onclick="showDifficultyScreen()" data-i18n="btnPvE">人机对战 (PvE)</button>
+            
             <button class="btn secondary" onclick="startPvPFlow('single')" data-i18n="btnPvPSingle">双人单局 (PvP)</button>
             <button class="btn bo3-btn" onclick="startPvPFlow('bo3')" data-i18n="btnPvPBO3">三番战 (PvP BO3)</button>
             
@@ -37,6 +39,7 @@
         <div class="glass-panel menu-panel">
             <h1 data-i18n="titleDiff">选择难度</h1>
             <div style="height:20px"></div>
+            <!-- 这里调用的 enterTurnSelection 是正确的，因为此时已经选定了难度 -->
             <button class="btn secondary" onclick="enterTurnSelection('pve', 'easy')" data-i18n="diffEasy">简单</button>
             <button class="btn secondary" onclick="enterTurnSelection('pve', 'medium')" data-i18n="diffMedium">中等</button>
             <button class="btn primary" onclick="enterTurnSelection('pve', 'hard')" data-i18n="diffHard">困难</button>
@@ -199,13 +202,13 @@
     <div id="toast"></div>
     <div id="explosionOverlay"></div>
 
-    <script src="assets.js?v=alpha_0_7_7_7"></script>
-    <script src="audio.js?v=alpha_0_7_7_7"></script>
-    <script src="lang.js?v=alpha_0_7_7_7"></script> 
-    <script src="background.js?v=alpha_0_7_7_7"></script>
-    <script src="fx.js?v=alpha_0_7_7_7"></script>
-    <script src="game.js?v=alpha_0_7_7_7"></script>
-    <script src="ai.js?v=alpha_0_7_7_7"></script>
+    <script src="assets.js?v=alpha_0_7_7_8"></script>
+    <script src="audio.js?v=alpha_0_7_7_8"></script>
+    <script src="lang.js?v=alpha_0_7_7_8"></script> 
+    <script src="background.js?v=alpha_0_7_7_8"></script>
+    <script src="fx.js?v=alpha_0_7_7_8"></script>
+    <script src="game.js?v=alpha_0_7_7_8"></script>
+    <script src="ai.js?v=alpha_0_7_7_8"></script>
 
 </body>
 </html>
