@@ -1,24 +1,43 @@
-// ================= 全局变量 =================/
-// [Alpha 0.7.7.8 Fix] Logic Correction
-// - 修正领地技能持续时间：从“己方6回合(共12手)”改为“总计6回合(共6手)”
-// - 修正领地倒计时显示：移至棋盘外，与短兵战风格统一
+/**
+ * game.js - Project Lysh (技能五子棋)
+ * Version: Alpha 0.7.7.9 (Restored Codebase)
+ * 状态：完整保留所有技能逻辑（上帝之手、置换等），修复点击遮挡 Bug，集成 DJ 胜利特效接口。
+ */
 
 const BOARD_SIZE = 15, EMPTY = 0, MAPLE = 1, SUN = 2, CORRODED = -1;
 
-// 动态图标获取器
+const masterInit = () => {
+    try {
+        if (typeof VisualFX !== 'undefined') {
+            VisualFX.init();
+            VisualFX.clear(); 
+        }
+        const btn = document.querySelector('.lang-btn');
+        if (btn && typeof I18N !== 'undefined' && typeof curLangKey !== 'undefined') {
+            btn.innerText = I18N[curLangKey].langName;
+        }
+        if (typeof updateStaticText === 'function') updateStaticText();
+    } catch(e) {
+        console.error("System Init Error:", e);
+    }
+};
+
+if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', masterInit);
+} else {
+    masterInit();
+}
+
 function getIcon(player) {
     if (typeof PIECE_ICONS === 'undefined') return (player === MAPLE ? 'B' : 'W');
-    
     let iconData;
     if (currentSkin === 'nature') {
         iconData = (player === MAPLE ? PIECE_ICONS.maple : PIECE_ICONS.sun);
     } else {
         iconData = (player === MAPLE ? PIECE_ICONS.classic_black : PIECE_ICONS.classic_white);
     }
-
-    if (typeof iconData === 'string') {
-        return iconData;
-    } else if (iconData && iconData.type === 'image') {
+    if (typeof iconData === 'string') return iconData;
+    else if (iconData && iconData.type === 'image') {
         return `<img src="${iconData.src}" alt="${iconData.alt}" class="piece-img inline-icon-img" style="width:100%;height:100%;object-fit:contain;vertical-align:middle;">`;
     }
     return '?';
@@ -39,10 +58,10 @@ let selectedCell = null;
 let bombTarget = null; 
 let userMusicPref = 'origin';
 let currentSkin = 'classic';
-let winEffect = 'default';
+let winEffect = 'default'; 
+let winCelebration = 'default'; 
 let currentSeason = 'spring';
 
-// ================= 界面控制 =================
 const screens = { 
     main: document.getElementById('mainMenu'), 
     diff: document.getElementById('difficultyScreen'), 
@@ -60,9 +79,7 @@ function showScreen(n) {
     }); 
     if (screens[n]) screens[n].classList.add('active'); 
     if (n === 'game') {
-        setTimeout(() => {
-            if (typeof VisualFX !== 'undefined') VisualFX.init();
-        }, 100);
+        setTimeout(() => { if (typeof VisualFX !== 'undefined') VisualFX.resize(); }, 100);
     }
 }
 
@@ -74,8 +91,7 @@ function openSettings() {
     document.getElementById('valSfx').innerText = Math.round(SoundEngine.sfxVolume * 100) + '%';
     document.getElementById('sliderAmbient').value = SoundEngine.ambientVolume * 100;
     document.getElementById('valAmbient').innerText = Math.round(SoundEngine.ambientVolume * 100) + '%';
-    updateTrackUI();
-    updateSeasonUI(); 
+    updateTrackUI(); updateSeasonUI(); 
 }
 function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
 
@@ -86,8 +102,7 @@ function openSkinMenu() {
         return;
     }
     document.getElementById('skinModal').style.display = 'flex';
-    updateSkinUI();
-    updateWinEffectUI();
+    updateSkinUI(); updateWinEffectUI(); updateWinCelebrationUI(); 
 }
 function closeSkinMenu() { document.getElementById('skinModal').style.display = 'none'; }
 
@@ -101,11 +116,8 @@ function changeSkin(skin) {
     }
 }
 
-function changeWinEffect(effect) {
-    SoundEngine.playPlace();
-    winEffect = effect;
-    updateWinEffectUI();
-}
+function changeWinEffect(effect) { SoundEngine.playPlace(); winEffect = effect; updateWinEffectUI(); }
+function changeWinCelebration(type) { SoundEngine.playPlace(); winCelebration = type; updateWinCelebrationUI(); }
 
 function updateSkinUI() {
     document.querySelectorAll('.skin-option').forEach(el => el.classList.remove('active'));
@@ -115,109 +127,75 @@ function updateSkinUI() {
 
 function updateWinEffectUI() {
     document.querySelectorAll('.effect-opt').forEach(el => el.classList.remove('active'));
-    if (winEffect === 'default') document.getElementById('winDefault').classList.add('active');
-    else if (winEffect === 'lightning') document.getElementById('winLightning').classList.add('active');
-    else if (winEffect === 'gold') document.getElementById('winGold').classList.add('active');
-    else if (winEffect === 'future') document.getElementById('winFuture').classList.add('active');
+    const map = { 'default': 'winDefault', 'lightning': 'winLightning', 'gold': 'winGold', 'future': 'winFuture' };
+    const el = document.getElementById(map[winEffect]); if(el) el.classList.add('active');
+}
+
+function updateWinCelebrationUI() {
+    document.querySelectorAll('.celebration-opt').forEach(el => el.classList.remove('active'));
+    const map = { 'default': 'celDefault', 'fireworks': 'celFireworks', 'chromatic': 'celChromatic', 'dj': 'celDJ' };
+    const el = document.getElementById(map[winCelebration]); if(el) el.classList.add('active');
 }
 
 function updateVolume(type, val) {
     const v = val / 100;
-    if (type === 'music') { 
-        SoundEngine.setMusicVolume(v); 
-        document.getElementById('valMusic').innerText = val + '%'; 
-    } else if (type === 'sfx') { 
-        SoundEngine.sfxVolume = v; 
-        document.getElementById('valSfx').innerText = val + '%'; 
-    } else if (type === 'ambient') {
-        SoundEngine.setAmbientVolume(v);
-        document.getElementById('valAmbient').innerText = val + '%';
-    }
+    if (type === 'music') { SoundEngine.setMusicVolume(v); document.getElementById('valMusic').innerText = val + '%'; }
+    else if (type === 'sfx') { SoundEngine.sfxVolume = v; document.getElementById('valSfx').innerText = val + '%'; }
+    else if (type === 'ambient') { SoundEngine.setAmbientVolume(v); document.getElementById('valAmbient').innerText = val + '%'; }
 }
 
-function changeTrack(track) { 
-    if (SoundEngine.currentTrack === 'bomb') { userMusicPref = track; updateTrackUI(); return; } 
-    userMusicPref = track; 
-    SoundEngine.switchTrack(track); 
-    updateTrackUI(); 
-}
+function changeTrack(track) { if (SoundEngine.currentTrack === 'bomb') { userMusicPref = track; updateTrackUI(); return; } userMusicPref = track; SoundEngine.switchTrack(track); updateTrackUI(); }
 
 function updateTrackUI() {
     const trackIds = ['trackOrigin', 'trackBgm1', 'trackBgm2', 'trackBgm3', 'trackBgm4'];
-    trackIds.forEach(id => {
-        const btn = document.getElementById(id);
-        if (btn) btn.classList.remove('active');
-    });
-    let activeId = 'trackOrigin';
-    if (userMusicPref === 'bgm1') activeId = 'trackBgm1';
-    else if (userMusicPref === 'bgm2') activeId = 'trackBgm2';
-    else if (userMusicPref === 'bgm3') activeId = 'trackBgm3';
-    else if (userMusicPref === 'bgm4') activeId = 'trackBgm4';
-    const activeBtn = document.getElementById(activeId);
-    if (activeBtn) activeBtn.classList.add('active');
+    trackIds.forEach(id => { const btn = document.getElementById(id); if (btn) btn.classList.remove('active'); });
+    const activeId = { 'origin': 'trackOrigin', 'bgm1': 'trackBgm1', 'bgm2': 'trackBgm2', 'bgm3': 'trackBgm3', 'bgm4': 'trackBgm4' }[userMusicPref] || 'trackOrigin';
+    const activeBtn = document.getElementById(activeId); if (activeBtn) activeBtn.classList.add('active');
 }
 
-function changeSeason(season) {
-    SoundEngine.playPlace();
-    currentSeason = season;
-    if (window.BackgroundEngine && typeof window.BackgroundEngine.switchSeason === 'function') {
-        window.BackgroundEngine.switchSeason(season);
-    }
-    updateSeasonUI();
-}
-
-function updateSeasonUI() {
-    const seasons = ['spring', 'summer', 'autumn', 'winter'];
-    seasons.forEach(s => {
-        const btn = document.getElementById('season' + s.charAt(0).toUpperCase() + s.slice(1));
-        if (btn) btn.classList.remove('active');
-    });
-    const activeBtn = document.getElementById('season' + currentSeason.charAt(0).toUpperCase() + currentSeason.slice(1));
-    if (activeBtn) activeBtn.classList.add('active');
-}
+function changeSeason(season) { SoundEngine.playPlace(); currentSeason = season; if (window.BackgroundEngine) window.BackgroundEngine.switchSeason(season); updateSeasonUI(); }
+function updateSeasonUI() { ['spring', 'summer', 'autumn', 'winter'].forEach(s => { const btn = document.getElementById('season' + s.charAt(0).toUpperCase() + s.slice(1)); if (btn) btn.classList.remove('active'); }); const activeBtn = document.getElementById('season' + currentSeason.charAt(0).toUpperCase() + currentSeason.slice(1)); if (activeBtn) activeBtn.classList.add('active'); }
 
 function goToMenu() { 
     gameActive=false; 
     clearInterval(gameTicker); clearTimeout(aiTimer); 
     document.getElementById('winnerModal').style.display='none'; 
     showScreen('main'); 
-    if (typeof VisualFX !== 'undefined') VisualFX.clear();
+    if (typeof VisualFX !== 'undefined') VisualFX.clear(); 
 }
+
 function confirmExit() { if(confirm(t('confirmExit'))) goToMenu(); }
 function showDifficultyScreen() { SoundEngine.playPlace(); showScreen('diff'); }
 function startPvPFlow(subMode) { SoundEngine.playPlace(); isBO3 = (subMode === 'bo3'); p1Score = 0; p2Score = 0; chooser = 'p1'; updateScoreBoard(); enterTurnSelection('pvp', null); }
+
 function enterTurnSelection(mode, diff) { 
-    SoundEngine.playPlace(); document.getElementById('winnerModal').style.display = 'none'; showScreen('turn'); gameMode = mode; aiDifficulty = diff; if (gameMode === 'pve') { isBO3 = false; } 
-    const tEl = document.getElementById('turnSelectTitle'), dEl = document.getElementById('turnSelectDesc'); updateStaticText(); 
+    if (typeof VisualFX !== 'undefined') VisualFX.clear();
+    SoundEngine.playPlace(); 
+    document.getElementById('winnerModal').style.display = 'none'; 
+    showScreen('turn'); 
+    gameMode = mode; aiDifficulty = diff; 
+    if (gameMode === 'pve') { isBO3 = false; } 
+    updateStaticText(); 
+    const tEl = document.getElementById('turnSelectTitle'), dEl = document.getElementById('turnSelectDesc');
     if (isBO3 && (p1Score > 0 || p2Score > 0)) { tEl.innerText = t('titlePickSide'); dEl.innerText = `${t('descPickSideLoser')} (${chooser==='p1'?"P1":"P2"})`; } 
     else { tEl.innerText = t('titlePickSide'); dEl.innerText = t('descPickSide'); } 
     document.querySelector('.turn-card.maple .icon').innerHTML = getIcon(MAPLE);
     document.querySelector('.turn-card.sun .icon').innerHTML = getIcon(SUN);
 }
-function goBackFromTurn() { SoundEngine.playPlace(); if (gameMode === 'pve') { showScreen('diff'); } else { goToMenu(); } }
-function handleTurnChoice(c) { SoundEngine.playPlace(); if (gameMode === 'pve') { humanSide = (c === 1) ? MAPLE : SUN; enterDraftPhase(); } else { if (c === 1) { playerSides[MAPLE] = chooser; playerSides[SUN] = (chooser === 'p1' ? 'p2' : 'p1'); } else { playerSides[SUN] = chooser; playerSides[MAPLE] = (chooser === 'p1' ? 'p2' : 'p1'); } enterDraftPhase(); } }
-function enterDraftPhase() { 
-    document.getElementById('winnerModal').style.display = 'none'; showScreen('draft'); 
-    if (gameMode === 'pve') draftTurn = SUN; else draftTurn = SUN; 
-    playerSkills = { [MAPLE]: null, [SUN]: null }; renderSkillGrid(); updateDraftTitle(); SoundEngine.init(); 
-}
+
+function goBackFromTurn() { if (gameMode === 'pve') showScreen('diff'); else goToMenu(); }
+function handleTurnChoice(c) { if (gameMode === 'pve') { humanSide = (c === 1) ? MAPLE : SUN; enterDraftPhase(); } else { if (c === 1) { playerSides[MAPLE] = chooser; playerSides[SUN] = (chooser === 'p1' ? 'p2' : 'p1'); } else { playerSides[SUN] = chooser; playerSides[MAPLE] = (chooser === 'p1' ? 'p2' : 'p1'); } enterDraftPhase(); } }
+function enterDraftPhase() { document.getElementById('winnerModal').style.display = 'none'; showScreen('draft'); draftTurn = SUN; playerSkills = { [MAPLE]: null, [SUN]: null }; renderSkillGrid(); updateDraftTitle(); SoundEngine.init(); }
 let draftTurn = SUN;
 
 function renderSkillGrid() { 
-    const g = document.getElementById('skillGrid'); 
-    g.innerHTML = ''; 
+    const g = document.getElementById('skillGrid'); g.innerHTML = ''; 
     SKILL_IDS.forEach(sid => { 
         const sd = t(sid, 'skills'); 
         const iconSvg = (typeof SKILL_ICONS !== 'undefined' ? SKILL_ICONS[sid] : '') || ''; 
         const c = document.createElement('div'); 
         c.className = 'skill-card'; 
-        c.innerHTML = `
-            <div class="skill-icon">${iconSvg}</div>
-            <div class="skill-info">
-                <div class="skill-title">${sd.name}</div>
-                <div class="skill-desc">${sd.desc}</div>
-            </div>
-        `; 
+        c.innerHTML = `<div class="skill-icon">${iconSvg}</div><div class="skill-info"><div class="skill-title">${sd.name}</div><div class="skill-desc">${sd.desc}</div></div>`; 
         c.onclick = () => pickSkill(sid); 
         if (Object.values(playerSkills).includes(sid)) { c.classList.add('selected'); c.onclick = null; } 
         g.appendChild(c); 
@@ -229,13 +207,20 @@ function updateDraftTitle() {
     let pickerName = t('names')[draftTurn]; 
     if (gameMode === 'pve') { 
         const isAITurn = (humanSide === MAPLE && draftTurn === SUN) || (humanSide === SUN && draftTurn === MAPLE); 
-        if (isAITurn) pickerName += " (AI)"; else pickerName += " (You)"; 
-        if (isAITurn) setTimeout(() => { const avail = SKILL_IDS.filter(s => !Object.values(playerSkills).includes(s)); pickSkill(avail[Math.floor(Math.random()*avail.length)]); }, 800); 
+        if (isAITurn) { 
+            pickerName += " (AI)"; 
+            setTimeout(() => { 
+                const avail = SKILL_IDS.filter(s => !Object.values(playerSkills).includes(s)); 
+                pickSkill(avail[Math.floor(Math.random()*avail.length)]); 
+            }, 800); 
+        } else {
+            pickerName += " (You)"; 
+        }
     } 
     const iconHTML = `<span style="display:inline-block;width:32px;height:32px;vertical-align:bottom;">${getIcon(draftTurn)}</span>`;
     tEl.innerHTML = t('draftTitle').replace('{icon}', iconHTML).replace('{name}', pickerName); 
-    tEl.style.color = draftTurn === MAPLE ? '#333' : '#666'; 
 }
+
 function pickSkill(id) { SoundEngine.playPlace(); playerSkills[draftTurn] = id; if (draftTurn === SUN) { draftTurn = MAPLE; renderSkillGrid(); updateDraftTitle(); } else initGame(); }
 
 function initGame() {
@@ -248,8 +233,9 @@ function initGame() {
     timeRemaining = { [MAPLE]: 240, [SUN]: 240 }; 
     selectedCell = null; bombTarget = null; 
     
-    SoundEngine.setCritical(false);
+    SoundEngine.setCritical(false); 
     SoundEngine.switchTrack(userMusicPref);
+    
     if (typeof VisualFX !== 'undefined') VisualFX.clear();
 
     clearInterval(gameTicker); clearTimeout(aiTimer); 
@@ -258,26 +244,22 @@ function initGame() {
     gameTicker = setInterval(() => {
         if(!gameActive) return;
         timeRemaining[currentPlayer]--;
-        
-        if (bombTarget !== null && currentPlayer === bombTarget) {
-            if (timeRemaining[currentPlayer] < 30) SoundEngine.setCritical(true);
-            else SoundEngine.setCritical(false);
+        if (bombTarget === currentPlayer) {
+            SoundEngine.setCritical(timeRemaining[currentPlayer] < 30);
         } else {
             SoundEngine.setCritical(false);
         }
-
         updateDynamicUI(); 
         if(timeRemaining[currentPlayer] <= 0) { 
             if (bombTarget === currentPlayer) triggerExplosion();
-            else { showToast(t('timeOut', 'toast')); handleMatchEnd(currentPlayer === MAPLE ? SUN : MAPLE); }
+            else { 
+                showToast(t('timeOut', 'toast')); 
+                handleMatchEnd(currentPlayer === MAPLE ? SUN : MAPLE); 
+            }
         }
     }, 1000);
 
-    document.getElementById('winnerModal').style.display = 'none'; 
-    const dt = document.getElementById('diffTag'), sb = document.getElementById('scoreBoard');
-    if(gameMode === 'pve') { dt.style.display = 'inline-block'; sb.style.display = 'none'; dt.innerText = t('pveTag') + t('diff' + aiDifficulty.charAt(0).toUpperCase() + aiDifficulty.slice(1)); } else { dt.style.display = 'none'; sb.style.display = isBO3 ? 'block' : 'none'; updateScoreBoard(); }
-    
-    if (gameMode === 'pve' && humanSide === SUN) { aiTimer = setTimeout(aiMove, 800); }
+    if (gameMode === 'pve' && humanSide === SUN) aiTimer = setTimeout(aiMove, 800);
 }
 
 function updateScoreBoard() { document.getElementById('scoreBoard').innerText = `P1 (${p1Score}) : (${p2Score}) P2`; }
@@ -290,49 +272,34 @@ function renderBoard() {
         const cell = document.createElement('div'); 
         cell.className = 'cell'; cell.id = `c-${r}-${c}`; cell.dataset.r=r; cell.dataset.c=c; 
         cell.onclick=()=>handleCellClick(r,c); 
-        cell.onmouseenter=()=>handleCellHover(r,c); 
         if(stars.some(s=>s[0]===r&&s[1]===c)) { 
             cell.setAttribute('data-star','true'); 
             const d=document.createElement('div'); d.className='dot'; cell.appendChild(d); 
         } 
         b.appendChild(cell); 
     } 
-    if (typeof VisualFX !== 'undefined') VisualFX.init();
 }
-function getCell(r, c) { return document.getElementById(`c-${r}-${c}`); }
 
-function handleCellHover(r, c) {}
+function getCell(r, c) { return document.getElementById(`c-${r}-${c}`); }
 
 function saveState() { historyStack.push({ board: JSON.parse(JSON.stringify(board)), currentPlayer: currentPlayer, skillUsed: JSON.parse(JSON.stringify(skillUsed)), territoryZones: JSON.parse(JSON.stringify(territoryZones)), chaosDebuff: JSON.parse(JSON.stringify(chaosDebuff)), shortBattleTurns: shortBattleTurns, timeRemaining: JSON.parse(JSON.stringify(timeRemaining)), bombTarget: bombTarget }); }
 
 function restoreState(state) { 
     board = state.board; currentPlayer = state.currentPlayer; skillUsed = state.skillUsed; territoryZones = state.territoryZones; chaosDebuff = state.chaosDebuff; shortBattleTurns = state.shortBattleTurns; timeRemaining = state.timeRemaining; bombTarget = state.bombTarget; 
-    SoundEngine.setCritical(false);
-    if (typeof VisualFX !== 'undefined') VisualFX.clear();
-    
+    SoundEngine.setCritical(false); if (typeof VisualFX !== 'undefined') VisualFX.clear();
     document.querySelectorAll('.win-highlight').forEach(el => el.classList.remove('win-highlight'));
-
     for(let r=0; r<BOARD_SIZE; r++) for(let c=0; c<BOARD_SIZE; c++) { 
-        const cell = getCell(r,c); 
-        cell.className = 'cell'; 
-        cell.innerHTML = ''; 
-        if(cell.getAttribute('data-star')==='true') { 
-            const d=document.createElement('div'); d.className='dot'; cell.appendChild(d); 
-        } 
+        const cell = getCell(r,c); cell.className = 'cell'; cell.innerHTML = ''; 
+        if(cell.getAttribute('data-star')==='true') { const d=document.createElement('div'); d.className='dot'; cell.appendChild(d); } 
         const val = board[r][c]; 
-        
-        if (val === MAPLE || val === SUN) { 
-            renderPieceInCell(cell, val);
-        } else if (val === CORRODED) { 
-            cell.className = 'cell corroded';
-        } 
+        if (val === MAPLE || val === SUN) renderPieceInCell(cell, val); 
+        else if (val === CORRODED) cell.className = 'cell corroded';
     } 
-    updateTerritoriesUI(); 
-    updateDynamicUI(); 
+    updateTerritoriesUI(); updateDynamicUI(); 
 }
 
-function placePiece(r, c, p, m=false, chaos=false) { 
-    if(!m) board[r][c]=p; else board[r][c]=p; 
+function placePiece(r, c, p) { 
+    board[r][c]=p; 
     const cell = getCell(r,c); 
     if(cell) { 
         renderPieceInCell(cell, p); 
@@ -352,7 +319,6 @@ function renderPieceInCell(cell, player) {
         } else if (iconData && iconData.type === 'image') {
             const img = document.createElement('img');
             img.src = iconData.src;
-            img.alt = iconData.alt;
             img.className = 'piece-img'; 
             pieceDiv.appendChild(img);
         }
@@ -365,63 +331,73 @@ function handleCellClick(r, c, bypassConfirm = false) {
     if (activeEffect) { handleSkillInteraction(r, c); return; }
     if (board[r][c] !== EMPTY) { SoundEngine.playError(); return; }
     if (isZoneRestricted(r, c, currentPlayer)) { showToast(t('errZone', 'toast')); SoundEngine.playError(); return; }
-    if (!bypassConfirm && !isDoubleMoveActive) { if (!selectedCell || selectedCell.r !== r || selectedCell.c !== c) { if(selectedCell) { const old = getCell(selectedCell.r, selectedCell.c); if(old) old.classList.remove('selected-move'); } selectedCell = {r, c}; const newCell = getCell(r, c); if(newCell) newCell.classList.add('selected-move'); SoundEngine.playPlace(); return; } else { const old = getCell(selectedCell.r, selectedCell.c); if(old) old.classList.remove('selected-move'); selectedCell = null; } }
+    
+    if (!bypassConfirm && !isDoubleMoveActive) { 
+        if (!selectedCell || selectedCell.r !== r || selectedCell.c !== c) { 
+            if(selectedCell) { const old = getCell(selectedCell.r, selectedCell.c); if(old) old.classList.remove('selected-move'); } 
+            selectedCell = {r, c}; 
+            const newCell = getCell(r, c); if(newCell) newCell.classList.add('selected-move'); 
+            SoundEngine.playPlace(); return; 
+        } else { 
+            const old = getCell(selectedCell.r, selectedCell.c); if(old) old.classList.remove('selected-move'); selectedCell = null; 
+        } 
+    }
+    
     if (!isDoubleMoveActive) saveState();
-    let wasChaosed = false;
-    if (chaosDebuff[currentPlayer] > 0) { let candidates = []; for (let i = r-1; i <= r+1; i++) for (let j = c-1; j <= c+1; j++) if (isValid(i, j) && board[i][j] === EMPTY && !isZoneRestricted(i, j, currentPlayer)) candidates.push({r: i, c: j}); if (candidates.length > 0) { const pick = candidates[Math.floor(Math.random() * candidates.length)]; r = pick.r; c = pick.c; wasChaosed = true; } SoundEngine.playChaos(); showToast(t('chaosTrigger', 'toast')); chaosDebuff[currentPlayer]--; }
-    placePiece(r, c, currentPlayer, false, wasChaosed);
-    if(selectedCell) { const old = getCell(selectedCell.r, selectedCell.c); if(old) old.classList.remove('selected-move'); selectedCell = null; }
+    
+    if (chaosDebuff[currentPlayer] > 0) { 
+        let candidates = []; 
+        for (let i = r-1; i <= r+1; i++) for (let j = c-1; j <= c+1; j++) if (isValid(i, j) && board[i][j] === EMPTY && !isZoneRestricted(i, j, currentPlayer)) candidates.push({r: i, c: j}); 
+        if (candidates.length > 0) { const pick = candidates[Math.floor(Math.random() * candidates.length)]; r = pick.r; c = pick.c; } 
+        SoundEngine.playChaos(); showToast(t('chaosTrigger', 'toast')); chaosDebuff[currentPlayer]--; 
+    }
+    
+    placePiece(r, c, currentPlayer);
+    
+    if(selectedCell) { 
+        const old = getCell(selectedCell.r, selectedCell.c); 
+        if(old) old.classList.remove('selected-move'); 
+        selectedCell = null; 
+    }
+    
     if (isDoubleMoveActive) { 
-        isDoubleMoveActive = false; showToast(t('doubleNext', 'toast')); SoundEngine.playSkill(); 
-        const winLine = checkWin(r, c, currentPlayer);
-        if (winLine) highlightWin(winLine, currentPlayer);
+        isDoubleMoveActive = false; 
+        showToast(t('doubleNext', 'toast')); SoundEngine.playSkill(); 
+        const winLine = checkWin(r, c, currentPlayer); 
+        if (winLine) highlightWin(winLine, currentPlayer); 
         return; 
     }
-    checkWinAndSwitch(r, c, currentPlayer);
+    
+    const winLine = checkWin(r, c, currentPlayer); 
+    if (winLine) highlightWin(winLine, currentPlayer); else switchTurn();
 }
 
-function checkWinAndSwitch(r, c, p) { 
-    const winLine = checkWin(r, c, p);
-    if (winLine) { highlightWin(winLine, p); } else { switchTurn(); }
-}
-
-function switchTurn() {
-    // [Alpha 0.7.7.8 Fix] 领地回合扣除逻辑：
-    // 不再判断 z.owner === currentPlayer，而是每次 switchTurn 都扣除 1 回合
-    // 效果：6 turns = 双方各下3手
+function switchTurn() { 
     territoryZones.forEach(z => { z.turns--; }); 
     territoryZones = territoryZones.filter(z => z.turns > 0); 
-    
-    updateTerritoriesUI();
-    if (shortBattleTurns > 0) shortBattleTurns--;
+    updateTerritoriesUI(); 
+    if (shortBattleTurns > 0) shortBattleTurns--; 
     currentPlayer = currentPlayer === MAPLE ? SUN : MAPLE; 
-    if (bombTarget !== null && currentPlayer === bombTarget) { SoundEngine.switchTrack('bomb'); } 
-    else { SoundEngine.switchTrack(userMusicPref); }
+    if (bombTarget !== null && currentPlayer === bombTarget) SoundEngine.switchTrack('bomb'); 
+    else SoundEngine.switchTrack(userMusicPref); 
     updateDynamicUI(); 
-    clearTimeout(aiTimer);
-    if (gameMode === 'pve' && currentPlayer !== humanSide && gameActive) { aiTimer = setTimeout(aiMove, 600); }
+    clearTimeout(aiTimer); 
+    if (gameMode === 'pve' && currentPlayer !== humanSide && gameActive) aiTimer = setTimeout(aiMove, 600); 
 }
 
 function activateSkill() {
     if (!gameActive || skillUsed[currentPlayer]) { showToast(t('skillUsed', 'toast')); return; }
     if(selectedCell) { const old = getCell(selectedCell.r, selectedCell.c); if(old) old.classList.remove('selected-move'); selectedCell = null; }
-    saveState();
-    const sid = playerSkills[currentPlayer], sname = t(sid, 'skills').name;
-    SoundEngine.playSkill(); showToast(t('casting', 'toast') + sname); skillUsed[currentPlayer] = true; updateDynamicUI();
+    saveState(); 
+    const sid = playerSkills[currentPlayer], sname = t(sid, 'skills').name; 
+    SoundEngine.playSkill(); skillUsed[currentPlayer] = true; updateDynamicUI();
     const b = document.getElementById('board');
     if (sid === 'double') { isDoubleMoveActive = true; showToast(t('doubleStart', 'toast')); }
     else if (sid === 'voodoo') { activeEffect = 'voodoo_pick'; b.classList.add('casting-voodoo'); showToast(t('voodooPick', 'toast')); }
     else if (sid === 'move_self') { activeEffect = 'move_pick'; effectData={mode:'self'}; b.classList.add('casting-move-src'); showToast(t('moveSrcSelf', 'toast')); }
     else if (sid === 'move_enemy') { activeEffect = 'move_pick'; effectData={mode:'enemy'}; b.classList.add('casting-move-src'); showToast(t('moveSrcEnemy', 'toast')); }
     else if (sid === 'zone') { activeEffect = 'zone_pick'; b.classList.add('casting-territory'); showToast(t('zonePick', 'toast')); }
-    else if (sid === 'bomb') { 
-        const opp = currentPlayer === MAPLE ? SUN : MAPLE;
-        timeRemaining[opp] -= 150; 
-        showToast(t('bombStart', 'toast'));
-        bombTarget = opp;
-        if(timeRemaining[opp] <= 0) { triggerExplosion(); return; }
-        updateDynamicUI();
-    }
+    else if (sid === 'bomb') { const opp = currentPlayer === MAPLE ? SUN : MAPLE; timeRemaining[opp] -= 150; showToast(t('bombStart', 'toast')); bombTarget = opp; updateDynamicUI(); }
     else if (sid === 'god_hand') { activeEffect = 'god_pick_1'; b.classList.add('casting-move-src'); showToast(t('godPick1', 'toast')); }
     else if (sid === 'chaos') { const opp = currentPlayer === MAPLE ? SUN : MAPLE; chaosDebuff[opp] += 2; updateDynamicUI(); }
     else if (sid === 'short_battle') { shortBattleTurns = 6; showToast(t('shortBattleStart', 'toast')); updateDynamicUI(); }
@@ -432,26 +408,75 @@ function handleSkillInteraction(r, c) {
     SoundEngine.playPlace(); const b = document.getElementById('board'); const cell = getCell(r, c); if(!cell) return;
     if (activeEffect === 'voodoo_pick') { 
         if (board[r][c] === EMPTY || board[r][c] === CORRODED) { SoundEngine.playError(); return; } 
-        board[r][c] = CORRODED; cell.innerHTML = ''; cell.className = 'cell corroded'; activeEffect = null; b.classList.remove('casting-voodoo'); showToast(t('voodooDone', 'toast')); 
+        board[r][c] = CORRODED; cell.innerHTML = ''; cell.className = 'cell corroded'; 
+        activeEffect = null; b.classList.remove('casting-voodoo'); showToast(t('voodooDone', 'toast')); 
     } 
-    else if (activeEffect === 'move_pick') { const p = board[r][c]; if ((effectData.mode==='self' && p!==currentPlayer) || (effectData.mode==='enemy' && (p===EMPTY||p===currentPlayer))) { SoundEngine.playError(); return; } effectData.src = {r, c, val: p}; activeEffect = 'move_drop'; b.classList.remove('casting-move-src'); b.classList.add('casting-move-dest'); cell.style.opacity = '0.5'; showToast(t('moveDest', 'toast')); } 
+    else if (activeEffect === 'move_pick') { 
+        const p = board[r][c]; 
+        if ((effectData.mode==='self' && p!==currentPlayer) || (effectData.mode==='enemy' && (p===EMPTY||p===currentPlayer))) { SoundEngine.playError(); return; } 
+        effectData.src = {r, c, val: p}; activeEffect = 'move_drop'; 
+        b.classList.remove('casting-move-src'); b.classList.add('casting-move-dest'); 
+        cell.style.opacity = '0.5'; showToast(t('moveDest', 'toast')); 
+    } 
     else if (activeEffect === 'move_drop') { 
         if (board[r][c]!==EMPTY || isZoneRestricted(r,c,currentPlayer)) { SoundEngine.playError(); return; } 
-        const src = effectData.src; board[src.r][src.c] = EMPTY; const sc = getCell(src.r, src.c); if(sc){sc.innerHTML=''; sc.style.opacity='1';} 
-        placePiece(r, c, src.val, true); activeEffect = null; b.classList.remove('casting-move-dest'); 
-        const winLine = checkWin(r, c, src.val);
+        const src = effectData.src; 
+        board[src.r][src.c] = EMPTY; 
+        const sc = getCell(src.r, src.c); if(sc){sc.innerHTML=''; sc.style.opacity='1';} 
+        placePiece(r, c, src.val, true); 
+        activeEffect = null; 
+        b.classList.remove('casting-move-dest'); 
+        const winLine = checkWin(r, c, src.val); 
         if (winLine) highlightWin(winLine, src.val); else showToast(t('moveDone', 'toast')); 
     } 
-    else if (activeEffect === 'zone_pick') { document.querySelectorAll('.territory-preview').forEach(el => el.classList.remove('territory-preview')); territoryZones.push({r, c, owner: currentPlayer, turns: 6}); updateTerritoriesUI(); activeEffect = null; b.classList.remove('casting-territory'); showToast(t('zoneDone', 'toast')); } 
-    else if (activeEffect === 'god_pick_1') { const p = board[r][c]; if (p === EMPTY || p === CORRODED) { SoundEngine.playError(); return; } effectData.godSrc1 = {r, c, val: p}; activeEffect = 'god_drop_1'; b.classList.remove('casting-move-src'); b.classList.add('casting-move-dest'); cell.style.opacity='0.5'; showToast(t('godDest1', 'toast')); } 
-    else if (activeEffect === 'god_drop_1') { if (board[r][c]!==EMPTY || isZoneRestricted(r,c,currentPlayer)) { SoundEngine.playError(); return; } const s1 = effectData.godSrc1; board[s1.r][s1.c] = EMPTY; const c1 = getCell(s1.r, s1.c); if(c1){c1.innerHTML=''; c1.style.opacity='1';} placePiece(r, c, s1.val, true); b.classList.remove('casting-move-dest'); const wl = checkWin(r, c, s1.val); if (wl) { highlightWin(wl, s1.val); return; } activeEffect = 'god_pick_2'; b.classList.add('casting-move-src'); showToast(t('godPick2', 'toast')); } 
-    else if (activeEffect === 'god_pick_2') { const p = board[r][c]; if (p === EMPTY || p === CORRODED) { SoundEngine.playError(); return; } effectData.godSrc2 = {r, c, val: p}; activeEffect = 'god_drop_2'; b.classList.remove('casting-move-src'); b.classList.add('casting-move-dest'); cell.style.opacity='0.5'; showToast(t('godDest2', 'toast')); } 
-    else if (activeEffect === 'god_drop_2') { if (board[r][c]!==EMPTY || isZoneRestricted(r,c,currentPlayer)) { SoundEngine.playError(); return; } const s2 = effectData.godSrc2; board[s2.r][s2.c] = EMPTY; const c2 = getCell(s2.r, s2.c); if(c2){c2.innerHTML=''; c2.style.opacity='1';} placePiece(r, c, s2.val, true); activeEffect = null; b.classList.remove('casting-move-dest'); const wl = checkWin(r, c, s2.val); if (wl) highlightWin(wl, s2.val); else switchTurn(); } 
-    else if (activeEffect === 'swap_pick_1') { const p = board[r][c]; if (p!==currentPlayer) { SoundEngine.playError(); return; } effectData.swapSrc = {r, c, val: p}; activeEffect = 'swap_pick_2'; b.classList.remove('casting-move-src'); b.classList.add('casting-move-dest'); cell.style.opacity = '0.5'; showToast(t('swapPickEnemy', 'toast')); } 
+    else if (activeEffect === 'zone_pick') { 
+        document.querySelectorAll('.territory-preview').forEach(el => el.classList.remove('territory-preview')); 
+        territoryZones.push({r, c, owner: currentPlayer, turns: 6}); updateTerritoriesUI(); 
+        activeEffect = null; b.classList.remove('casting-territory'); showToast(t('zoneDone', 'toast')); 
+    } 
+    else if (activeEffect === 'god_pick_1') { 
+        const p = board[r][c]; if (p === EMPTY || p === CORRODED) { SoundEngine.playError(); return; } 
+        effectData.godSrc1 = {r, c, val: p}; activeEffect = 'god_drop_1'; 
+        b.classList.remove('casting-move-src'); b.classList.add('casting-move-dest'); 
+        cell.style.opacity='0.5'; showToast(t('godDest1', 'toast')); 
+    } 
+    else if (activeEffect === 'god_drop_1') { 
+        if (board[r][c]!==EMPTY || isZoneRestricted(r,c,currentPlayer)) { SoundEngine.playError(); return; } 
+        const s1 = effectData.godSrc1; 
+        board[s1.r][s1.c] = EMPTY; 
+        const c1 = getCell(s1.r, s1.c); if(c1){c1.innerHTML=''; c1.style.opacity='1';} 
+        placePiece(r, c, s1.val, true); 
+        b.classList.remove('casting-move-dest'); 
+        const wl = checkWin(r, c, s1.val); if (wl) { highlightWin(wl, s1.val); return; } 
+        activeEffect = 'god_pick_2'; b.classList.add('casting-move-src'); showToast(t('godPick2', 'toast')); 
+    } 
+    else if (activeEffect === 'god_pick_2') { 
+        const p = board[r][c]; if (p === EMPTY || p === CORRODED) { SoundEngine.playError(); return; } 
+        effectData.godSrc2 = {r, c, val: p}; activeEffect = 'god_drop_2'; 
+        b.classList.remove('casting-move-src'); b.classList.add('casting-move-dest'); 
+        cell.style.opacity='0.5'; showToast(t('godDest2', 'toast')); 
+    } 
+    else if (activeEffect === 'god_drop_2') { 
+        if (board[r][c]!==EMPTY || isZoneRestricted(r,c,currentPlayer)) { SoundEngine.playError(); return; } 
+        const s2 = effectData.godSrc2; 
+        board[s2.r][s2.c] = EMPTY; 
+        const c2 = getCell(s2.r, s2.c); if(c2){c2.innerHTML=''; c2.style.opacity='1';} 
+        placePiece(r, c, s2.val, true); 
+        activeEffect = null; b.classList.remove('casting-move-dest'); 
+        const wl = checkWin(r, c, s2.val); if (wl) highlightWin(wl, s2.val); else switchTurn(); 
+    } 
+    else if (activeEffect === 'swap_pick_1') { 
+        const p = board[r][c]; if (p!==currentPlayer) { SoundEngine.playError(); return; } 
+        effectData.swapSrc = {r, c, val: p}; activeEffect = 'swap_pick_2'; 
+        b.classList.remove('casting-move-src'); b.classList.add('casting-move-dest'); 
+        cell.style.opacity = '0.5'; showToast(t('swapPickEnemy', 'toast')); 
+    } 
     else if (activeEffect === 'swap_pick_2') { 
-        const p = board[r][c]; const enemy = currentPlayer===MAPLE?SUN:MAPLE; if (p!==enemy) { SoundEngine.playError(); return; } 
+        const p = board[r][c]; const enemy = currentPlayer===MAPLE?SUN:MAPLE; 
+        if (p!==enemy) { SoundEngine.playError(); return; } 
         const s1 = effectData.swapSrc; const s2 = {r, c, val: p}; 
-        const c1 = getCell(s1.r, s1.c); if(c1) c1.style.opacity = '1'; board[s1.r][s1.c] = s2.val; board[s2.r][s2.c] = s1.val; 
+        const c1 = getCell(s1.r, s1.c); if(c1) c1.style.opacity = '1'; 
+        board[s1.r][s1.c] = s2.val; board[s2.r][s2.c] = s1.val; 
         if(c1) { c1.innerHTML=''; placePiece(s1.r, s1.c, s2.val, true); } 
         const c2 = getCell(s2.r, s2.c); 
         if(c2) { c2.innerHTML=''; placePiece(s2.r, c2.c, s1.val, true); }
@@ -464,15 +489,24 @@ function handleSkillInteraction(r, c) {
 
 function highlightWin(line, winner) {
     gameActive = false;
-    SoundEngine.playWinEffect(winEffect);
-    if (typeof VisualFX !== 'undefined') {
-        VisualFX.drawWinLine(line, winEffect);
+    const isPvELoss = (gameMode === 'pve' && winner !== humanSide);
+    if (isPvELoss) {
+        SoundEngine.playDefeat();
+        if (typeof VisualFX !== 'undefined') VisualFX.drawWinLine(line, winEffect);
+    } else {
+        SoundEngine.playWinEffect(winEffect);
+        if (typeof VisualFX !== 'undefined') {
+            VisualFX.drawWinLine(line, winEffect);
+            if (winCelebration !== 'default') {
+                VisualFX.startCelebration(winCelebration);
+            }
+        }
     }
     line.forEach(pos => {
         const cell = getCell(pos.r, pos.c);
         if (cell) cell.classList.add('win-highlight');
     });
-    setTimeout(() => handleMatchEnd(winner), 1500);
+    setTimeout(() => handleMatchEnd(winner), 2500);
 }
 
 function triggerExplosion() {
@@ -490,14 +524,13 @@ function triggerExplosion() {
 
 function handleMatchEnd(winSide) {
     gameActive = false; clearInterval(bombInterval); clearInterval(gameTicker); clearTimeout(aiTimer); 
-    SoundEngine.switchTrack(userMusicPref); 
+    if (winCelebration !== 'dj' || (gameMode === 'pve' && winSide !== humanSide)) SoundEngine.switchTrack(userMusicPref); 
+    
     const wt = document.getElementById('winnerText'); 
     let title = "";
-    // 动态图标
     const winIcon = `<span style="display:inline-block;width:40px;height:40px;vertical-align:text-bottom">${getIcon(winSide)}</span>`;
     
     if (gameMode === 'pve' && winSide !== humanSide) { 
-        SoundEngine.playError(); 
         title = `${winIcon} ${t('lose', 'end')}`; 
     } 
     else { 
@@ -545,7 +578,6 @@ function hasNeighbor(r, c) { for(let i=r-2; i<=r+2; i++) { for(let j=c-2; j<=c+2
 function isValid(r, c) { return r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE; }
 function isZoneRestricted(r, c, p) { for(let z of territoryZones) { if (Math.abs(z.r - r) <= 1 && Math.abs(z.c - c) <= 1 && z.owner !== p) { return true; } } return false; }
 
-// [Alpha 0.7.7.8 Fix] 还原为原始功能：仅渲染背景颜色，移除中心数字
 function updateTerritoriesUI() { 
     document.querySelectorAll('.territory-zone').forEach(el => el.classList.remove('territory-zone')); 
     territoryZones.forEach(z => { 
@@ -561,7 +593,6 @@ function updateTerritoriesUI() {
 function checkWin(r, c, p) { const d = [[0,1], [1,0], [1,1], [1,-1]]; const limit = shortBattleTurns > 0 ? 4 : 5; for(let k of d) { let ct = 1; let line = [{r,c}]; let i = r + k[0], j = c + k[1]; while(isValid(i,j) && board[i][j] === p) { line.push({r:i, c:j}); i += k[0]; j += k[1]; ct++; } i = r - k[0]; j = c - k[1]; while(isValid(i,j) && board[i][j] === p) { line.push({r:i, c:j}); i -= k[0]; j -= k[1]; ct++; } if(ct >= limit) return line; } return null; }
 function startBombTimer() { if(bombInterval) clearInterval(bombInterval); bombInterval = setInterval(() => { if(!gameActive) return; if(currentPlayer !== bombOwner) { bombTime--; const m = Math.floor(bombTime/60).toString().padStart(2,'0'); const s = (bombTime%60).toString().padStart(2,'0'); document.getElementById('bombTimer').innerText=`${m}:${s}`; if(bombTime <= 0) handleMatchEnd(bombOwner); } }, 1000); }
 
-// [Alpha 0.7.7.8 Fix] 动态 UI 更新：增加棋盘外领地计数器
 function updateDynamicUI() {
     const turnTextEl = document.getElementById('turnText');
     const newTurnText = t('names')[currentPlayer === MAPLE ? 1 : 2];
@@ -624,21 +655,17 @@ function updateDynamicUI() {
         sbc.style.display = 'none';
     }
 
-    // [New] 动态生成领地计数器 (如果 DOM 不存在则创建)
     if (territoryZones.length > 0) {
         let zc = document.getElementById('zoneCounter');
         if (!zc) {
             zc = document.createElement('div');
             zc.id = 'zoneCounter';
             zc.className = 'counter-badge zone';
-            // 挂载到 board-wrapper 以便定位
             document.querySelector('.board-wrapper').appendChild(zc);
         }
         zc.style.display = 'flex';
         const zoneIcon = (typeof SKILL_ICONS !== 'undefined') ? SKILL_ICONS.zone : '';
-        // 取最大剩余回合数显示
         const maxTurns = Math.max(...territoryZones.map(z => z.turns));
-        // 使用 fallback 文本 'Zone' 如果翻译不存在
         const label = t('zoneLabel', 'toast') || 'Zone:';
         zc.innerHTML = `<span class="inline-icon">${zoneIcon}</span> ${label} ${maxTurns}`;
     } else {

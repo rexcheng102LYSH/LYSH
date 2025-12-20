@@ -11,7 +11,7 @@
     --win-glow: #00e676;
     --warn-glow: #ff5722;
     --chaos-glow: #673ab7;
-    --zone-glow: #e17055; /* [New] 领地技能主题色 (陶土红) */
+    --zone-glow: #e17055; 
     --select-color: #FFD700;
     --ui-text-main: #2d3436;
     --ui-text-sub: #636e72;
@@ -32,9 +32,23 @@ body {
     background: linear-gradient(to bottom, #fffefb 0%, #f0f4f8 100%);
 }
 
+/* [Critical Fix] 全屏特效层 */
+/* 默认不显示，完全不占用点击区域 */
+.fx-canvas-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 500; 
+    display: none; 
+    pointer-events: none; /* 默认穿透，JS 会在 DJ 模式下改为 auto */
+}
+
 .top-right-controls {
     position: fixed; top: 20px; right: 20px;
-    display: flex; gap: 12px; z-index: 1000;
+    display: flex; gap: 12px; 
+    z-index: 1000; 
 }
 .icon-btn {
     width: 44px; height: 44px; border-radius: 50%; border: none;
@@ -82,8 +96,31 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 .btn.secondary { background: rgba(255,255,255,0.6); color: #555; }
 .btn.bo3-btn { background: linear-gradient(135deg, #fbc02d, #ff9f43); color: white; border: none; box-shadow: 0 8px 20px rgba(251, 192, 45, 0.3); }
 
-.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); justify-content: center; align-items: center; z-index: 9999; }
-.modal-content { background: #fff; padding: 30px; border-radius: 28px; width: 85%; max-width: 380px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+/* [Fix] 弹窗层级保护 */
+.modal { 
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); 
+    justify-content: center; align-items: center; 
+    z-index: 9999; 
+    pointer-events: auto !important; /* 强制弹窗内部可点击 */
+}
+.modal-content { 
+    background: #fff; padding: 30px; border-radius: 28px; width: 85%; max-width: 380px; 
+    text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.25); 
+    pointer-events: auto !important;
+}
+
+/* 胜利弹窗：背景透明，但内容必须可点 */
+#winnerModal {
+    background: rgba(0, 0, 0, 0.05);
+    backdrop-filter: none;
+    pointer-events: auto !important;
+}
+#winnerModal .modal-content {
+    box-shadow: 0 20px 80px rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.8);
+    background: rgba(255, 255, 255, 0.95);
+}
 
 .settings-content h2 { margin-top: 0; font-weight: 700; color: #2d3436; margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
 .setting-item { margin-bottom: 20px; text-align: left; }
@@ -105,7 +142,6 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 
 .setting-divider { height: 1px; background: #eee; margin: 25px 0; width: 100%; }
 
-/* UI 胶囊选择器 (音乐/特效) */
 .capsule-selector { 
     display: flex; gap: 8px; background: #f5f6fa; padding: 5px; 
     border-radius: 12px; flex-wrap: wrap; 
@@ -127,6 +163,18 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 #winLightning.active { color: #03a9f4; text-shadow: 0 0 8px rgba(3, 169, 244, 0.5); }
 #winGold.active { color: #ffb300; text-shadow: 0 0 8px rgba(255, 179, 0, 0.5); }
 #winFuture.active { color: #d500f9; text-shadow: 0 0 8px rgba(213, 0, 249, 0.5); }
+
+#celFireworks.active { color: #ff5722; text-shadow: 0 0 8px rgba(255, 87, 34, 0.5); }
+#celChromatic.active { 
+    background: linear-gradient(45deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #8b00ff); 
+    background-clip: text; 
+    -webkit-background-clip: text; 
+    color: transparent; 
+    text-shadow: none; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+}
+#celChromatic.active::after { content:''; position:absolute; inset:0; border-radius:8px; border: 1px solid rgba(0,0,0,0.1); pointer-events:none; }
+#celDJ.active { color: #00e676; text-shadow: 0 0 8px rgba(0, 230, 118, 0.6); }
 
 .skill-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; max-width: 500px; max-height: 60vh; overflow-y: auto; padding: 5px; box-sizing: border-box; }
 .skill-card { background: rgba(255,255,255,0.8); padding: 12px; border-radius: 16px; border: 2px solid transparent; cursor: pointer; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.03); text-align: left; display: flex; flex-direction: row; align-items: center; gap: 10px; min-height: 70px; transition: transform 0.2s, box-shadow 0.2s; }
@@ -177,8 +225,6 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .cell::before { content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: var(--line-ink); z-index: 0; }
 .cell::after { content: ''; position: absolute; left: 50%; top: 0; height: 100%; width: 1px; background: var(--line-ink); z-index: 0; }
 .cell[data-star="true"] .dot { width: 18%; height: 18%; background: var(--line-ink); border-radius: 50%; position: absolute; z-index: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-
-.fx-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20; }
 
 .piece { width: 88%; height: 88%; z-index: 2; pointer-events: none; border-radius: 50%; display: flex; justify-content: center; align-items: center; animation: drop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 .piece-svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 3px 3px rgba(0,0,0,0.25)); }

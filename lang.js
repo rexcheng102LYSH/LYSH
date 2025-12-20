@@ -3,7 +3,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "v0.7.7.8", 
+        subTitle: "v0.7.9", 
         btnPvE: "人機對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -36,6 +36,18 @@ const I18N = {
 
         btnClose: "關閉",
         errNoSkinInGame: "對局進行中無法更換皮膚！",
+
+        // [New] 特效菜单翻译
+        lblWinEffect: "連珠特效",
+        lblWinCelebration: "勝利特效",
+        effDefault: "默認",
+        effLightning: "⚡ 閃電",
+        effGold: "👑 金黃",
+        effFuture: "🚀 未來",
+        effFireworks: "🎇 煙花",
+        effChromatic: "🌈 炫彩",
+        effDJ: "🎵 DJ",
+
         skills: {
             double: { name: "雙連", desc: "本回合落兩子" },
             voodoo: { name: "巫毒", desc: "腐蝕一格，繼續落子" },
@@ -61,7 +73,7 @@ const I18N = {
             chaosTrigger: "混亂觸發！落點偏移", 
             chaosLabel: "混亂:", 
             shortBattleLabel: "短兵:", 
-            zoneLabel: "領地:", // [New]
+            zoneLabel: "領地:", 
             shortBattleStart: "短兵戰！四子即勝",
             swapPickSelf: "置換：選己方子", swapPickEnemy: "置換：選敵方子", swapDone: "置換完成，請落子", 
             undoDone: "悔棋成功", timeOut: "時間耗盡！"
@@ -75,7 +87,7 @@ const I18N = {
     'zh': {
         langName: "简", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "v0.7.7.8", 
+        subTitle: "v0.7.9", 
         btnPvE: "人机对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -108,6 +120,18 @@ const I18N = {
 
         btnClose: "关闭",
         errNoSkinInGame: "对局进行中无法更换皮肤！",
+
+        // [New] 特效菜单翻译
+        lblWinEffect: "连珠特效",
+        lblWinCelebration: "胜利特效",
+        effDefault: "默认",
+        effLightning: "⚡ 闪电",
+        effGold: "👑 金黄",
+        effFuture: "🚀 未来",
+        effFireworks: "🎇 烟花",
+        effChromatic: "🌈 炫彩",
+        effDJ: "🎵 DJ",
+
         skills: {
             double: { name: "双连", desc: "本回合落两子" },
             voodoo: { name: "巫毒", desc: "腐蚀一格，继续落子" },
@@ -133,7 +157,7 @@ const I18N = {
             chaosTrigger: "混乱触发！落点偏移", 
             chaosLabel: "混乱:", 
             shortBattleLabel: "短兵:", 
-            zoneLabel: "领地:", // [New]
+            zoneLabel: "领地:", 
             shortBattleStart: "短兵战！四子即胜",
             swapPickSelf: "置换：选己方子", swapPickEnemy: "置换：选敌方子", swapDone: "置换完成，请落子", 
             undoDone: "悔棋成功", timeOut: "时间耗尽！"
@@ -147,7 +171,7 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Skill Gomoku <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "v0.7.7.8", 
+        subTitle: "v0.7.9", 
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -180,6 +204,18 @@ const I18N = {
 
         btnClose: "Close",
         errNoSkinInGame: "Cannot change skin during game!",
+
+        // [New] Effect Menu Translations
+        lblWinEffect: "Line Effect",
+        lblWinCelebration: "Win Celebration",
+        effDefault: "Default",
+        effLightning: "⚡ Thunder",
+        effGold: "👑 Gold",
+        effFuture: "🚀 Future",
+        effFireworks: "🎇 Firework",
+        effChromatic: "🌈 Chromatic",
+        effDJ: "🎵 DJ",
+
         skills: {
             double: { name: "Double Strike", desc: "Place 2 pieces." },
             voodoo: { name: "Voodoo", desc: "Corrupt cell, then move." },
@@ -205,7 +241,7 @@ const I18N = {
             chaosTrigger: "Chaos! Missed!", 
             chaosLabel: "Chaos:", 
             shortBattleLabel: "Skirmish:", 
-            zoneLabel: "Zone:", // [New]
+            zoneLabel: "Zone:", 
             shortBattleStart: "Skirmish Mode!", 
             swapPickSelf: "Swap: Yours", swapPickEnemy: "Swap: Enemy", swapDone: "Done. Move now!", 
             undoDone: "Undone", timeOut: "Time Out!"

@@ -1,3 +1,7 @@
+// ================= 音频引擎 (Audio Engine) =================
+// [Alpha 0.7.7.9 Stable] 
+// 状态：已移除所有非法文本头，确保浏览器能正确解析 SoundEngine 对象。
+
 const SoundEngine = {
     ctx: null, 
     isMuted: false, 
@@ -7,7 +11,6 @@ const SoundEngine = {
     sfxVolume: 1.0,
     ambientVolume: 1.0, 
     
-    // 当前轨道：'origin' | 'bgm1' | 'bgm2' | 'bgm3' | 'bgm4' | 'bomb'
     currentTrack: 'origin', 
     bgmTimeout: null,
     
@@ -15,24 +18,41 @@ const SoundEngine = {
     ambientAudio: null, 
     isCritical: false,
 
+    // 节奏游戏状态
+    rhythm: {
+        active: false,
+        phase: 'idle', 
+        startTime: 0,
+        bpm: 120,
+        beatDuration: 0.5, 
+        notes: [], 
+        currentNoteIdx: 0,
+        timerID: null,
+        userMissed: false
+    },
+
     init: function() { 
         if (this.ctx) return; 
-        const AC = window.AudioContext || window.webkitAudioContext; 
-        this.ctx = new AC(); 
-        this.startBGM();
-        // 保持：环境音效独立于 BGM，只与季节(视觉)挂钩
-        if (window.BackgroundEngine && window.BackgroundEngine.activeSeason === 'spring') {
-            this.playAmbient();
-        }
+        try {
+            const AC = window.AudioContext || window.webkitAudioContext; 
+            this.ctx = new AC(); 
+            this.startBGM();
+            if (window.BackgroundEngine && window.BackgroundEngine.activeSeason === 'spring') {
+                this.playAmbient();
+            }
+        } catch(e) { console.error("Audio Init Failed:", e); }
     },
     
     toggle: function() { 
         if (!this.ctx) this.init(); 
         this.isMuted = !this.isMuted; 
-        document.querySelector('.sound-toggle').innerText = this.isMuted ? '🔇' : '🎵'; 
+        const btn = document.querySelector('.sound-toggle');
+        if (btn) btn.innerText = this.isMuted ? '🔇' : '🎵'; 
+        
         if (this.isMuted) {
             this.stopBGM();
             this.stopAmbient();
+            this.stopRhythmGame();
         } else {
             this.startBGM();
             if (window.BackgroundEngine && window.BackgroundEngine.activeSeason === 'spring') {
@@ -55,242 +75,282 @@ const SoundEngine = {
         this.isCritical = critical;
     },
 
-    // --- 基础波形发生器 ---
-    playNote: function(freq, duration, type, volume, attack=0.05, release=0.1) {
-        if (this.isMuted || !this.ctx || volume <= 0) return;
-        const o = this.ctx.createOscillator();
-        const g = this.ctx.createGain();
-        const now = this.ctx.currentTime;
-        o.type = type;
-        o.frequency.setValueAtTime(freq, now);
-        g.gain.setValueAtTime(0, now);
-        g.gain.linearRampToValueAtTime(volume, now + attack); 
-        g.gain.exponentialRampToValueAtTime(0.01, now + duration + release); 
-        o.connect(g);
-        g.connect(this.ctx.destination);
-        o.start();
-        o.stop(now + duration + release);
-    },
-
-    playStringPad: function(freq, duration, volume) {
-        if (this.isMuted || !this.ctx) return;
-        this.playNote(freq, duration, 'sawtooth', volume * 0.6, 0.2, 0.5);
-    },
-
-    // --- 专用：爆炸与噪音 (用于炸弹和闪电) ---
-    playExplosion: function(duration = 1.0, filterFreq = 1000) {
-        if (this.isMuted || !this.ctx) return;
-        const bufferSize = this.ctx.sampleRate * 2; 
-        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            data[i] = Math.random() * 2 - 1; 
-        }
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = buffer;
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.value = filterFreq; 
-        const gain = this.ctx.createGain();
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.ctx.destination);
-        const now = this.ctx.currentTime;
-        gain.gain.setValueAtTime(this.sfxVolume, now);
-        // 频率快速下降模拟爆炸扩散
-        filter.frequency.exponentialRampToValueAtTime(50, now + duration); 
-        gain.gain.exponentialRampToValueAtTime(0.01, now + duration + 0.5);
-        noise.start();
-    },
-
-    // --- 简单的短音效 ---
-    tone: function(f, type, d, v=0.1) { this.playNote(f, d, type, v * this.sfxVolume, 0.01, 0.1); },
-    playPlace: function() { this.tone(400, 'sine', 0.1, 0.3); },
-    playSkill: function() { this.tone(600, 'triangle', 0.1, 0.2); setTimeout(() => this.tone(800, 'triangle', 0.2, 0.1), 100); },
-    playError: function() { this.tone(150, 'sawtooth', 0.2, 0.2); },
-    playChaos: function() { [800, 400, 600, 200].forEach((f, i) => setTimeout(() => this.tone(f, 'sawtooth', 0.1, 0.1), i * 60)); },
-
-    // --- 胜利音效路由 ---
-    playWinEffect: function(type) {
-        if (type === 'lightning') this.playLightningSound();
-        else if (type === 'gold') this.playGoldSound();
-        else if (type === 'future') this.playFutureSound();
-        else this.playWin(); // default
-    },
-
-    // 1. 默认胜利 (保持经典)
-    playWin: function() { 
-        [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => this.tone(f, 'sine', 0.2, 0.4), i * 150)); 
-    },
-
-    // 2. 闪电音效 (重构：雷声轰鸣 + 尖锐电击)
-    playLightningSound: function() {
-        if (this.isMuted || !this.ctx) return;
-        
-        // 层1: 沉闷的雷声 (低频，长尾音)
-        // 持续 2.5秒，初始频率 180Hz 下潜
-        this.playExplosion(2.5, 180);
-        
-        // 层2: 撕裂空气的脆响 (高频，极短)
-        // 持续 0.2秒，初始频率 4000Hz 急速下潜
-        this.playExplosion(0.2, 4000);
-
-        // 层3: 电流乱窜的滋滋声 (快速锯齿波序列)
-        const now = this.ctx.currentTime;
-        const volume = 0.15 * this.sfxVolume;
-        
-        // 快速播放 5 个随机音高，模拟电流跳动
-        [0, 0.05, 0.1, 0.15, 0.2].forEach(offset => {
-            const freq = 1000 + Math.random() * 2000; // 1000~3000Hz 随机
-            const o = this.ctx.createOscillator();
-            const g = this.ctx.createGain();
-            
-            o.type = 'sawtooth';
-            o.frequency.setValueAtTime(freq, now + offset);
-            // 瞬间滑音
-            o.frequency.exponentialRampToValueAtTime(freq / 2, now + offset + 0.05);
-            
-            g.gain.setValueAtTime(volume, now + offset);
-            g.gain.exponentialRampToValueAtTime(0.01, now + offset + 0.05);
-            
-            o.connect(g);
-            g.connect(this.ctx.destination);
-            o.start(now + offset);
-            o.stop(now + offset + 0.05);
-        });
-    },
-
-    // 3. 黄金音效 (清脆的高频琶音)
-    playGoldSound: function() {
-        if (this.isMuted || !this.ctx) return;
-        const notes = [1046.50, 1318.51, 1567.98, 2093.00, 2637.02]; // C6, E6, G6, C7, E7
-        notes.forEach((f, i) => {
-            setTimeout(() => {
-                this.playNote(f, 0.3, 'sine', 0.2 * this.sfxVolume, 0.01, 0.4);
-                // 叠加一点点三角波增加质感
-                this.playNote(f * 2, 0.1, 'triangle', 0.05 * this.sfxVolume, 0.01, 0.1);
-            }, i * 60);
-        });
-    },
-
-    // 4. 未来音效 (频率滑动的方波)
-    playFutureSound: function() {
-        if (this.isMuted || !this.ctx) return;
-        const o = this.ctx.createOscillator();
-        const g = this.ctx.createGain();
-        const now = this.ctx.currentTime;
-        
-        o.type = 'square';
-        o.frequency.setValueAtTime(220, now);
-        // 频率快速爬升再回落 (Laser/Powerup effect)
-        o.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
-        o.frequency.exponentialRampToValueAtTime(440, now + 0.4);
-        
-        g.gain.setValueAtTime(0, now);
-        g.gain.linearRampToValueAtTime(0.2 * this.sfxVolume, now + 0.05);
-        g.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-        
-        o.connect(g);
-        g.connect(this.ctx.destination);
-        o.start();
-        o.stop(now + 0.5);
-        
-        // 伴随一个底层的嗡嗡声
-        this.playNote(110, 0.5, 'sawtooth', 0.1 * this.sfxVolume, 0.1, 0.3);
-    },
-
-    playGrandWin: function() { 
-        [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => setTimeout(() => this.tone(f, 'square', 0.2, 0.4), i * 120)); 
-    },
-
-    switchTrack: function(track) {
-        if(this.currentTrack === track) return;
-        this.currentTrack = track;
-        if(this.isPlaying && !this.isMuted) {
+    switchTrack: function(trackName) {
+        if (this.currentTrack === trackName) return;
+        this.currentTrack = trackName;
+        if (this.isPlaying && !this.isMuted) {
             this.stopBGM();
             this.startBGM();
         }
     },
 
+    // --- 基础合成器 ---
+    playNote: function(freq, duration, type, volume, attack=0.01, release=0.1, detune=0) {
+        if (this.isMuted || !this.ctx || volume <= 0) return;
+        try {
+            const o = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            const now = this.ctx.currentTime;
+            
+            o.type = type;
+            o.frequency.setValueAtTime(freq, now);
+            if (detune !== 0) o.detune.setValueAtTime(detune, now);
+            
+            g.gain.setValueAtTime(0, now);
+            g.gain.linearRampToValueAtTime(volume, now + attack); 
+            g.gain.exponentialRampToValueAtTime(0.001, now + duration + release); 
+            
+            o.connect(g);
+            g.connect(this.ctx.destination);
+            o.start();
+            o.stop(now + duration + release + 0.1);
+            return o; 
+        } catch(e) { console.warn("Audio Play Error:", e); }
+    },
+
+    playNoise: function(duration, volume, filterType='lowpass', filterFreq=1000) {
+        if (this.isMuted || !this.ctx) return;
+        try {
+            const bufferSize = this.ctx.sampleRate * 2; 
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = filterType;
+            filter.frequency.setValueAtTime(filterFreq, this.ctx.currentTime);
+            const gain = this.ctx.createGain();
+            gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+            noise.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
+            noise.start(); noise.stop(this.ctx.currentTime + duration + 0.1);
+            return { noise, filter, gain };
+        } catch(e) { console.warn("Noise Error:", e); }
+    },
+
+    tone: function(freq, type, dur, vol) {
+        this.playNote(freq, dur, type, vol * this.sfxVolume);
+    },
+
+    // =========================================
+    // UI 交互音效 (关键修复)
+    // =========================================
+    playPlace: function() { this.tone(800, 'sine', 0.1, 0.3); },
+    playError: function() { this.tone(150, 'sawtooth', 0.2, 0.2); },
+    playSkill: function() { 
+        this.tone(600, 'triangle', 0.1, 0.2); 
+        setTimeout(() => this.tone(800, 'triangle', 0.2, 0.1), 100); 
+    },
+    playChaos: function() { 
+        [800, 400, 600, 200].forEach((f, i) => setTimeout(() => this.tone(f, 'sawtooth', 0.1, 0.1), i * 60)); 
+    },
+
+    // =========================================
+    // 🥁 DJ 节奏游戏逻辑
+    // =========================================
+
+    startRhythmGame: function() {
+        if (this.isMuted || !this.ctx) return;
+        this.stopBGM();
+        this.rhythm.active = true;
+        this.rhythm.phase = 'challenge';
+        this.rhythm.startTime = this.ctx.currentTime + 0.5;
+        this.rhythm.currentNoteIdx = 0;
+        this.rhythm.userMissed = false;
+        
+        // 生成谱面
+        this.rhythm.notes = [];
+        for(let i=0; i<16; i++) {
+            this.rhythm.notes.push(this.rhythm.startTime + i * this.rhythm.beatDuration);
+        }
+        this.scheduleLoop();
+    },
+
+    stopRhythmGame: function() {
+        this.rhythm.active = false;
+        this.rhythm.phase = 'idle';
+        clearTimeout(this.rhythm.timerID);
+    },
+
+    scheduleLoop: function() {
+        if (!this.rhythm.active) return;
+        const now = this.ctx.currentTime;
+        
+        if (this.rhythm.phase === 'challenge') {
+            const lastNoteTime = this.rhythm.notes[this.rhythm.notes.length-1];
+            if (now > lastNoteTime + 1.0 && !this.rhythm.userMissed) {
+                this.triggerPartyMode();
+                return;
+            }
+        } 
+        else if (this.rhythm.phase === 'party') {
+            this.playPartyLoop();
+        }
+        
+        this.rhythm.timerID = setTimeout(() => this.scheduleLoop(), 50);
+    },
+
+    checkRhythmHit: function() {
+        if (!this.rhythm.active || this.rhythm.phase !== 'challenge') return 'ignore';
+        
+        const now = this.ctx.currentTime;
+        let closestDist = Infinity;
+        
+        for(let i=0; i<this.rhythm.notes.length; i++) {
+            const diff = this.rhythm.notes[i] - now;
+            if (Math.abs(diff) < Math.abs(closestDist)) closestDist = diff;
+        }
+        
+        if (Math.abs(closestDist) < 0.18) {
+            return 'perfect';
+        } else {
+            this.triggerVoidMode();
+            return 'miss';
+        }
+    },
+    
+    triggerVoidMode: function() {
+        if (this.rhythm.phase === 'void') return;
+        this.rhythm.phase = 'void';
+        this.rhythm.userMissed = true;
+        this.playFailSound();
+    },
+
+    triggerPartyMode: function() {
+        if (this.rhythm.phase === 'party') return;
+        this.rhythm.phase = 'party';
+        this.playNote(880, 0.5, 'sine', 0.5, 0.01, 0.5); 
+        this.playPartyLoop();
+    },
+
+    playKick: function() {
+        if (this.isMuted) return;
+        const t = this.ctx.currentTime;
+        const o = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        o.frequency.setValueAtTime(150, t);
+        o.frequency.exponentialRampToValueAtTime(0.01, t + 0.3);
+        g.gain.setValueAtTime(1.0 * this.sfxVolume, t);
+        g.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+        o.connect(g); g.connect(this.ctx.destination);
+        o.start(t); o.stop(t + 0.3);
+        this.playNoise(0.05, 0.2 * this.sfxVolume, 'highpass', 5000);
+    },
+
+    playFailSound: function() {
+        if (this.isMuted) return;
+        const t = this.ctx.currentTime;
+        const o = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(200, t);
+        o.frequency.linearRampToValueAtTime(20, t + 1.5);
+        g.gain.setValueAtTime(0.5 * this.sfxVolume, t);
+        g.gain.linearRampToValueAtTime(0, t + 1.5);
+        o.connect(g); g.connect(this.ctx.destination);
+        o.start(t); o.stop(t + 1.6);
+    },
+
+    partyStep: 0,
+    playPartyLoop: function() {
+        if (!this.rhythm.active || this.rhythm.phase !== 'party') return;
+        const beatTime = 60 / 128; 
+        this.playKick(); 
+        const bassFreq = [110, 110, 146, 130][this.partyStep % 4];
+        this.playNote(bassFreq, 0.2, 'square', 0.2 * this.musicVolume, 0.01, 0.1);
+        if (this.partyStep % 2 === 0) {
+             const melody = [440, 523, 659, 784, 880, 784, 659, 523];
+             const note = melody[Math.floor(Math.random() * melody.length)];
+             this.playNote(note * 2, 0.1, 'sine', 0.1 * this.musicVolume, 0.01, 0.1);
+        }
+        this.partyStep++;
+        if (this.rhythm.phase === 'party') {
+            this.rhythm.timerID = setTimeout(() => this.playPartyLoop(), beatTime * 1000);
+        }
+    },
+
+    // 胜利音效路由
+    playWinEffect: function(type) {
+        if (type === 'lightning') this.playLightningSound();
+        else if (type === 'gold') this.playGoldSound();
+        else if (type === 'future') this.playFutureSound();
+        else if (type === 'dj') { }
+        else this.playWin(); 
+    },
+
+    playWin: function() { 
+        [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => this.tone(f, 'sine', 0.2, 0.4), i * 150)); 
+    },
+    
+    playDefeat: function() { 
+        this.playNote(150, 1.0, 'sawtooth', 0.5 * this.sfxVolume);
+        setTimeout(() => this.playNote(100, 1.5, 'sawtooth', 0.4 * this.sfxVolume), 600);
+    },
+
+    playFireworkLaunch: function() {
+        this.playNote(200, 0.5, 'sine', 0.1 * this.sfxVolume, 0.01, 0.5, 400); 
+    },
+    
+    playFireworkBlast: function(pitchVar) {
+        this.playNoise(0.4, 0.8 * this.sfxVolume, 'lowpass', 200 + pitchVar * 200);
+    },
+
+    playLightningSound: function() { this.playExplosion(2.5, 180); },
+    playGoldSound: function() { [1046, 1318].forEach((f,i)=>setTimeout(()=>this.playNote(f, 0.3, 'sine', 0.2, 0.01, 0.4), i*60)); },
+    playFutureSound: function() { this.playNote(220, 0.5, 'square', 0.2, 0.05, 0.4); },
+    playGrandWin: function() { [523, 659, 784].forEach((f, i) => setTimeout(() => this.tone(f, 'square', 0.2, 0.4), i * 120)); },
+    
+    playExplosion: function(d=2.5, f=180) { 
+        this.playNoise(d, this.sfxVolume, 'lowpass', f); 
+    },
+
     startBGM: function() { 
         if(this.isMuted || this.isPlaying) return; 
         this.isPlaying = true; 
-        if (this.currentTrack === 'bomb') this.playBombLoop();
-        else if (this.currentTrack === 'origin') this.playOriginLoop();
-        else this.playMp3Loop();
+        if (this.currentTrack === 'bomb') this.playBombLoop(); 
+        else if (this.currentTrack === 'origin') this.playOriginLoop(); 
+        else this.playMp3Loop(); 
     },
-
+    
     stopBGM: function() { 
         this.isPlaying = false; 
         clearTimeout(this.bgmTimeout); 
-        if (this.mp3Audio) { this.mp3Audio.pause(); this.mp3Audio = null; }
+        if (this.mp3Audio) { this.mp3Audio.pause(); this.mp3Audio = null; } 
     },
-
-    playOriginLoop: function() {
-        if(!this.isPlaying || this.currentTrack !== 'origin') return;
-        const scale = [261.63, 293.66, 329.63, 392.00, 440.00]; 
-        const f = scale[Math.floor(Math.random() * scale.length)];
-        const d = 2 + Math.random();
-        if (this.ctx) this.playNote(f, d, 'sine', 0.03 * this.musicVolume, 0.5, 2.0);
-        this.bgmTimeout = setTimeout(() => this.playOriginLoop(), d * 800);
+    
+    playAmbient: function() { 
+        if (this.isMuted) return; 
+        if (!this.ambientAudio) { this.ambientAudio = new Audio('bgs1.mp3'); this.ambientAudio.loop = true; } 
+        this.ambientAudio.volume = this.ambientVolume; 
+        if (this.ambientAudio.paused) { this.ambientAudio.play().catch(e => {}); } 
     },
-
-    playMp3Loop: function() {
-        if (!this.mp3Audio) {
-            let filename = 'bgm1.mp3'; 
-            if (this.currentTrack === 'bgm1') filename = 'bgm1.mp3';
-            else if (this.currentTrack === 'bgm2') filename = 'bgm2.mp3';
-            else if (this.currentTrack === 'bgm3') filename = 'bgm3.mp3';
-            else if (this.currentTrack === 'bgm4') filename = 'bgm4.mp3';
-            
-            this.mp3Audio = new Audio(filename); 
-            this.mp3Audio.loop = true;
+    
+    stopAmbient: function() { 
+        if (this.ambientAudio) { this.ambientAudio.pause(); } 
+    },
+    
+    playOriginLoop: function() { 
+        if(!this.isPlaying || this.currentTrack !== 'origin') return; 
+        const f = [261,293,329,392,440][Math.floor(Math.random()*5)]; 
+        this.playNote(f, 2, 'sine', 0.03*this.musicVolume, 0.5, 2); 
+        this.bgmTimeout = setTimeout(()=>this.playOriginLoop(), 2000); 
+    },
+    
+    playMp3Loop: function() { 
+        if(!this.mp3Audio) { 
+            const map = { 'bgm1': 'bgm1.mp3', 'bgm2': 'bgm2.mp3', 'bgm3': 'bgm3.mp3', 'bgm4': 'bgm4.mp3' };
+            const src = map[this.currentTrack] || 'bgm1.mp3';
+            this.mp3Audio = new Audio(src); 
+            this.mp3Audio.loop=true; 
             this.mp3Audio.volume = this.musicVolume;
-        }
-        this.mp3Audio.play().catch(e => console.log("Waiting for interaction", e));
+        } 
+        this.mp3Audio.play().catch(e=>{}); 
     },
-
-    bombStep: 0,
-    playBombLoop: function() {
-        if(!this.isPlaying || this.currentTrack !== 'bomb') return;
-        
-        let stepTime = 1000; 
-        
-        if (!this.isCritical) {
-            this.playNote(800, 0.05, 'square', 0.05 * this.musicVolume, 0.01, 0.05);
-            if (this.bombStep % 4 === 0) {
-                this.playStringPad(49.00, 2.5, 0.15 * this.musicVolume); 
-                this.playStringPad(73.42, 2.5, 0.10 * this.musicVolume);
-            }
-        } else {
-            stepTime = 500; 
-            this.playNote(1200, 0.05, 'square', 0.08 * this.musicVolume, 0.005, 0.02);
-            if (this.bombStep % 2 === 0) {
-                this.playStringPad(783.99, 0.4, 0.1 * this.musicVolume); 
-                this.playStringPad(1108.7, 0.4, 0.08 * this.musicVolume);
-                this.playNote(3000 + Math.random()*1000, 0.1, 'sawtooth', 0.03 * this.musicVolume, 0.01, 0.1);
-            }
-        }
-
-        this.bombStep++;
-        this.bgmTimeout = setTimeout(() => this.playBombLoop(), stepTime);
-    },
-
-    playAmbient: function() {
-        if (this.isMuted) return;
-        if (!this.ambientAudio) {
-            this.ambientAudio = new Audio('bgs1.mp3'); 
-            this.ambientAudio.loop = true;
-        }
-        this.ambientAudio.volume = this.ambientVolume;
-        if (this.ambientAudio.paused) {
-            this.ambientAudio.play().catch(e => console.log("Ambient play blocked/waiting", e));
-        }
-    },
-
-    stopAmbient: function() {
-        if (this.ambientAudio) {
-            this.ambientAudio.pause();
-        }
+    
+    playBombLoop: function() { 
+        if(!this.isPlaying || this.currentTrack!=='bomb') return; 
+        this.playNote(800, 0.05, 'square', 0.05 * this.musicVolume, 0.01, 0.05); 
+        this.bgmTimeout = setTimeout(()=>this.playBombLoop(), 1000); 
     }
 };
