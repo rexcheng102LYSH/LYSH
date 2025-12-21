@@ -4,17 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>技能五子棋 - Alpha 0.7.7.9</title>
-    <link rel="stylesheet" href="style.css?v=alpha_0_7_7_9_master">
+    <link rel="stylesheet" href="style.css?v=alpha_0_7_7_9">
 </head>
 <body onclick="SoundEngine.init()">
 
-    <!-- 1. 背景层 -->
+    <!-- 背景 Canvas (最底层) -->
     <canvas id="bgCanvas"></canvas>
 
-    <!-- 2. 特效层：全屏唯一 Canvas，默认物理消失 -->
-    <canvas id="fxCanvas" class="fx-canvas-fullscreen" style="display: none;"></canvas>
+    <!-- [New] 特效 Canvas (全屏覆盖层) - 移出 board-wrapper -->
+    <canvas id="fxCanvas" class="fx-canvas-fullscreen"></canvas>
 
-    <!-- 3. UI 控制层 -->
     <div class="top-right-controls">
         <button class="icon-btn skin-btn" onclick="openSkinMenu()" title="Skin Menu">🎨</button>
         <button class="icon-btn lang-btn" onclick="toggleLanguage()" title="Language">简</button>
@@ -22,7 +21,8 @@
         <button class="icon-btn settings-btn" onclick="openSettings()" title="Settings">⚙️</button>
     </div>
 
-    <!-- 4. 屏幕容器 -->
+    <div id="fpsCounter" class="fps-counter">FPS: 60</div>
+
     <div id="mainMenu" class="screen active">
         <div class="glass-panel menu-panel">
             <h1 data-i18n="gameTitle">技能五子棋 <span style="font-size:0.5em">Alpha</span></h1>
@@ -30,9 +30,11 @@
                 <span data-i18n="subTitle">v0.7.7.9</span> 
                 <span class="version-tag">Alpha 0.7.7.9</span>
             </h2>
+            
             <button class="btn primary" onclick="showDifficultyScreen()" data-i18n="btnPvE">人机对战 (PvE)</button>
             <button class="btn secondary" onclick="startPvPFlow('single')" data-i18n="btnPvPSingle">双人单局 (PvP)</button>
             <button class="btn bo3-btn" onclick="startPvPFlow('bo3')" data-i18n="btnPvPBO3">三番战 (PvP BO3)</button>
+            
             <p style="margin-top:30px; font-size:0.8rem; color:#888; opacity:0.7;" data-i18n="hintSound">点击任意处开启沉浸音效</p>
         </div>
     </div>
@@ -53,16 +55,20 @@
         <div class="glass-panel menu-panel" style="max-width: 500px;">
             <h1 id="turnSelectTitle" data-i18n="titlePickSide">猜先 / 选边</h1>
             <h2 id="turnSelectDesc" data-i18n="descPickSide">请选择先手(执黑)或后手(执白)</h2>
+            
             <div class="turn-choice-container">
                 <div class="turn-card maple" onclick="handleTurnChoice(1)">
-                    <div class="icon"></div> 
+                    <div class="icon">
+                        </div> 
                     <h3 data-i18n="sideFirst">先手 (执黑)</h3>
                 </div>
                 <div class="turn-card sun" onclick="handleTurnChoice(2)">
-                    <div class="icon"></div>
+                    <div class="icon">
+                        </div>
                     <h3 data-i18n="sideSecond">后手 (执白)</h3>
                 </div>
             </div>
+
             <button class="btn secondary" onclick="goBackFromTurn()" style="margin-top:40px" data-i18n="btnBack">返回</button>
         </div>
     </div>
@@ -70,27 +76,34 @@
     <div id="skillSelectScreen" class="screen">
         <div class="glass-panel menu-panel" style="max-width: 600px; padding: 20px;">
             <h1 id="draftTitle" style="font-size: 1.8rem; margin-bottom: 20px;">Player 选技能</h1>
-            <div id="skillGrid" class="skill-grid"></div>
+            <div id="skillGrid" class="skill-grid">
+                </div>
         </div>
     </div>
 
     <div id="gameScreen" class="screen">
         <div class="top-bar">
             <div class="timer-pill" id="timer1">04:00</div>
+            
             <div class="status-pill" id="statusBar">
                 <div class="icon-wrapper" id="turnIcon"></div>
                 <span id="turnText">P1 Round</span>
             </div>
+            
             <div class="timer-pill" id="timer2">04:00</div>
         </div>
+
         <div id="diffTag" class="version-tag" style="background: rgba(0,0,0,0.5); margin-bottom: 10px; display:none;"></div>
         <div id="scoreBoard" class="score-board">P1 (0) : (0) P2</div>
+
         <div class="board-wrapper">
             <div id="board" class="board"></div>
-            <!-- [Removed] 旧 fxCanvas 彻底移除，禁止 ID 冲突 -->
+            <!-- [Old] fxCanvas removed from here -->
+            
             <div id="chaosCounter" class="counter-badge chaos"></div>
             <div id="shortBattleCounter" class="counter-badge short-battle"></div>
         </div>
+
         <div class="bottom-controls">
             <button class="btn secondary" onclick="undoMove()" data-i18n="btnUndo">悔棋</button>
             <button class="skill-btn" id="skillBtn" onclick="activateSkill()">
@@ -101,7 +114,6 @@
         </div>
     </div>
 
-    <!-- 弹窗层 -->
     <div id="winnerModal" class="modal">
         <div class="modal-content">
             <h1 id="winnerText" style="font-size: 2rem; margin-bottom: 20px;">Winner!</h1>
@@ -112,6 +124,7 @@
     <div id="settingsModal" class="modal">
         <div class="modal-content settings-content">
             <h2 data-i18n="titleSettings">系统设置</h2>
+            
             <div class="setting-item">
                 <label><span data-i18n="lblMusicVol">音乐音量</span> <span id="valMusic">50%</span></label>
                 <input type="range" id="sliderMusic" min="0" max="100" value="50" oninput="updateVolume('music', this.value)">
@@ -124,7 +137,9 @@
                 <label><span data-i18n="lblAmbientVol">环境音效</span> <span id="valAmbient">100%</span></label>
                 <input type="range" id="sliderAmbient" min="0" max="100" value="100" oninput="updateVolume('ambient', this.value)">
             </div>
+
             <div class="setting-divider"></div>
+
             <div class="setting-item">
                 <label data-i18n="lblMusicTrack">背景音乐</label>
                 <div class="capsule-selector">
@@ -135,6 +150,7 @@
                     <button class="capsule-opt" id="trackBgm4" onclick="changeTrack('bgm4')" data-i18n="trackBgm4">冬</button>
                 </div>
             </div>
+
             <div class="setting-item">
                 <label data-i18n="lblSeason">背景特效</label>
                 <div class="capsule-selector">
@@ -144,6 +160,7 @@
                     <button class="capsule-opt" id="seasonWinter" onclick="changeSeason('winter')" data-i18n="seasonWinter">冬雪</button>
                 </div>
             </div>
+
             <button class="btn primary" onclick="closeSettings()" style="margin-top:25px;" data-i18n="btnClose">关闭</button>
         </div>
     </div>
@@ -151,33 +168,44 @@
     <div id="skinModal" class="modal">
         <div class="modal-content">
             <h2 style="margin-top:0; margin-bottom:20px;">外观定制</h2>
+            
             <div class="skin-section-title">棋子样式</div>
             <div class="skin-selector">
                 <div class="skin-option active" id="skinClassic" onclick="changeSkin('classic')">
-                    <div class="skin-preview"><div class="classic-demo"></div></div>
+                    <div class="skin-preview">
+                        <div class="classic-demo"></div>
+                    </div>
                     <span>经典</span>
                 </div>
                 <div class="skin-option" id="skinNature" onclick="changeSkin('nature')">
                     <div class="skin-preview">
-                        <div class="nature-demo sun" style="width:100%;height:100%;background-image:url('images/sun.png');background-size:contain;background-repeat:no-repeat;background-position:center;"></div>
+                        <div class="nature-demo sun" style="
+                            width: 100%; height: 100%; 
+                            background-color: transparent;
+                            background-image: url('images/sun.png');
+                            background-size: contain; background-repeat: no-repeat; background-position: center;
+                        "></div>
                     </div> 
                     <span>自然</span>
                 </div>
             </div>
-            <div class="skin-section-title" style="margin-top:20px;" data-i18n="lblWinEffect">连珠特效</div>
-            <div class="capsule-selector">
+
+            <div class="skin-section-title" style="margin-top: 20px;" data-i18n="lblWinEffect">连珠特效</div>
+            <div class="capsule-selector win-effect-selector" style="flex-wrap: wrap; justify-content: center;">
                 <button class="capsule-opt effect-opt active" id="winDefault" onclick="changeWinEffect('default')" data-i18n="effDefault">默认</button>
                 <button class="capsule-opt effect-opt" id="winLightning" onclick="changeWinEffect('lightning')" data-i18n="effLightning">⚡ 闪电</button>
                 <button class="capsule-opt effect-opt" id="winGold" onclick="changeWinEffect('gold')" data-i18n="effGold">👑 金黄</button>
                 <button class="capsule-opt effect-opt" id="winFuture" onclick="changeWinEffect('future')" data-i18n="effFuture">🚀 未来</button>
             </div>
-            <div class="skin-section-title" style="margin-top:20px;" data-i18n="lblWinCelebration">胜利特效</div>
-            <div class="capsule-selector">
+
+            <div class="skin-section-title" style="margin-top: 20px;" data-i18n="lblWinCelebration">胜利特效</div>
+            <div class="capsule-selector celebration-selector" style="flex-wrap: wrap; justify-content: center;">
                 <button class="capsule-opt celebration-opt active" id="celDefault" onclick="changeWinCelebration('default')" data-i18n="effDefault">默认</button>
                 <button class="capsule-opt celebration-opt" id="celFireworks" onclick="changeWinCelebration('fireworks')" data-i18n="effFireworks">烟花</button>
                 <button class="capsule-opt celebration-opt" id="celChromatic" onclick="changeWinCelebration('chromatic')" data-i18n="effChromatic">炫彩</button>
                 <button class="capsule-opt celebration-opt" id="celDJ" onclick="changeWinCelebration('dj')" data-i18n="effDJ">DJ</button>
             </div>
+
             <button class="btn primary" onclick="closeSkinMenu()" style="margin-top:25px;" data-i18n="btnClose">关闭</button>
         </div>
     </div>
@@ -192,5 +220,6 @@
     <script src="fx.js?v=alpha_0_7_7_9"></script>
     <script src="game.js?v=alpha_0_7_7_9"></script>
     <script src="ai.js?v=alpha_0_7_7_9"></script>
+
 </body>
 </html>

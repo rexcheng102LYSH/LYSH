@@ -97,14 +97,11 @@ window.BackgroundEngine = {
     },
 
     start: function() {
-        if (!this.animationId) this.loop();
+        // 由 FrameRateController 統一管理，不再自己調用 loop
     },
 
     stop: function() {
-        if (this.animationId) {
-            cancelAnimationFrame(this.animationId);
-            this.animationId = null;
-        }
+        // 由 FrameRateController 統一管理
     },
 
     loop: function() {
@@ -136,8 +133,8 @@ window.BackgroundEngine = {
             this.updateWinterSnow();
             this.drawWinterSnow();
         }
-
-        this.animationId = requestAnimationFrame(() => this.loop());
+        
+        // 移除 requestAnimationFrame 調用，由 FrameRateController 統一管理
     },
 
     // =========================================

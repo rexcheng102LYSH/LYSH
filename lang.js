@@ -3,7 +3,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "v0.7.9", 
+        subTitle: "v0.7.7.9", 
         btnPvE: "人機對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 

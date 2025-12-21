@@ -32,23 +32,23 @@ body {
     background: linear-gradient(to bottom, #fffefb 0%, #f0f4f8 100%);
 }
 
-/* [Critical Fix] 全屏特效层 */
-/* 默认不显示，完全不占用点击区域 */
+/* [New] 全屏特效层样式 */
 .fx-canvas-fullscreen {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: 500; 
-    display: none; 
-    pointer-events: none; /* 默认穿透，JS 会在 DJ 模式下改为 auto */
+    pointer-events: none; /* 关键：点击穿透，让用户能点到下面的按钮 */
+    z-index: 9999; /* 极高的层级，确保覆盖所有 UI */
 }
+
+/* 原 .fx-canvas 样式已不再使用，可作为历史遗留参考或删除 */
+/* .fx-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20; } */
 
 .top-right-controls {
     position: fixed; top: 20px; right: 20px;
-    display: flex; gap: 12px; 
-    z-index: 1000; 
+    display: flex; gap: 12px; z-index: 1000;
 }
 .icon-btn {
     width: 44px; height: 44px; border-radius: 50%; border: none;
@@ -62,6 +62,22 @@ body {
 }
 .icon-btn:hover { transform: scale(1.1); background: #fff; }
 .icon-btn:active { transform: scale(0.95); }
+
+/* FPS 計數器 - 低調風格 */
+.fps-counter {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    color: rgba(0, 255, 0, 0.5);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: normal;
+    z-index: 10000;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
 
 .screen { 
     position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
@@ -96,25 +112,13 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 .btn.secondary { background: rgba(255,255,255,0.6); color: #555; }
 .btn.bo3-btn { background: linear-gradient(135deg, #fbc02d, #ff9f43); color: white; border: none; box-shadow: 0 8px 20px rgba(251, 192, 45, 0.3); }
 
-/* [Fix] 弹窗层级保护 */
-.modal { 
-    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-    background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); 
-    justify-content: center; align-items: center; 
-    z-index: 9999; 
-    pointer-events: auto !important; /* 强制弹窗内部可点击 */
-}
-.modal-content { 
-    background: #fff; padding: 30px; border-radius: 28px; width: 85%; max-width: 380px; 
-    text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.25); 
-    pointer-events: auto !important;
-}
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); justify-content: center; align-items: center; z-index: 9999; }
+.modal-content { background: #fff; padding: 30px; border-radius: 28px; width: 85%; max-width: 380px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
 
-/* 胜利弹窗：背景透明，但内容必须可点 */
 #winnerModal {
     background: rgba(0, 0, 0, 0.05);
     backdrop-filter: none;
-    pointer-events: auto !important;
+    pointer-events: auto;
 }
 #winnerModal .modal-content {
     box-shadow: 0 20px 80px rgba(0,0,0,0.4);
@@ -225,6 +229,8 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .cell::before { content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: var(--line-ink); z-index: 0; }
 .cell::after { content: ''; position: absolute; left: 50%; top: 0; height: 100%; width: 1px; background: var(--line-ink); z-index: 0; }
 .cell[data-star="true"] .dot { width: 18%; height: 18%; background: var(--line-ink); border-radius: 50%; position: absolute; z-index: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+
+/* 原 .fx-canvas 样式已删除 */
 
 .piece { width: 88%; height: 88%; z-index: 2; pointer-events: none; border-radius: 50%; display: flex; justify-content: center; align-items: center; animation: drop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 .piece-svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 3px 3px rgba(0,0,0,0.25)); }
