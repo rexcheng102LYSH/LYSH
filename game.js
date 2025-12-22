@@ -1,4 +1,7 @@
 // ================= 核心遊戲邏輯 (Core Game Logic) =================
+// [Alpha 0.7.8.2]
+// - DJ 勝利特效完善：修復判定邏輯、MISS/PERFECT 顯示位置優化
+//
 // [Alpha 0.7.8.1 State Management Separation]
 // - 將 GameState 分離到 gamestate.js，減輕 game.js 負擔
 // - 專注於遊戲邏輯：棋盤渲染、回合管理、技能系統、勝負判定
@@ -897,7 +900,7 @@ function highlightWin(line, winner) {
         if (cell) cell.classList.add('win-highlight');
     });
     
-    // 延遲顯示結算界面 - DJ 模式也是正常延遲，不綁架玩家操作
+    // 延遲顯示結算界面，等待連珠特效播放完畢
     const delay = 2500;
     setTimeout(() => handleMatchEnd(winner), delay);
 }
@@ -921,6 +924,18 @@ function triggerExplosion() {
 function handleMatchEnd(winSide) {
     GameState.gameActive = false;
     gameActive = false; // 同步
+    
+    // 【修復】禁用技能按鈕和悔棋按鈕
+    const skillBtn = document.getElementById('skillBtn');
+    if (skillBtn) {
+        skillBtn.disabled = true;
+        skillBtn.style.pointerEvents = 'none';
+    }
+    const undoBtn = document.querySelector('[onclick="undoMove()"]');
+    if (undoBtn) {
+        undoBtn.disabled = true;
+        undoBtn.style.pointerEvents = 'none';
+    }
     
     // 清理所有計時器
     if (GameState.bombInterval) clearInterval(GameState.bombInterval);

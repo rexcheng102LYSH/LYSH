@@ -1,5 +1,5 @@
 /**
- * Project Lysh Visual Engine - Alpha 0.7.5 (Ambient Audio)
+ * Project Lysh Visual Engine - Alpha 0.7.8.2
  * * [新增特性] 环境音效联动
  * 1. 春季：调用 SoundEngine.playAmbient() 播放雨声。
  * 2. 夏/秋/冬：调用 SoundEngine.stopAmbient() 停止雨声。

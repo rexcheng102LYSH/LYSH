@@ -1,5 +1,5 @@
 // ================= 音频引擎 (Audio Engine) =================
-// [Alpha 0.7.7.9]
+// [Alpha 0.7.8.2]
 // - DJ 三階段系統：挑戰、失敗、勝利
 // - 實現 playKick (強勁底鼓) 與 playMiss (失誤音效)
 // - 內置挑戰旋律與勝利旋律
@@ -204,40 +204,64 @@ const SoundEngine = {
     // DJ 調度器
     djScheduler: function() {
         const dj = this.djGame;
-        if (!dj.active || dj.phase !== 'challenge') return;
+        
+        // 【修復】加強停止條件，防止無限遞歸
+        if (!dj || !dj.active || dj.phase !== 'challenge') {
+            if (dj && dj.schedulerID) {
+                clearTimeout(dj.schedulerID);
+                dj.schedulerID = null;
+            }
+            return;
+        }
         
         const currentTime = this.ctx.currentTime;
         const lookahead = 0.1;
         
-        // 檢查是否有節拍被錯過
+        // 【修復】檢查是否有節拍被錯過（延後 0.4 秒判定）
         dj.challengeBeats.forEach(beat => {
-            if (!beat.hit && !beat.missed && currentTime > beat.time + 0.15) {
+            if (!beat.hit && !beat.missed && currentTime > beat.time + 0.4) {
                 beat.missed = true;
                 dj.missedBeats++;
-                // 通知 fx.js 錯過了節拍
+                
+                // 【修復】先顯示 MISS，再觸發失敗
                 if (typeof window.djMissCallback === 'function') {
                     window.djMissCallback();
                 }
+                
+                // 延遲觸發失敗，讓 MISS 文字有時間顯示
+                setTimeout(() => {
+                    clearTimeout(dj.schedulerID);
+                    this.startDJFailure();
+                }, 100);
+                
+                return;
             }
         });
         
         // 播放背景節奏音符
-        while (dj.nextNoteTime < currentTime + lookahead) {
+        // 【修復】添加安全計數器，防止無限循環
+        let loopCount = 0;
+        const maxLoops = 100;
+        while (dj.nextNoteTime < currentTime + lookahead && loopCount < maxLoops) {
             this.playBackgroundBeat(dj.nextNoteTime, dj.noteIndex);
             dj.nextNoteTime += dj.beatDuration;
             dj.noteIndex++;
+            loopCount++;
         }
         
-        // 檢查挑戰是否結束
-        const allBeatsProcessed = dj.challengeBeats.every(b => b.hit || b.missed);
-        if (allBeatsProcessed) {
+        // 如果達到最大循環次數，記錄錯誤並停止
+        if (loopCount >= maxLoops) {
+            console.error('[DJ] djScheduler while 循環異常，強制停止');
+            this.stopDJGame();
+            return;
+        }
+        
+        // 檢查挑戰是否成功完成（所有節拍都被擊中）
+        const allBeatsHit = dj.challengeBeats.every(b => b.hit);
+        if (allBeatsHit) {
             clearTimeout(dj.schedulerID);
-            // 判定成功或失敗
-            if (dj.missedBeats === 0) {
-                this.startDJVictory();
-            } else {
-                this.startDJFailure();
-            }
+            // 全部擊中，進入勝利階段
+            this.startDJVictory();
             return;
         }
         
@@ -247,27 +271,72 @@ const SoundEngine = {
     // 玩家擊鼓判定
     djPlayerHit: function() {
         const dj = this.djGame;
-        if (!dj.active || dj.phase !== 'challenge') return false;
+        if (!dj.active || dj.phase !== 'challenge') {
+            console.log('[DJ判定] 遊戲未激活或不在挑戰階段');
+            return false;
+        }
         
         const currentTime = this.ctx.currentTime;
-        const hitWindow = 0.15; // 150ms 判定窗口
+        const hitWindow = 0.4; // 【翻倍】前後各 400ms 判定窗口
+        
+        console.log('[DJ判定] 點擊時間:', currentTime.toFixed(3));
         
         // 尋找最近的未擊中節拍
+        let nearestBeat = null;
+        let nearestDiff = Infinity;
+        
         for (let beat of dj.challengeBeats) {
             if (!beat.hit && !beat.missed) {
                 const timeDiff = Math.abs(currentTime - beat.time);
-                if (timeDiff < hitWindow) {
-                    beat.hit = true;
-                    dj.hitBeats++;
-                    this.playKick(); // 完美擊鼓音效
-                    return true; // 成功擊中
+                console.log('[DJ判定] 節拍時間:', beat.time.toFixed(3), '差距:', timeDiff.toFixed(3));
+                if (timeDiff < nearestDiff) {
+                    nearestDiff = timeDiff;
+                    nearestBeat = beat;
                 }
             }
         }
         
-        // 提前擊鼓或錯過時機
+        // 如果沒有節拍接近，算提前點擊 = MISS
+        if (!nearestBeat) {
+            console.log('[DJ判定] ❌ 沒有節拍接近 → MISS');
+            this.playMiss();
+            dj.missedBeats++;
+            
+            if (typeof window.djMissCallback === 'function') {
+                window.djMissCallback();
+            }
+            
+            clearTimeout(dj.schedulerID);
+            this.startDJFailure();
+            return false;
+        }
+        
+        // 計算相對時間（負數 = 提前，正數 = 延遲）
+        const timeDiff = currentTime - nearestBeat.time;
+        
+        console.log('[DJ判定] 最近節拍:', nearestBeat.time.toFixed(3), '相對時間:', timeDiff.toFixed(3), '判定窗口:', hitWindow);
+        
+        // 判定窗口：前後各 400ms
+        if (Math.abs(timeDiff) <= hitWindow) {
+            // 成功擊中！
+            console.log('[DJ判定] ✅ 成功擊中！');
+            nearestBeat.hit = true;
+            dj.hitBeats++;
+            this.playKick();
+            return true;
+        }
+        
+        // 超出判定窗口 = MISS
+        console.log('[DJ判定] ❌ 超出判定窗口 → MISS');
         this.playMiss();
         dj.missedBeats++;
+        
+        if (typeof window.djMissCallback === 'function') {
+            window.djMissCallback();
+        }
+        
+        clearTimeout(dj.schedulerID);
+        this.startDJFailure();
         return false;
     },
     
@@ -336,10 +405,36 @@ const SoundEngine = {
         dj.phase = 'fail';
         dj.active = false;
         
-        // 播放失敗音效
-        this.playDefeat();
+        // 【修復】播放明顯的失敗音效
+        // 低沉的下降音階 + 不和諧音
+        const now = this.ctx.currentTime;
         
-        // 通知 fx.js 進入失敗狀態
+        // 第1層：下降音階（C -> G -> C低八度）
+        this.playNote(261.63, 0.3, 'sawtooth', 0.4 * this.musicVolume, 0.05, 0.2, now);
+        this.playNote(196.00, 0.3, 'sawtooth', 0.4 * this.musicVolume, 0.05, 0.2, now + 0.15);
+        this.playNote(130.81, 0.6, 'sawtooth', 0.5 * this.musicVolume, 0.1, 0.4, now + 0.3);
+        
+        // 第2層：不和諧的噪音
+        const bufferSize = this.ctx.sampleRate * 0.5;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / bufferSize * 3);
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(400, now);
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.2 * this.musicVolume, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start(now);
+        
+        // 通知 fx.js 進入失敗階段
         if (typeof window.djFailCallback === 'function') {
             window.djFailCallback();
         }
@@ -416,10 +511,29 @@ const SoundEngine = {
     // 停止 DJ 遊戲
     stopDJGame: function() {
         const dj = this.djGame;
+        if (!dj) return;
+        
+        // 【修復】更徹底的清理
         dj.active = false;
         dj.phase = 'idle';
-        clearTimeout(dj.schedulerID);
-        clearInterval(dj.autoKickInterval);
+        
+        // 清理所有計時器
+        if (dj.schedulerID) {
+            clearTimeout(dj.schedulerID);
+            dj.schedulerID = null;
+        }
+        if (dj.autoKickInterval) {
+            clearInterval(dj.autoKickInterval);
+            dj.autoKickInterval = null;
+        }
+        
+        // 重置所有狀態
+        dj.challengeBeats = [];
+        dj.missedBeats = 0;
+        dj.nextNoteTime = 0;
+        dj.noteIndex = 0;
+        
+        console.log('[DJ] DJ 遊戲已完全停止');
     },
 
     // =========================================

@@ -118,11 +118,12 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 #winnerModal {
     background: rgba(0, 0, 0, 0.05);
     backdrop-filter: none;
-    pointer-events: auto;
+    pointer-events: none; /* 背景點擊穿透 */
 }
 #winnerModal .modal-content {
     box-shadow: 0 20px 80px rgba(0,0,0,0.4);
     border: 1px solid rgba(255,255,255,0.8);
+    pointer-events: auto; /* 只有內容卡片可以點擊 */
     background: rgba(255, 255, 255, 0.95);
 }
 

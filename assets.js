@@ -1,6 +1,6 @@
 /**
  * assets.js - The Arsenal (Visual Assets Repository)
- * Version: Alpha 0.7.7.7 (Image Support Upgrade)
+ * Version: Alpha 0.7.8.2
  * * 职责：存储静态美术资源。
  * * 更新：支持 PNG 图片路径引用 (type: 'image')。
  */
