@@ -1,10 +1,18 @@
-// ================= 全局变量 =================/
+// ================= 核心遊戲邏輯 (Core Game Logic) =================
+// [Alpha 0.7.8.1 State Management Separation]
+// - 將 GameState 分離到 gamestate.js，減輕 game.js 負擔
+// - 專注於遊戲邏輯：棋盤渲染、回合管理、技能系統、勝負判定
+//
+// [Alpha 0.7.8.0 State Management Refactoring]
+// - 引入集中式 GameState 對象，統一管理所有遊戲狀態
+// - 提供 resetGame()、createSnapshot()、restoreSnapshot() 等狀態管理方法
+// - 完全向後兼容，保留舊的全局變量引用
+// - 為未來的存檔/讀檔、回放、統計等功能打下基礎
+//
 // [Alpha 0.7.7.9 Final Release]
 // - 整合 DJ 节奏游戏：在 updateWinCelebrationUI 中恢复 DJ 选项，并在 highlightWin 中正确触发
 // - 优化胜负逻辑：PvE 败北时播放 playDefeat() 并静默特效；胜利时根据选项触发 VisualFX
 // - 强化状态管理：enterTurnSelection 和 initGame 强制清除特效，防止残留
-
-const BOARD_SIZE = 15, EMPTY = 0, MAPLE = 1, SUN = 2, CORRODED = -1;
 
 function getIcon(player) {
     if (typeof PIECE_ICONS === 'undefined') return (player === MAPLE ? 'B' : 'W');
@@ -24,35 +32,43 @@ function getIcon(player) {
     return '?';
 }
 
-const SKILL_IDS = ['double','voodoo','move_self','move_enemy','zone','bomb','god_hand','chaos','short_battle','swap'];
-
-let board = [], currentPlayer = MAPLE, gameMode = 'pvp', aiDifficulty = 'medium', gameActive = false;
-let isBO3 = false, p1Score = 0, p2Score = 0, playerSides = { [MAPLE]: 'p1', [SUN]: 'p2' }, chooser = 'p1', humanSide = MAPLE;
-let playerSkills = { [MAPLE]: null, [SUN]: null }, skillUsed = { [MAPLE]: false, [SUN]: false };
-let activeEffect = null, effectData = {}, territoryZones = [], isDoubleMoveActive = false;
-let chaosDebuff = { [MAPLE]: 0, [SUN]: 0 }, shortBattleTurns = 0;
-let bombActive = false, bombOwner = null, bombTime = 150, bombInterval = null;
-let timeRemaining = { [MAPLE]: 240, [SUN]: 240 }; 
-let gameTicker = null, aiTimer = null; 
-let historyStack = [];
-let selectedCell = null;
-let bombTarget = null; 
-let userMusicPref = 'origin';
-let currentSkin = 'classic';
-let winEffect = 'default'; 
-let winCelebration = 'default'; 
-let currentSeason = 'spring';
-
 // ================= 幀率控制系統 =================
 // 統一的主循環管理器，確保穩定的幀率
 const FrameRateController = {
-    targetFPS: 120,  // 目標幀率 120fps
-    frameTime: 1000 / 120,  // 每幀時間 (ms)
+    targetFPS: 60,  // 默認目標幀率 60fps（保護低配設備）
+    frameTime: 1000 / 60,  // 每幀時間 (ms)
     lastFrameTime: 0,
     animationId: null,
     
+    // 更新幀率限制
+    setFPSLimit: function(limit) {
+        // 先停止當前動畫循環
+        const wasRunning = this.animationId !== null;
+        if (wasRunning) {
+            this.stop();
+        }
+        
+        // 更新幀率參數
+        if (limit === 'unlimited') {
+            this.targetFPS = 999;  // 無限制模式
+            this.frameTime = 0;  // 不限制幀時間
+        } else {
+            this.targetFPS = 60;
+            this.frameTime = 1000 / 60;
+        }
+        
+        // 重置時間戳，避免 deltaTime 異常
+        this.lastFrameTime = performance.now();
+        
+        // 如果之前在運行，重新啟動
+        if (wasRunning) {
+            this.start();
+        }
+    },
+    
     init: function() {
         this.lastFrameTime = performance.now();
+        this.setFPSLimit(GameState.fpsLimit);  // 根據設置初始化
         this.start();
     },
     
@@ -61,9 +77,14 @@ const FrameRateController = {
         const loop = (now) => {
             const deltaTime = now - this.lastFrameTime;
             
-            // 只在達到目標幀時間時執行
+            // 只在達到目標幀時間時執行（無限制模式下 frameTime = 0，總是執行）
             if (deltaTime >= this.frameTime) {
-                this.lastFrameTime = now - (deltaTime % this.frameTime);
+                // 更新時間戳（無限制模式下直接使用當前時間）
+                if (this.frameTime > 0) {
+                    this.lastFrameTime = now - (deltaTime % this.frameTime);
+                } else {
+                    this.lastFrameTime = now;
+                }
                 
                 // 執行所有引擎的更新
                 if (typeof BackgroundEngine !== 'undefined' && BackgroundEngine.loop) {
@@ -120,7 +141,8 @@ function openSettings() {
     document.getElementById('sliderAmbient').value = SoundEngine.ambientVolume * 100;
     document.getElementById('valAmbient').innerText = Math.round(SoundEngine.ambientVolume * 100) + '%';
     updateTrackUI();
-    updateSeasonUI(); 
+    updateSeasonUI();
+    updateFPSUI();
 }
 function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
 
@@ -139,7 +161,8 @@ function closeSkinMenu() { document.getElementById('skinModal').style.display = 
 
 function changeSkin(skin) {
     SoundEngine.playPlace();
-    currentSkin = skin;
+    GameState.currentSkin = skin;
+    currentSkin = GameState.currentSkin; // 同步
     updateSkinUI();
     if (screens.turn.classList.contains('active')) {
         document.querySelector('.turn-card.maple .icon').innerHTML = getIcon(MAPLE);
@@ -149,13 +172,15 @@ function changeSkin(skin) {
 
 function changeWinEffect(effect) {
     SoundEngine.playPlace();
-    winEffect = effect;
+    GameState.winEffect = effect;
+    winEffect = GameState.winEffect; // 同步
     updateWinEffectUI();
 }
 
 function changeWinCelebration(type) {
     SoundEngine.playPlace();
-    winCelebration = type;
+    GameState.winCelebration = type;
+    winCelebration = GameState.winCelebration; // 同步
     updateWinCelebrationUI();
 }
 
@@ -202,8 +227,14 @@ function updateVolume(type, val) {
 }
 
 function changeTrack(track) { 
-    if (SoundEngine.currentTrack === 'bomb') { userMusicPref = track; updateTrackUI(); return; } 
-    userMusicPref = track; 
+    if (SoundEngine.currentTrack === 'bomb') { 
+        GameState.userMusicPref = track; 
+        userMusicPref = GameState.userMusicPref; // 同步
+        updateTrackUI(); 
+        return; 
+    } 
+    GameState.userMusicPref = track; 
+    userMusicPref = GameState.userMusicPref; // 同步
     SoundEngine.switchTrack(track); 
     updateTrackUI(); 
 }
@@ -225,7 +256,8 @@ function updateTrackUI() {
 
 function changeSeason(season) {
     SoundEngine.playPlace();
-    currentSeason = season;
+    GameState.currentSeason = season;
+    currentSeason = GameState.currentSeason; // 同步
     if (window.BackgroundEngine && typeof window.BackgroundEngine.switchSeason === 'function') {
         window.BackgroundEngine.switchSeason(season);
     }
@@ -242,9 +274,33 @@ function updateSeasonUI() {
     if (activeBtn) activeBtn.classList.add('active');
 }
 
+function changeFPSLimit(limit) {
+    SoundEngine.playPlace();
+    GameState.fpsLimit = limit;
+    fpsLimit = GameState.fpsLimit; // 同步
+    FrameRateController.setFPSLimit(limit);
+    updateFPSUI();
+}
+
+function updateFPSUI() {
+    document.querySelectorAll('.fps-opt').forEach(el => el.classList.remove('active'));
+    if (fpsLimit === '60') {
+        const el = document.getElementById('fps60');
+        if (el) el.classList.add('active');
+    } else {
+        const el = document.getElementById('fpsUnlimited');
+        if (el) el.classList.add('active');
+    }
+}
+
 function goToMenu() { 
-    gameActive=false; 
-    clearInterval(gameTicker); clearTimeout(aiTimer); 
+    GameState.gameActive = false;
+    gameActive = false; // 同步
+    
+    // 清理所有計時器
+    if (GameState.gameTicker) clearInterval(GameState.gameTicker);
+    if (GameState.aiTimer) clearTimeout(GameState.aiTimer);
+    if (GameState.bombInterval) clearInterval(GameState.bombInterval);
     
     // 不要停止 FrameRateController，讓背景動畫繼續運行
     
@@ -255,26 +311,74 @@ function goToMenu() {
 }
 function confirmExit() { if(confirm(t('confirmExit'))) goToMenu(); }
 function showDifficultyScreen() { SoundEngine.playPlace(); showScreen('diff'); }
-function startPvPFlow(subMode) { SoundEngine.playPlace(); isBO3 = (subMode === 'bo3'); p1Score = 0; p2Score = 0; chooser = 'p1'; updateScoreBoard(); enterTurnSelection('pvp', null); }
+function startPvPFlow(subMode) { 
+    SoundEngine.playPlace(); 
+    GameState.isBO3 = (subMode === 'bo3');
+    GameState.p1Score = 0;
+    GameState.p2Score = 0;
+    GameState.chooser = 'p1';
+    
+    // 同步向後兼容變量
+    isBO3 = GameState.isBO3;
+    p1Score = GameState.p1Score;
+    p2Score = GameState.p2Score;
+    chooser = GameState.chooser;
+    
+    updateScoreBoard(); 
+    enterTurnSelection('pvp', null); 
+}
 function enterTurnSelection(mode, diff) { 
     // [Fix] 进入新游戏流程前，强制清空上一局的特效
     if (typeof VisualFX !== 'undefined') VisualFX.clear();
     
-    SoundEngine.playPlace(); document.getElementById('winnerModal').style.display = 'none'; showScreen('turn'); gameMode = mode; aiDifficulty = diff; if (gameMode === 'pve') { isBO3 = false; } 
-    const tEl = document.getElementById('turnSelectTitle'), dEl = document.getElementById('turnSelectDesc'); updateStaticText(); 
-    if (isBO3 && (p1Score > 0 || p2Score > 0)) { tEl.innerText = t('titlePickSide'); dEl.innerText = `${t('descPickSideLoser')} (${chooser==='p1'?"P1":"P2"})`; } 
-    else { tEl.innerText = t('titlePickSide'); dEl.innerText = t('descPickSide'); } 
+    SoundEngine.playPlace(); 
+    document.getElementById('winnerModal').style.display = 'none'; 
+    showScreen('turn'); 
+    
+    GameState.gameMode = mode;
+    GameState.aiDifficulty = diff;
+    if (GameState.gameMode === 'pve') { 
+        GameState.isBO3 = false; 
+    }
+    
+    // 同步向後兼容變量
+    gameMode = GameState.gameMode;
+    aiDifficulty = GameState.aiDifficulty;
+    isBO3 = GameState.isBO3;
+    
+    const tEl = document.getElementById('turnSelectTitle'), dEl = document.getElementById('turnSelectDesc'); 
+    updateStaticText(); 
+    
+    if (GameState.isBO3 && (GameState.p1Score > 0 || GameState.p2Score > 0)) { 
+        tEl.innerText = t('titlePickSide'); 
+        dEl.innerText = `${t('descPickSideLoser')} (${GameState.chooser==='p1'?"P1":"P2"})`; 
+    } else { 
+        tEl.innerText = t('titlePickSide'); 
+        dEl.innerText = t('descPickSide'); 
+    } 
+    
     document.querySelector('.turn-card.maple .icon').innerHTML = getIcon(MAPLE);
     document.querySelector('.turn-card.sun .icon').innerHTML = getIcon(SUN);
 }
 function goBackFromTurn() { SoundEngine.playPlace(); if (gameMode === 'pve') { showScreen('diff'); } else { goToMenu(); } }
 function handleTurnChoice(c) { SoundEngine.playPlace(); if (gameMode === 'pve') { humanSide = (c === 1) ? MAPLE : SUN; enterDraftPhase(); } else { if (c === 1) { playerSides[MAPLE] = chooser; playerSides[SUN] = (chooser === 'p1' ? 'p2' : 'p1'); } else { playerSides[SUN] = chooser; playerSides[MAPLE] = (chooser === 'p1' ? 'p2' : 'p1'); } enterDraftPhase(); } }
 function enterDraftPhase() { 
-    document.getElementById('winnerModal').style.display = 'none'; showScreen('draft'); 
-    if (gameMode === 'pve') draftTurn = SUN; else draftTurn = SUN; 
-    playerSkills = { [MAPLE]: null, [SUN]: null }; renderSkillGrid(); updateDraftTitle(); SoundEngine.init(); 
+    document.getElementById('winnerModal').style.display = 'none'; 
+    showScreen('draft'); 
+    
+    if (GameState.gameMode === 'pve') GameState.draftTurn = SUN; 
+    else GameState.draftTurn = SUN; 
+    
+    GameState.playerSkills = { [MAPLE]: null, [SUN]: null };
+    
+    // 同步向後兼容變量
+    draftTurn = GameState.draftTurn;
+    playerSkills = GameState.playerSkills;
+    
+    renderSkillGrid(); 
+    updateDraftTitle(); 
+    SoundEngine.init(); 
 }
-let draftTurn = SUN;
 
 function renderSkillGrid() { 
     const g = document.getElementById('skillGrid'); 
@@ -299,62 +403,110 @@ function renderSkillGrid() {
 
 function updateDraftTitle() { 
     const tEl = document.getElementById('draftTitle'); 
-    let pickerName = t('names')[draftTurn]; 
-    if (gameMode === 'pve') { 
-        const isAITurn = (humanSide === MAPLE && draftTurn === SUN) || (humanSide === SUN && draftTurn === MAPLE); 
-        if (isAITurn) pickerName += " (AI)"; else pickerName += " (You)"; 
-        if (isAITurn) setTimeout(() => { const avail = SKILL_IDS.filter(s => !Object.values(playerSkills).includes(s)); pickSkill(avail[Math.floor(Math.random()*avail.length)]); }, 800); 
+    let pickerName = t('names')[GameState.draftTurn]; 
+    
+    if (GameState.gameMode === 'pve') { 
+        const isAITurn = (GameState.humanSide === MAPLE && GameState.draftTurn === SUN) || 
+                         (GameState.humanSide === SUN && GameState.draftTurn === MAPLE); 
+        if (isAITurn) pickerName += " (AI)"; 
+        else pickerName += " (You)"; 
+        
+        if (isAITurn) setTimeout(() => { 
+            const avail = SKILL_IDS.filter(s => !Object.values(GameState.playerSkills).includes(s)); 
+            pickSkill(avail[Math.floor(Math.random()*avail.length)]); 
+        }, 800); 
     } 
-    const iconHTML = `<span style="display:inline-block;width:32px;height:32px;vertical-align:bottom;">${getIcon(draftTurn)}</span>`;
+    
+    const iconHTML = `<span style="display:inline-block;width:32px;height:32px;vertical-align:bottom;">${getIcon(GameState.draftTurn)}</span>`;
     tEl.innerHTML = t('draftTitle').replace('{icon}', iconHTML).replace('{name}', pickerName); 
-    tEl.style.color = draftTurn === MAPLE ? '#333' : '#666'; 
+    tEl.style.color = GameState.draftTurn === MAPLE ? '#333' : '#666'; 
 }
-function pickSkill(id) { SoundEngine.playPlace(); playerSkills[draftTurn] = id; if (draftTurn === SUN) { draftTurn = MAPLE; renderSkillGrid(); updateDraftTitle(); } else initGame(); }
+function pickSkill(id) { 
+    SoundEngine.playPlace(); 
+    GameState.playerSkills[GameState.draftTurn] = id; 
+    
+    if (GameState.draftTurn === SUN) { 
+        GameState.draftTurn = MAPLE; 
+        draftTurn = GameState.draftTurn; // 同步
+        playerSkills = GameState.playerSkills; // 同步
+        renderSkillGrid(); 
+        updateDraftTitle(); 
+    } else {
+        playerSkills = GameState.playerSkills; // 同步
+        initGame(); 
+    }
+}
 
 function initGame() {
     showScreen('game'); 
-    board = Array(BOARD_SIZE).fill(0).map(()=>Array(BOARD_SIZE).fill(EMPTY)); 
-    currentPlayer = MAPLE; gameActive = true; 
-    historyStack = []; skillUsed = {[MAPLE]:false, [SUN]:false}; 
-    activeEffect = null; territoryZones = []; isDoubleMoveActive = false; 
-    chaosDebuff = {[MAPLE]:0, [SUN]:0}; shortBattleTurns = 0;
-    timeRemaining = { [MAPLE]: 240, [SUN]: 240 }; 
-    selectedCell = null; bombTarget = null; 
+    
+    // 使用 GameState 的重置方法，更清晰優雅
+    GameState.resetGame();
+    
+    // 同步向後兼容變量
+    board = GameState.board;
+    currentPlayer = GameState.currentPlayer;
+    gameActive = GameState.gameActive;
+    historyStack = GameState.historyStack;
+    skillUsed = GameState.skillUsed;
+    activeEffect = GameState.activeEffect;
+    territoryZones = GameState.territoryZones;
+    isDoubleMoveActive = GameState.isDoubleMoveActive;
+    chaosDebuff = GameState.chaosDebuff;
+    shortBattleTurns = GameState.shortBattleTurns;
+    timeRemaining = GameState.timeRemaining;
+    selectedCell = GameState.selectedCell;
+    bombTarget = GameState.bombTarget;
+    gameTicker = GameState.gameTicker;
+    aiTimer = GameState.aiTimer;
+    userMusicPref = GameState.userMusicPref; // 同步
     
     SoundEngine.setCritical(false);
-    SoundEngine.switchTrack(userMusicPref);
+    SoundEngine.switchTrack(GameState.userMusicPref);
     
     // [Fix] 双重保险：开局前清空任何可能残留的视觉特效
     if (typeof VisualFX !== 'undefined') VisualFX.clear();
     
     // FrameRateController 已經在頁面加載時啟動，不需要重複啟動
 
-    clearInterval(gameTicker); clearTimeout(aiTimer); 
     updateStaticText(); updateDynamicUI(); renderBoard();
 
-    gameTicker = setInterval(() => {
-        if(!gameActive) return;
-        timeRemaining[currentPlayer]--;
+    GameState.gameTicker = setInterval(() => {
+        if(!GameState.gameActive) return;
+        GameState.timeRemaining[GameState.currentPlayer]--;
+        timeRemaining = GameState.timeRemaining; // 同步
         
-        if (bombTarget !== null && currentPlayer === bombTarget) {
-            if (timeRemaining[currentPlayer] < 30) SoundEngine.setCritical(true);
+        if (GameState.bombTarget !== null && GameState.currentPlayer === GameState.bombTarget) {
+            if (GameState.timeRemaining[GameState.currentPlayer] < 30) SoundEngine.setCritical(true);
             else SoundEngine.setCritical(false);
         } else {
             SoundEngine.setCritical(false);
         }
 
         updateDynamicUI(); 
-        if(timeRemaining[currentPlayer] <= 0) { 
-            if (bombTarget === currentPlayer) triggerExplosion();
-            else { showToast(t('timeOut', 'toast')); handleMatchEnd(currentPlayer === MAPLE ? SUN : MAPLE); }
+        if(GameState.timeRemaining[GameState.currentPlayer] <= 0) { 
+            if (GameState.bombTarget === GameState.currentPlayer) triggerExplosion();
+            else { showToast(t('timeOut', 'toast')); handleMatchEnd(GameState.currentPlayer === MAPLE ? SUN : MAPLE); }
         }
     }, 1000);
+    gameTicker = GameState.gameTicker; // 同步
 
     document.getElementById('winnerModal').style.display = 'none'; 
     const dt = document.getElementById('diffTag'), sb = document.getElementById('scoreBoard');
-    if(gameMode === 'pve') { dt.style.display = 'inline-block'; sb.style.display = 'none'; dt.innerText = t('pveTag') + t('diff' + aiDifficulty.charAt(0).toUpperCase() + aiDifficulty.slice(1)); } else { dt.style.display = 'none'; sb.style.display = isBO3 ? 'block' : 'none'; updateScoreBoard(); }
+    if(GameState.gameMode === 'pve') { 
+        dt.style.display = 'inline-block'; 
+        sb.style.display = 'none'; 
+        dt.innerText = t('pveTag') + t('diff' + GameState.aiDifficulty.charAt(0).toUpperCase() + GameState.aiDifficulty.slice(1)); 
+    } else { 
+        dt.style.display = 'none'; 
+        sb.style.display = GameState.isBO3 ? 'block' : 'none'; 
+        updateScoreBoard(); 
+    }
     
-    if (gameMode === 'pve' && humanSide === SUN) { aiTimer = setTimeout(aiMove, 800); }
+    if (GameState.gameMode === 'pve' && GameState.humanSide === SUN) { 
+        GameState.aiTimer = setTimeout(aiMove, 800); 
+        aiTimer = GameState.aiTimer; // 同步
+    }
 }
 
 function updateScoreBoard() { document.getElementById('scoreBoard').innerText = `P1 (${p1Score}) : (${p2Score}) P2`; }
@@ -380,10 +532,27 @@ function getCell(r, c) { return document.getElementById(`c-${r}-${c}`); }
 
 function handleCellHover(r, c) {}
 
-function saveState() { historyStack.push({ board: JSON.parse(JSON.stringify(board)), currentPlayer: currentPlayer, skillUsed: JSON.parse(JSON.stringify(skillUsed)), territoryZones: JSON.parse(JSON.stringify(territoryZones)), chaosDebuff: JSON.parse(JSON.stringify(chaosDebuff)), shortBattleTurns: shortBattleTurns, timeRemaining: JSON.parse(JSON.stringify(timeRemaining)), bombTarget: bombTarget }); }
+function saveState() { 
+    // 使用 GameState 的快照方法，更優雅
+    const snapshot = GameState.createSnapshot();
+    GameState.historyStack.push(snapshot);
+    historyStack = GameState.historyStack; // 同步
+}
 
 function restoreState(state) { 
-    board = state.board; currentPlayer = state.currentPlayer; skillUsed = state.skillUsed; territoryZones = state.territoryZones; chaosDebuff = state.chaosDebuff; shortBattleTurns = state.shortBattleTurns; timeRemaining = state.timeRemaining; bombTarget = state.bombTarget; 
+    // 使用 GameState 的恢復方法
+    GameState.restoreSnapshot(state);
+    
+    // 同步向後兼容變量
+    board = GameState.board;
+    currentPlayer = GameState.currentPlayer;
+    skillUsed = GameState.skillUsed;
+    territoryZones = GameState.territoryZones;
+    chaosDebuff = GameState.chaosDebuff;
+    shortBattleTurns = GameState.shortBattleTurns;
+    timeRemaining = GameState.timeRemaining;
+    bombTarget = GameState.bombTarget;
+    
     SoundEngine.setCritical(false);
     if (typeof VisualFX !== 'undefined') VisualFX.clear();
     
@@ -396,7 +565,7 @@ function restoreState(state) {
         if(cell.getAttribute('data-star')==='true') { 
             const d=document.createElement('div'); d.className='dot'; cell.appendChild(d); 
         } 
-        const val = board[r][c]; 
+        const val = GameState.board[r][c]; 
         
         if (val === MAPLE || val === SUN) { 
             renderPieceInCell(cell, val);
@@ -409,7 +578,8 @@ function restoreState(state) {
 }
 
 function placePiece(r, c, p, m=false, chaos=false) { 
-    if(!m) board[r][c]=p; else board[r][c]=p; 
+    GameState.board[r][c] = p;
+    board[r][c] = p; // 同步
     const cell = getCell(r,c); 
     if(cell) { 
         renderPieceInCell(cell, p); 
@@ -442,14 +612,34 @@ function handleCellClick(r, c, bypassConfirm = false) {
     if (activeEffect) { handleSkillInteraction(r, c); return; }
     if (board[r][c] !== EMPTY) { SoundEngine.playError(); return; }
     if (isZoneRestricted(r, c, currentPlayer)) { showToast(t('errZone', 'toast')); SoundEngine.playError(); return; }
-    if (!bypassConfirm && !isDoubleMoveActive) { if (!selectedCell || selectedCell.r !== r || selectedCell.c !== c) { if(selectedCell) { const old = getCell(selectedCell.r, selectedCell.c); if(old) old.classList.remove('selected-move'); } selectedCell = {r, c}; const newCell = getCell(r, c); if(newCell) newCell.classList.add('selected-move'); SoundEngine.playPlace(); return; } else { const old = getCell(selectedCell.r, selectedCell.c); if(old) old.classList.remove('selected-move'); selectedCell = null; } }
+    if (!bypassConfirm && !isDoubleMoveActive) { 
+        if (!selectedCell || selectedCell.r !== r || selectedCell.c !== c) { 
+            if(selectedCell) { const old = getCell(selectedCell.r, selectedCell.c); if(old) old.classList.remove('selected-move'); } 
+            GameState.selectedCell = {r, c}; selectedCell = {r, c}; // 同步
+            const newCell = getCell(r, c); if(newCell) newCell.classList.add('selected-move'); SoundEngine.playPlace(); return; 
+        } else { 
+            const old = getCell(selectedCell.r, selectedCell.c); if(old) old.classList.remove('selected-move'); 
+            GameState.selectedCell = null; selectedCell = null; // 同步
+        } 
+    }
     if (!isDoubleMoveActive) saveState();
     let wasChaosed = false;
-    if (chaosDebuff[currentPlayer] > 0) { let candidates = []; for (let i = r-1; i <= r+1; i++) for (let j = c-1; j <= c+1; j++) if (isValid(i, j) && board[i][j] === EMPTY && !isZoneRestricted(i, j, currentPlayer)) candidates.push({r: i, c: j}); if (candidates.length > 0) { const pick = candidates[Math.floor(Math.random() * candidates.length)]; r = pick.r; c = pick.c; wasChaosed = true; } SoundEngine.playChaos(); showToast(t('chaosTrigger', 'toast')); chaosDebuff[currentPlayer]--; }
+    if (chaosDebuff[currentPlayer] > 0) { 
+        let candidates = []; 
+        for (let i = r-1; i <= r+1; i++) for (let j = c-1; j <= c+1; j++) if (isValid(i, j) && board[i][j] === EMPTY && !isZoneRestricted(i, j, currentPlayer)) candidates.push({r: i, c: j}); 
+        if (candidates.length > 0) { 
+            const pick = candidates[Math.floor(Math.random() * candidates.length)]; 
+            r = pick.r; c = pick.c; wasChaosed = true; 
+        } 
+        SoundEngine.playChaos(); showToast(t('chaosTrigger', 'toast')); 
+        GameState.chaosDebuff[currentPlayer]--; chaosDebuff[currentPlayer]--; // 同步
+    }
     placePiece(r, c, currentPlayer, false, wasChaosed);
-    if(selectedCell) { const old = getCell(selectedCell.r, selectedCell.c); if(old) old.classList.remove('selected-move'); selectedCell = null; }
+    if(selectedCell) { const old = getCell(selectedCell.r, selectedCell.c); if(old) old.classList.remove('selected-move'); GameState.selectedCell = null; selectedCell = null; // 同步
+    }
     if (isDoubleMoveActive) { 
-        isDoubleMoveActive = false; showToast(t('doubleNext', 'toast')); SoundEngine.playSkill(); 
+        GameState.isDoubleMoveActive = false; isDoubleMoveActive = false; // 同步
+        showToast(t('doubleNext', 'toast')); SoundEngine.playSkill(); 
         const winLine = checkWin(r, c, currentPlayer);
         if (winLine) highlightWin(winLine, currentPlayer);
         return; 
@@ -463,73 +653,218 @@ function checkWinAndSwitch(r, c, p) {
 }
 
 function switchTurn() {
-    territoryZones.forEach(z => { z.turns--; }); 
-    territoryZones = territoryZones.filter(z => z.turns > 0); 
+    // 更新領地狀態
+    GameState.territoryZones.forEach(z => { z.turns--; }); 
+    GameState.territoryZones = GameState.territoryZones.filter(z => z.turns > 0); 
+    territoryZones = GameState.territoryZones; // 同步
     
     updateTerritoriesUI();
-    if (shortBattleTurns > 0) shortBattleTurns--;
-    currentPlayer = currentPlayer === MAPLE ? SUN : MAPLE; 
-    if (bombTarget !== null && currentPlayer === bombTarget) { SoundEngine.switchTrack('bomb'); } 
-    else { SoundEngine.switchTrack(userMusicPref); }
+    
+    // 更新短兵相接狀態
+    if (GameState.shortBattleTurns > 0) GameState.shortBattleTurns--;
+    shortBattleTurns = GameState.shortBattleTurns; // 同步
+    
+    // [Critical Fix] 切換當前玩家 - 必須同時更新 GameState 和舊變量
+    GameState.currentPlayer = GameState.currentPlayer === MAPLE ? SUN : MAPLE;
+    currentPlayer = GameState.currentPlayer; // 同步到舊變量
+    
+    // 音樂切換
+    if (GameState.bombTarget !== null && GameState.currentPlayer === GameState.bombTarget) { 
+        SoundEngine.switchTrack('bomb'); 
+    } else { 
+        SoundEngine.switchTrack(GameState.userMusicPref); 
+    }
+    
     updateDynamicUI(); 
-    clearTimeout(aiTimer);
-    if (gameMode === 'pve' && currentPlayer !== humanSide && gameActive) { aiTimer = setTimeout(aiMove, 600); }
+    
+    // AI 回合處理
+    if (GameState.aiTimer) clearTimeout(GameState.aiTimer);
+    if (GameState.gameMode === 'pve' && GameState.currentPlayer !== GameState.humanSide && GameState.gameActive) { 
+        GameState.aiTimer = setTimeout(aiMove, 600);
+        aiTimer = GameState.aiTimer; // 同步
+    }
 }
 
 function activateSkill() {
-    if (!gameActive || skillUsed[currentPlayer]) { showToast(t('skillUsed', 'toast')); return; }
-    if(selectedCell) { const old = getCell(selectedCell.r, selectedCell.c); if(old) old.classList.remove('selected-move'); selectedCell = null; }
+    if (!GameState.gameActive || GameState.skillUsed[GameState.currentPlayer]) { 
+        showToast(t('skillUsed', 'toast')); 
+        return; 
+    }
+    
+    if(GameState.selectedCell) { 
+        const old = getCell(GameState.selectedCell.r, GameState.selectedCell.c); 
+        if(old) old.classList.remove('selected-move'); 
+        GameState.selectedCell = null;
+        selectedCell = null; // 同步
+    }
+    
     saveState();
-    const sid = playerSkills[currentPlayer], sname = t(sid, 'skills').name;
-    SoundEngine.playSkill(); showToast(t('casting', 'toast') + sname); skillUsed[currentPlayer] = true; updateDynamicUI();
+    
+    const sid = GameState.playerSkills[GameState.currentPlayer];
+    const sname = t(sid, 'skills').name;
+    
+    SoundEngine.playSkill(); 
+    showToast(t('casting', 'toast') + sname); 
+    
+    GameState.skillUsed[GameState.currentPlayer] = true;
+    skillUsed = GameState.skillUsed; // 同步
+    updateDynamicUI();
+    
     const b = document.getElementById('board');
-    if (sid === 'double') { isDoubleMoveActive = true; showToast(t('doubleStart', 'toast')); }
-    else if (sid === 'voodoo') { activeEffect = 'voodoo_pick'; b.classList.add('casting-voodoo'); showToast(t('voodooPick', 'toast')); }
-    else if (sid === 'move_self') { activeEffect = 'move_pick'; effectData={mode:'self'}; b.classList.add('casting-move-src'); showToast(t('moveSrcSelf', 'toast')); }
-    else if (sid === 'move_enemy') { activeEffect = 'move_pick'; effectData={mode:'enemy'}; b.classList.add('casting-move-src'); showToast(t('moveSrcEnemy', 'toast')); }
-    else if (sid === 'zone') { activeEffect = 'zone_pick'; b.classList.add('casting-territory'); showToast(t('zonePick', 'toast')); }
+    
+    if (sid === 'double') { 
+        GameState.isDoubleMoveActive = true;
+        isDoubleMoveActive = true; // 同步
+        showToast(t('doubleStart', 'toast')); 
+    }
+    else if (sid === 'voodoo') { 
+        GameState.activeEffect = 'voodoo_pick';
+        activeEffect = 'voodoo_pick'; // 同步
+        b.classList.add('casting-voodoo'); 
+        showToast(t('voodooPick', 'toast')); 
+    }
+    else if (sid === 'move_self') { 
+        GameState.activeEffect = 'move_pick';
+        GameState.effectData = {mode:'self'};
+        activeEffect = 'move_pick'; // 同步
+        effectData = {mode:'self'}; // 同步
+        b.classList.add('casting-move-src'); 
+        showToast(t('moveSrcSelf', 'toast')); 
+    }
+    else if (sid === 'move_enemy') { 
+        GameState.activeEffect = 'move_pick';
+        GameState.effectData = {mode:'enemy'};
+        activeEffect = 'move_pick'; // 同步
+        effectData = {mode:'enemy'}; // 同步
+        b.classList.add('casting-move-src'); 
+        showToast(t('moveSrcEnemy', 'toast')); 
+    }
+    else if (sid === 'zone') { 
+        GameState.activeEffect = 'zone_pick';
+        activeEffect = 'zone_pick'; // 同步
+        b.classList.add('casting-territory'); 
+        showToast(t('zonePick', 'toast')); 
+    }
     else if (sid === 'bomb') { 
-        const opp = currentPlayer === MAPLE ? SUN : MAPLE;
-        timeRemaining[opp] -= 150; 
+        // [Critical Fix] 時間炸彈必須同步到 GameState
+        const opp = GameState.currentPlayer === MAPLE ? SUN : MAPLE;
+        
+        GameState.timeRemaining[opp] -= 150;
+        timeRemaining = GameState.timeRemaining; // 同步
+        
+        GameState.bombTarget = opp;
+        bombTarget = GameState.bombTarget; // 同步
+        
         showToast(t('bombStart', 'toast'));
-        bombTarget = opp;
-        if(timeRemaining[opp] <= 0) { triggerExplosion(); return; }
+        
+        if(GameState.timeRemaining[opp] <= 0) { 
+            triggerExplosion(); 
+            return; 
+        }
+        
         updateDynamicUI();
     }
-    else if (sid === 'god_hand') { activeEffect = 'god_pick_1'; b.classList.add('casting-move-src'); showToast(t('godPick1', 'toast')); }
-    else if (sid === 'chaos') { const opp = currentPlayer === MAPLE ? SUN : MAPLE; chaosDebuff[opp] += 2; updateDynamicUI(); }
-    else if (sid === 'short_battle') { shortBattleTurns = 6; showToast(t('shortBattleStart', 'toast')); updateDynamicUI(); }
-    else if (sid === 'swap') { activeEffect = 'swap_pick_1'; b.classList.add('casting-move-src'); showToast(t('swapPickSelf', 'toast')); }
+    else if (sid === 'god_hand') { 
+        GameState.activeEffect = 'god_pick_1';
+        activeEffect = 'god_pick_1'; // 同步
+        b.classList.add('casting-move-src'); 
+        showToast(t('godPick1', 'toast')); 
+    }
+    else if (sid === 'chaos') { 
+        const opp = GameState.currentPlayer === MAPLE ? SUN : MAPLE;
+        GameState.chaosDebuff[opp] += 2;
+        chaosDebuff = GameState.chaosDebuff; // 同步
+        updateDynamicUI(); 
+    }
+    else if (sid === 'short_battle') { 
+        GameState.shortBattleTurns = 6;
+        shortBattleTurns = GameState.shortBattleTurns; // 同步
+        showToast(t('shortBattleStart', 'toast')); 
+        updateDynamicUI(); 
+    }
+    else if (sid === 'swap') { 
+        GameState.activeEffect = 'swap_pick_1';
+        activeEffect = 'swap_pick_1'; // 同步
+        b.classList.add('casting-move-src'); 
+        showToast(t('swapPickSelf', 'toast')); 
+    }
 }
 
 function handleSkillInteraction(r, c) {
     SoundEngine.playPlace(); const b = document.getElementById('board'); const cell = getCell(r, c); if(!cell) return;
     if (activeEffect === 'voodoo_pick') { 
         if (board[r][c] === EMPTY || board[r][c] === CORRODED) { SoundEngine.playError(); return; } 
-        board[r][c] = CORRODED; cell.innerHTML = ''; cell.className = 'cell corroded'; activeEffect = null; b.classList.remove('casting-voodoo'); showToast(t('voodooDone', 'toast')); 
+        GameState.board[r][c] = CORRODED; board[r][c] = CORRODED; // 同步
+        cell.innerHTML = ''; cell.className = 'cell corroded'; 
+        GameState.activeEffect = null; activeEffect = null; // 同步
+        b.classList.remove('casting-voodoo'); showToast(t('voodooDone', 'toast')); 
     } 
-    else if (activeEffect === 'move_pick') { const p = board[r][c]; if ((effectData.mode==='self' && p!==currentPlayer) || (effectData.mode==='enemy' && (p===EMPTY||p===currentPlayer))) { SoundEngine.playError(); return; } effectData.src = {r, c, val: p}; activeEffect = 'move_drop'; b.classList.remove('casting-move-src'); b.classList.add('casting-move-dest'); cell.style.opacity = '0.5'; showToast(t('moveDest', 'toast')); } 
+    else if (activeEffect === 'move_pick') { const p = board[r][c]; if ((effectData.mode==='self' && p!==currentPlayer) || (effectData.mode==='enemy' && (p===EMPTY||p===currentPlayer))) { SoundEngine.playError(); return; } 
+        GameState.effectData.src = {r, c, val: p}; effectData.src = {r, c, val: p}; // 同步
+        GameState.activeEffect = 'move_drop'; activeEffect = 'move_drop'; // 同步
+        b.classList.remove('casting-move-src'); b.classList.add('casting-move-dest'); cell.style.opacity = '0.5'; showToast(t('moveDest', 'toast')); 
+    } 
     else if (activeEffect === 'move_drop') { 
         if (board[r][c]!==EMPTY || isZoneRestricted(r,c,currentPlayer)) { SoundEngine.playError(); return; } 
-        const src = effectData.src; board[src.r][src.c] = EMPTY; const sc = getCell(src.r, src.c); if(sc){sc.innerHTML=''; sc.style.opacity='1';} 
-        placePiece(r, c, src.val, true); activeEffect = null; b.classList.remove('casting-move-dest'); 
+        const src = effectData.src; 
+        GameState.board[src.r][src.c] = EMPTY; board[src.r][src.c] = EMPTY; // 同步
+        const sc = getCell(src.r, src.c); if(sc){sc.innerHTML=''; sc.style.opacity='1';} 
+        placePiece(r, c, src.val, true); 
+        GameState.activeEffect = null; activeEffect = null; // 同步
+        b.classList.remove('casting-move-dest'); 
         const winLine = checkWin(r, c, src.val);
         if (winLine) highlightWin(winLine, src.val); else showToast(t('moveDone', 'toast')); 
     } 
-    else if (activeEffect === 'zone_pick') { document.querySelectorAll('.territory-preview').forEach(el => el.classList.remove('territory-preview')); territoryZones.push({r, c, owner: currentPlayer, turns: 6}); updateTerritoriesUI(); activeEffect = null; b.classList.remove('casting-territory'); showToast(t('zoneDone', 'toast')); } 
-    else if (activeEffect === 'god_pick_1') { const p = board[r][c]; if (p === EMPTY || p === CORRODED) { SoundEngine.playError(); return; } effectData.godSrc1 = {r, c, val: p}; activeEffect = 'god_drop_1'; b.classList.remove('casting-move-src'); b.classList.add('casting-move-dest'); cell.style.opacity='0.5'; showToast(t('godDest1', 'toast')); } 
-    else if (activeEffect === 'god_drop_1') { if (board[r][c]!==EMPTY || isZoneRestricted(r,c,currentPlayer)) { SoundEngine.playError(); return; } const s1 = effectData.godSrc1; board[s1.r][s1.c] = EMPTY; const c1 = getCell(s1.r, s1.c); if(c1){c1.innerHTML=''; c1.style.opacity='1';} placePiece(r, c, s1.val, true); b.classList.remove('casting-move-dest'); const wl = checkWin(r, c, s1.val); if (wl) { highlightWin(wl, s1.val); return; } activeEffect = 'god_pick_2'; b.classList.add('casting-move-src'); showToast(t('godPick2', 'toast')); } 
-    else if (activeEffect === 'god_pick_2') { const p = board[r][c]; if (p === EMPTY || p === CORRODED) { SoundEngine.playError(); return; } effectData.godSrc2 = {r, c, val: p}; activeEffect = 'god_drop_2'; b.classList.remove('casting-move-src'); b.classList.add('casting-move-dest'); cell.style.opacity='0.5'; showToast(t('godDest2', 'toast')); } 
-    else if (activeEffect === 'god_drop_2') { if (board[r][c]!==EMPTY || isZoneRestricted(r,c,currentPlayer)) { SoundEngine.playError(); return; } const s2 = effectData.godSrc2; board[s2.r][s2.c] = EMPTY; const c2 = getCell(s2.r, s2.c); if(c2){c2.innerHTML=''; c2.style.opacity='1';} placePiece(r, c, s2.val, true); activeEffect = null; b.classList.remove('casting-move-dest'); const wl = checkWin(r, c, s2.val); if (wl) highlightWin(wl, s2.val); else switchTurn(); } 
-    else if (activeEffect === 'swap_pick_1') { const p = board[r][c]; if (p!==currentPlayer) { SoundEngine.playError(); return; } effectData.swapSrc = {r, c, val: p}; activeEffect = 'swap_pick_2'; b.classList.remove('casting-move-src'); b.classList.add('casting-move-dest'); cell.style.opacity = '0.5'; showToast(t('swapPickEnemy', 'toast')); } 
+    else if (activeEffect === 'zone_pick') { 
+        document.querySelectorAll('.territory-preview').forEach(el => el.classList.remove('territory-preview')); 
+        GameState.territoryZones.push({r, c, owner: currentPlayer, turns: 6}); territoryZones = GameState.territoryZones; // 同步
+        updateTerritoriesUI(); 
+        GameState.activeEffect = null; activeEffect = null; // 同步
+        b.classList.remove('casting-territory'); showToast(t('zoneDone', 'toast')); 
+    } 
+    else if (activeEffect === 'god_pick_1') { const p = board[r][c]; if (p === EMPTY || p === CORRODED) { SoundEngine.playError(); return; } 
+        GameState.effectData.godSrc1 = {r, c, val: p}; effectData.godSrc1 = {r, c, val: p}; // 同步
+        GameState.activeEffect = 'god_drop_1'; activeEffect = 'god_drop_1'; // 同步
+        b.classList.remove('casting-move-src'); b.classList.add('casting-move-dest'); cell.style.opacity='0.5'; showToast(t('godDest1', 'toast')); 
+    } 
+    else if (activeEffect === 'god_drop_1') { if (board[r][c]!==EMPTY || isZoneRestricted(r,c,currentPlayer)) { SoundEngine.playError(); return; } 
+        const s1 = effectData.godSrc1; 
+        GameState.board[s1.r][s1.c] = EMPTY; board[s1.r][s1.c] = EMPTY; // 同步
+        const c1 = getCell(s1.r, s1.c); if(c1){c1.innerHTML=''; c1.style.opacity='1';} 
+        placePiece(r, c, s1.val, true); 
+        b.classList.remove('casting-move-dest'); const wl = checkWin(r, c, s1.val); if (wl) { highlightWin(wl, s1.val); return; } 
+        GameState.activeEffect = 'god_pick_2'; activeEffect = 'god_pick_2'; // 同步
+        b.classList.add('casting-move-src'); showToast(t('godPick2', 'toast')); 
+    } 
+    else if (activeEffect === 'god_pick_2') { const p = board[r][c]; if (p === EMPTY || p === CORRODED) { SoundEngine.playError(); return; } 
+        GameState.effectData.godSrc2 = {r, c, val: p}; effectData.godSrc2 = {r, c, val: p}; // 同步
+        GameState.activeEffect = 'god_drop_2'; activeEffect = 'god_drop_2'; // 同步
+        b.classList.remove('casting-move-src'); b.classList.add('casting-move-dest'); cell.style.opacity='0.5'; showToast(t('godDest2', 'toast')); 
+    } 
+    else if (activeEffect === 'god_drop_2') { if (board[r][c]!==EMPTY || isZoneRestricted(r,c,currentPlayer)) { SoundEngine.playError(); return; } 
+        const s2 = effectData.godSrc2; 
+        GameState.board[s2.r][s2.c] = EMPTY; board[s2.r][s2.c] = EMPTY; // 同步
+        const c2 = getCell(s2.r, s2.c); if(c2){c2.innerHTML=''; c2.style.opacity='1';} 
+        placePiece(r, c, s2.val, true); 
+        GameState.activeEffect = null; activeEffect = null; // 同步
+        b.classList.remove('casting-move-dest'); const wl = checkWin(r, c, s2.val); if (wl) highlightWin(wl, s2.val); else switchTurn(); 
+    } 
+    else if (activeEffect === 'swap_pick_1') { const p = board[r][c]; if (p!==currentPlayer) { SoundEngine.playError(); return; } 
+        GameState.effectData.swapSrc = {r, c, val: p}; effectData.swapSrc = {r, c, val: p}; // 同步
+        GameState.activeEffect = 'swap_pick_2'; activeEffect = 'swap_pick_2'; // 同步
+        b.classList.remove('casting-move-src'); b.classList.add('casting-move-dest'); cell.style.opacity = '0.5'; showToast(t('swapPickEnemy', 'toast')); 
+    } 
     else if (activeEffect === 'swap_pick_2') { 
         const p = board[r][c]; const enemy = currentPlayer===MAPLE?SUN:MAPLE; if (p!==enemy) { SoundEngine.playError(); return; } 
         const s1 = effectData.swapSrc; const s2 = {r, c, val: p}; 
-        const c1 = getCell(s1.r, s1.c); if(c1) c1.style.opacity = '1'; board[s1.r][s1.c] = s2.val; board[s2.r][s2.c] = s1.val; 
+        const c1 = getCell(s1.r, s1.c); if(c1) c1.style.opacity = '1'; 
+        GameState.board[s1.r][s1.c] = s2.val; board[s1.r][s1.c] = s2.val; // 同步
+        GameState.board[s2.r][s2.c] = s1.val; board[s2.r][s2.c] = s1.val; // 同步
         if(c1) { c1.innerHTML=''; placePiece(s1.r, s1.c, s2.val, true); } 
         const c2 = getCell(s2.r, s2.c); 
         if(c2) { c2.innerHTML=''; placePiece(s2.r, c2.c, s1.val, true); }
-        activeEffect = null; b.classList.remove('casting-move-dest'); 
+        GameState.activeEffect = null; activeEffect = null; // 同步
+        b.classList.remove('casting-move-dest'); 
         const wl1 = checkWin(s1.r, s1.c, s2.val); if(wl1) { highlightWin(wl1, s2.val); return; } 
         const wl2 = checkWin(s2.r, s2.c, s1.val); if(wl2) { highlightWin(wl2, s1.val); return; } 
         showToast(t('swapDone', 'toast')); 
@@ -537,7 +872,8 @@ function handleSkillInteraction(r, c) {
 }
 
 function highlightWin(line, winner) {
-    gameActive = false;
+    GameState.gameActive = false;
+    gameActive = false; // 同步
     
     // 胜负判断逻辑优化
     const isPvELoss = (gameMode === 'pve' && winner !== humanSide);
@@ -572,26 +908,35 @@ function highlightWin(line, winner) {
 }
 
 function triggerExplosion() {
-    gameActive = false;
+    GameState.gameActive = false;
+    gameActive = false; // 同步
+    
     SoundEngine.playExplosion();
     const overlay = document.getElementById('explosionOverlay');
     overlay.classList.add('explosion-anim');
+    
     setTimeout(() => {
         overlay.classList.remove('explosion-anim');
-        const loser = bombTarget;
+        const loser = GameState.bombTarget;
         const winner = loser === MAPLE ? SUN : MAPLE;
         handleMatchEnd(winner);
     }, 2000);
 }
 
 function handleMatchEnd(winSide) {
-    gameActive = false; clearInterval(bombInterval); clearInterval(gameTicker); clearTimeout(aiTimer); 
+    GameState.gameActive = false;
+    gameActive = false; // 同步
+    
+    // 清理所有計時器
+    if (GameState.bombInterval) clearInterval(GameState.bombInterval);
+    if (GameState.gameTicker) clearInterval(GameState.gameTicker);
+    if (GameState.aiTimer) clearTimeout(GameState.aiTimer);
     
     // 如果是 DJ 模式正在运行，不要切回 BGM，让音乐继续 High
     // 但如果输了 (isPvELoss)，上面没有 startCelebration，所以这里切回 BGM 没问题
     // 如果赢了且是 DJ，startCelebration 会接管音乐，SoundEngine 内部逻辑会处理
     if (winCelebration !== 'dj' || (gameMode === 'pve' && winSide !== humanSide)) {
-         SoundEngine.switchTrack(userMusicPref); 
+         SoundEngine.switchTrack(GameState.userMusicPref); 
     }
     
     const wt = document.getElementById('winnerText'); 
@@ -629,15 +974,43 @@ function handleMatchEnd(winSide) {
 }
 
 function undoMove() {
-    if (isBO3) { showToast(t('undoPvP', 'toast')); return; }
-    if (historyStack.length === 0) return;
-    if(selectedCell) { const c = getCell(selectedCell.r, selectedCell.c); if(c) c.classList.remove('selected-move'); selectedCell=null; }
+    if (GameState.isBO3) { 
+        showToast(t('undoPvP', 'toast')); 
+        return; 
+    }
+    
+    if (GameState.historyStack.length === 0) return;
+    
+    if(GameState.selectedCell) { 
+        const c = getCell(GameState.selectedCell.r, GameState.selectedCell.c); 
+        if(c) c.classList.remove('selected-move'); 
+        GameState.selectedCell = null;
+        selectedCell = null; // 同步
+    }
+    
     document.querySelectorAll('.win-highlight').forEach(el => el.classList.remove('win-highlight'));
-    const state = historyStack.pop();
+    
+    const state = GameState.historyStack.pop();
     restoreState(state);
-    if (bombTarget !== null && currentPlayer !== bombTarget) { SoundEngine.switchTrack(userMusicPref); }
-    if (gameMode === 'pve') { clearTimeout(aiTimer); if (historyStack.length > 0) { const state2 = historyStack.pop(); restoreState(state2); } }
-    gameActive = true; document.getElementById('winnerModal').style.display='none'; showToast(t('undoDone', 'toast'));
+    
+    // [Fix] 悔棋後檢查炸彈狀態，切換音樂
+    if (GameState.bombTarget !== null && GameState.currentPlayer !== GameState.bombTarget) { 
+        SoundEngine.switchTrack(GameState.userMusicPref); 
+    }
+    
+    if (GameState.gameMode === 'pve') { 
+        if (GameState.aiTimer) clearTimeout(GameState.aiTimer);
+        if (GameState.historyStack.length > 0) { 
+            const state2 = GameState.historyStack.pop(); 
+            restoreState(state2); 
+        } 
+    }
+    
+    GameState.gameActive = true;
+    gameActive = true; // 同步
+    
+    document.getElementById('winnerModal').style.display='none'; 
+    showToast(t('undoDone', 'toast'));
 }
 
 // 辅助函数
@@ -662,18 +1035,32 @@ function updateTerritoriesUI() {
 }
 
 function checkWin(r, c, p) { const d = [[0,1], [1,0], [1,1], [1,-1]]; const limit = shortBattleTurns > 0 ? 4 : 5; for(let k of d) { let ct = 1; let line = [{r,c}]; let i = r + k[0], j = c + k[1]; while(isValid(i,j) && board[i][j] === p) { line.push({r:i, c:j}); i += k[0]; j += k[1]; ct++; } i = r - k[0]; j = c - k[1]; while(isValid(i,j) && board[i][j] === p) { line.push({r:i, c:j}); i -= k[0]; j -= k[1]; ct++; } if(ct >= limit) return line; } return null; }
-function startBombTimer() { if(bombInterval) clearInterval(bombInterval); bombInterval = setInterval(() => { if(!gameActive) return; if(currentPlayer !== bombOwner) { bombTime--; const m = Math.floor(bombTime/60).toString().padStart(2,'0'); const s = (bombTime%60).toString().padStart(2,'0'); document.getElementById('bombTimer').innerText=`${m}:${s}`; if(bombTime <= 0) handleMatchEnd(bombOwner); } }, 1000); }
+function startBombTimer() { 
+    if(GameState.bombInterval) clearInterval(GameState.bombInterval); 
+    GameState.bombInterval = setInterval(() => { 
+        if(!GameState.gameActive) return; 
+        if(GameState.currentPlayer !== GameState.bombOwner) { 
+            GameState.bombTime--; bombTime = GameState.bombTime; // 同步
+            const m = Math.floor(GameState.bombTime/60).toString().padStart(2,'0'); 
+            const s = (GameState.bombTime%60).toString().padStart(2,'0'); 
+            document.getElementById('bombTimer').innerText=`${m}:${s}`; 
+            if(GameState.bombTime <= 0) handleMatchEnd(GameState.bombOwner); 
+        } 
+    }, 1000); 
+    bombInterval = GameState.bombInterval; // 同步
+}
 
 function updateDynamicUI() {
+    // 使用 GameState 確保數據一致性
     const turnTextEl = document.getElementById('turnText');
-    const newTurnText = t('names')[currentPlayer === MAPLE ? 1 : 2];
+    const newTurnText = t('names')[GameState.currentPlayer === MAPLE ? 1 : 2];
     if (turnTextEl.innerText !== newTurnText) turnTextEl.innerText = newTurnText;
     
     const turnIconEl = document.getElementById('turnIcon');
-    turnIconEl.innerHTML = getIcon(currentPlayer);
+    turnIconEl.innerHTML = getIcon(GameState.currentPlayer);
     
     const statusBar = document.getElementById('statusBar');
-    const newClass = 'status-pill ' + (currentPlayer === MAPLE ? 'turn-maple' : 'turn-sun');
+    const newClass = 'status-pill ' + (GameState.currentPlayer === MAPLE ? 'turn-maple' : 'turn-sun');
     if (statusBar.className !== newClass) statusBar.className = newClass;
     
     const t1 = document.getElementById('timer1');
@@ -681,19 +1068,19 @@ function updateDynamicUI() {
     
     const getTimerHTML = (player, time) => {
         let base = `<span class="inline-icon" style="width:20px;height:20px;margin-right:4px">${getIcon(player)}</span> ${formatTime(time)}`;
-        if (bombTarget === player && typeof SKILL_ICONS !== 'undefined') {
+        if (GameState.bombTarget === player && typeof SKILL_ICONS !== 'undefined') {
             const animClass = time < 30 ? 'bomb-status-critical' : 'bomb-status-normal';
             base += `<span class="bomb-attached-icon ${animClass}">${SKILL_ICONS.bomb}</span>`;
         }
         return base;
     };
 
-    t1.innerHTML = getTimerHTML(MAPLE, timeRemaining[MAPLE]);
-    t2.innerHTML = getTimerHTML(SUN, timeRemaining[SUN]);
+    t1.innerHTML = getTimerHTML(MAPLE, GameState.timeRemaining[MAPLE]);
+    t2.innerHTML = getTimerHTML(SUN, GameState.timeRemaining[SUN]);
     
     const updateTimerVisual = (player, timerEl, time) => {
-        timerEl.className = `timer-pill ${currentPlayer === player ? 'active' : ''}`;
-        if (bombTarget === player) {
+        timerEl.className = `timer-pill ${GameState.currentPlayer === player ? 'active' : ''}`;
+        if (GameState.bombTarget === player) {
             if (time < 30) {
                 timerEl.classList.add('timer-critical');
             } else {
@@ -703,8 +1090,8 @@ function updateDynamicUI() {
             timerEl.classList.add('timer-critical-normal');
         }
     };
-    updateTimerVisual(MAPLE, t1, timeRemaining[MAPLE]);
-    updateTimerVisual(SUN, t2, timeRemaining[SUN]);
+    updateTimerVisual(MAPLE, t1, GameState.timeRemaining[MAPLE]);
+    updateTimerVisual(SUN, t2, GameState.timeRemaining[SUN]);
     
     const cc = document.getElementById('chaosCounter');
     const sbc = document.getElementById('shortBattleCounter');
@@ -712,21 +1099,21 @@ function updateDynamicUI() {
     const chaosIcon = (typeof SKILL_ICONS !== 'undefined') ? SKILL_ICONS.chaos : '';
     const sbIcon = (typeof SKILL_ICONS !== 'undefined') ? SKILL_ICONS.short_battle : '';
 
-    if (chaosDebuff[currentPlayer] > 0) {
+    if (GameState.chaosDebuff[GameState.currentPlayer] > 0) {
         cc.style.display = 'flex'; 
-        cc.innerHTML = `<span class="inline-icon">${chaosIcon}</span> ${t('chaosLabel', 'toast')} ${chaosDebuff[currentPlayer]}`;
+        cc.innerHTML = `<span class="inline-icon">${chaosIcon}</span> ${t('chaosLabel', 'toast')} ${GameState.chaosDebuff[GameState.currentPlayer]}`;
     } else {
         cc.style.display = 'none';
     }
     
-    if (shortBattleTurns > 0) {
+    if (GameState.shortBattleTurns > 0) {
         sbc.style.display = 'flex';
-        sbc.innerHTML = `<span class="inline-icon">${sbIcon}</span> ${t('shortBattleLabel', 'toast')} ${shortBattleTurns}`;
+        sbc.innerHTML = `<span class="inline-icon">${sbIcon}</span> ${t('shortBattleLabel', 'toast')} ${GameState.shortBattleTurns}`;
     } else {
         sbc.style.display = 'none';
     }
 
-    if (territoryZones.length > 0) {
+    if (GameState.territoryZones.length > 0) {
         let zc = document.getElementById('zoneCounter');
         if (!zc) {
             zc = document.createElement('div');
@@ -736,7 +1123,7 @@ function updateDynamicUI() {
         }
         zc.style.display = 'flex';
         const zoneIcon = (typeof SKILL_ICONS !== 'undefined') ? SKILL_ICONS.zone : '';
-        const maxTurns = Math.max(...territoryZones.map(z => z.turns));
+        const maxTurns = Math.max(...GameState.territoryZones.map(z => z.turns));
         const label = t('zoneLabel', 'toast') || 'Zone:';
         zc.innerHTML = `<span class="inline-icon">${zoneIcon}</span> ${label} ${maxTurns}`;
     } else {
@@ -796,13 +1183,18 @@ window.addEventListener('DOMContentLoaded', function() {
         BackgroundEngine.init();
     }
     
+    // 啟動統一的幀率控制器（60fps 默認）
+    if (typeof FrameRateController !== 'undefined') {
+        FrameRateController.init();
+    }
+    
+    // 初始化背景引擎（必須在 FrameRateController 之後）
+    if (typeof BackgroundEngine !== 'undefined') {
+        BackgroundEngine.init();
+    }
+    
     // 初始化特效引擎
     if (typeof VisualFX !== 'undefined') {
         VisualFX.init();
-    }
-    
-    // 啟動統一的幀率控制器（120fps）
-    if (typeof FrameRateController !== 'undefined') {
-        FrameRateController.init();
     }
 });

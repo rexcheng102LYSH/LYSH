@@ -98,10 +98,14 @@ window.BackgroundEngine = {
 
     start: function() {
         // 由 FrameRateController 統一管理，不再自己調用 loop
+        // 但需要確保 FrameRateController 已經啟動
+        if (typeof FrameRateController !== 'undefined' && !FrameRateController.animationId) {
+            FrameRateController.start();
+        }
     },
 
     stop: function() {
-        // 由 FrameRateController 統一管理
+        // 由 FrameRateController 統一管理，不停止全局循環
     },
 
     loop: function() {
@@ -531,8 +535,9 @@ window.BackgroundEngine = {
     }
 };
 
-window.addEventListener('load', () => {
-    if (window.BackgroundEngine) {
-        window.BackgroundEngine.init();
-    }
-});
+// 移除自動初始化，改由 game.js 在 FrameRateController 初始化後調用
+// window.addEventListener('load', () => {
+//     if (window.BackgroundEngine) {
+//         window.BackgroundEngine.init();
+//     }
+// });

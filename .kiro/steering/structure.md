@@ -18,16 +18,58 @@
 
 ## 代碼組織原則
 
-### 全局狀態管理
-- 遊戲狀態存儲在 `game.js` 的全局變量中
-- 每個模塊暴露一個全局對象（例如 `window.SoundEngine`）
+### 全局狀態管理 [Alpha 0.7.8.0 重構]
+- **集中式狀態管理**: 所有遊戲狀態統一存儲在 `GameState` 對象中
+- **命名空間隔離**: 避免全局變量污染，通過 `GameState.xxx` 訪問狀態
+- **狀態快照功能**: 內置 `createSnapshot()` 和 `restoreSnapshot()` 方法，支持悔棋和回放
+- **向後兼容層**: 保留舊的全局變量引用，確保現有代碼無需修改
+- 每個模塊暴露一個全局對象（例如 `window.SoundEngine`、`window.GameState`）
 - 通過顯式函數調用進行狀態同步
+
+### GameState 對象結構
+```javascript
+const GameState = {
+    // 核心遊戲狀態
+    board, currentPlayer, gameActive,
+    
+    // 模式與配置
+    gameMode, aiDifficulty, isBO3, humanSide,
+    
+    // 計分系統
+    p1Score, p2Score, playerSides, chooser,
+    
+    // 技能系統
+    playerSkills, skillUsed, activeEffect, effectData,
+    
+    // 技能效果
+    territoryZones, chaosDebuff, shortBattleTurns, bombTarget,
+    
+    // 計時系統
+    timeRemaining, gameTicker, aiTimer,
+    
+    // 歷史記錄
+    historyStack,
+    
+    // UI 交互
+    selectedCell, draftTurn,
+    
+    // 用戶偏好
+    userMusicPref, currentSkin, winEffect, winCelebration, currentSeason,
+    
+    // 狀態管理方法
+    resetGame(), resetMatch(), createSnapshot(), restoreSnapshot()
+};
+```
 
 ### 模塊職責
 
 **game.js**（核心邏輯）
-- 棋盤狀態（`board` 數組，15x15 網格）
-- 回合管理（`currentPlayer`、`switchTurn()`）
+- **GameState 對象**: 集中式狀態管理系統（Alpha 0.7.8.0 新增）
+  - `resetGame()` - 重置遊戲狀態
+  - `createSnapshot()` - 創建狀態快照（悔棋）
+  - `restoreSnapshot()` - 恢復狀態快照
+- 棋盤狀態（`GameState.board` 數組，15x15 網格）
+- 回合管理（`GameState.currentPlayer`、`switchTurn()`）
 - 勝負判定（`checkWin()`、`highlightWin()`）
 - 技能系統（`activateSkill()`、`handleSkillInteraction()`）
 - UI 更新（`updateDynamicUI()`、`renderBoard()`）

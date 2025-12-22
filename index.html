@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>技能五子棋 - Alpha 0.7.7.9</title>
-    <link rel="stylesheet" href="style.css?v=alpha_0_7_7_9">
+    <title>技能五子棋 - Alpha 0.7.8.0</title>
+    <link rel="stylesheet" href="style.css?v=alpha_0_7_8_0">
 </head>
 <body onclick="SoundEngine.init()">
 
@@ -27,8 +27,8 @@
         <div class="glass-panel menu-panel">
             <h1 data-i18n="gameTitle">技能五子棋 <span style="font-size:0.5em">Alpha</span></h1>
             <h2 style="margin-top:-5px; font-size:1.2rem; color:#666;">
-                <span data-i18n="subTitle">v0.7.7.9</span> 
-                <span class="version-tag">Alpha 0.7.7.9</span>
+                <span data-i18n="subTitle">v0.7.8.0</span> 
+                <span class="version-tag">Alpha 0.7.8.0</span>
             </h2>
             
             <button class="btn primary" onclick="showDifficultyScreen()" data-i18n="btnPvE">人机对战 (PvE)</button>
@@ -161,6 +161,14 @@
                 </div>
             </div>
 
+            <div class="setting-item">
+                <label data-i18n="lblFPSLimit">畫面幀率</label>
+                <div class="capsule-selector">
+                    <button class="capsule-opt fps-opt active" id="fps60" onclick="changeFPSLimit('60')" data-i18n="fps60">60 FPS（推薦）</button>
+                    <button class="capsule-opt fps-opt" id="fpsUnlimited" onclick="changeFPSLimit('unlimited')" data-i18n="fpsUnlimited">無限制</button>
+                </div>
+            </div>
+
             <button class="btn primary" onclick="closeSettings()" style="margin-top:25px;" data-i18n="btnClose">关闭</button>
         </div>
     </div>
@@ -213,13 +221,14 @@
     <div id="toast"></div>
     <div id="explosionOverlay"></div>
 
-    <script src="assets.js?v=alpha_0_7_7_9"></script>
-    <script src="audio.js?v=alpha_0_7_7_9"></script>
-    <script src="lang.js?v=alpha_0_7_7_9"></script> 
-    <script src="background.js?v=alpha_0_7_7_9"></script>
-    <script src="fx.js?v=alpha_0_7_7_9"></script>
-    <script src="game.js?v=alpha_0_7_7_9"></script>
-    <script src="ai.js?v=alpha_0_7_7_9"></script>
+    <script src="assets.js?v=alpha_0_7_8_0"></script>
+    <script src="audio.js?v=alpha_0_7_8_0"></script>
+    <script src="lang.js?v=alpha_0_7_8_0"></script> 
+    <script src="background.js?v=alpha_0_7_8_0"></script>
+    <script src="fx.js?v=alpha_0_7_8_0"></script>
+    <script src="gamestate.js?v=alpha_0_7_8_1"></script>
+    <script src="game.js?v=alpha_0_7_8_0"></script>
+    <script src="ai.js?v=alpha_0_7_8_0"></script>
 
 </body>
 </html>

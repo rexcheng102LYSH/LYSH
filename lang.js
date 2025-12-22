@@ -3,7 +3,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "v0.7.7.9", 
+        subTitle: "v0.7.8.0", 
         btnPvE: "人機對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -33,6 +33,10 @@ const I18N = {
         
         lblSeason: "背景特效",
         seasonSpring: "春雨", seasonSummer: "夏陽", seasonAutumn: "秋葉", seasonWinter: "冬雪",
+        
+        lblFPSLimit: "畫面幀率",
+        fps60: "60 FPS（推薦）",
+        fpsUnlimited: "無限制",
 
         btnClose: "關閉",
         errNoSkinInGame: "對局進行中無法更換皮膚！",
@@ -87,7 +91,7 @@ const I18N = {
     'zh': {
         langName: "简", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "v0.7.9", 
+        subTitle: "v0.7.8.0", 
         btnPvE: "人机对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -117,6 +121,10 @@ const I18N = {
         
         lblSeason: "背景特效",
         seasonSpring: "春雨", seasonSummer: "夏阳", seasonAutumn: "秋叶", seasonWinter: "冬雪",
+        
+        lblFPSLimit: "画面帧率",
+        fps60: "60 FPS（推荐）",
+        fpsUnlimited: "无限制",
 
         btnClose: "关闭",
         errNoSkinInGame: "对局进行中无法更换皮肤！",
@@ -171,7 +179,7 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Skill Gomoku <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "v0.7.9", 
+        subTitle: "v0.7.8.0", 
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -201,6 +209,10 @@ const I18N = {
         
         lblSeason: "Background FX",
         seasonSpring: "Spring Rain", seasonSummer: "Summer Sun", seasonAutumn: "Autumn Leaves", seasonWinter: "Winter Snow",
+        
+        lblFPSLimit: "Frame Rate",
+        fps60: "60 FPS (Recommended)",
+        fpsUnlimited: "Unlimited",
 
         btnClose: "Close",
         errNoSkinInGame: "Cannot change skin during game!",
