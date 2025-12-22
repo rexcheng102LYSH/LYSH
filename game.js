@@ -35,12 +35,12 @@ function getIcon(player) {
 // ================= 幀率控制系統 =================
 // 統一的主循環管理器，確保穩定的幀率
 const FrameRateController = {
-    targetFPS: 60,  // 默認目標幀率 60fps（保護低配設備）
+    targetFPS: 60,  // 鎖定 60fps
     frameTime: 1000 / 60,  // 每幀時間 (ms)
     lastFrameTime: 0,
     animationId: null,
     
-    // 更新幀率限制
+    // 更新幀率限制（暫時禁用無限制模式）
     setFPSLimit: function(limit) {
         // 先停止當前動畫循環
         const wasRunning = this.animationId !== null;
@@ -48,14 +48,9 @@ const FrameRateController = {
             this.stop();
         }
         
-        // 更新幀率參數
-        if (limit === 'unlimited') {
-            this.targetFPS = 999;  // 無限制模式
-            this.frameTime = 0;  // 不限制幀時間
-        } else {
-            this.targetFPS = 60;
-            this.frameTime = 1000 / 60;
-        }
+        // 強制鎖定 60fps
+        this.targetFPS = 60;
+        this.frameTime = 1000 / 60;
         
         // 重置時間戳，避免 deltaTime 異常
         this.lastFrameTime = performance.now();

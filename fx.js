@@ -1,8 +1,8 @@
 // ================= 视觉特效引擎 (Visual Effects) =================
-// [Alpha 0.7.7.9]
-// - DJ 三階段視覺系統：挑戰、失敗、勝利
-// - 實現交互反饋：點擊鼓點時的粒子與判定特效
-// - 保持 Fireworks 和其他特效的穩定性
+// [Alpha 0.7.8.2]
+// - 閃電特效全面升級：電流粒子、電弧爆發、能量波動、環境電離
+// - 新增五層視覺效果：光暈、主路徑、移動粒子、分支爆發、核心閃光
+// - 保持其他特效穩定性
 
 const VisualFX = {
     canvas: null,
@@ -198,7 +198,12 @@ const VisualFX = {
             lineParticles: [],
             lightningData: null,
             celebrationType: null,
-            fireworks: { rockets: [], explosions: [] },
+            fireworks: { 
+                rockets: [], 
+                explosions: [],
+                lastLaunchTime: 0,
+                launchInterval: 1000 / 3
+            },
             dj: { 
                 phase: 'idle',
                 notes: [], 
@@ -260,7 +265,12 @@ const VisualFX = {
         this.state.celebrationType = type;
         
         if (type === 'fireworks') {
-            this.state.fireworks = { rockets: [], explosions: [] };
+            this.state.fireworks = { 
+                rockets: [], 
+                explosions: [],
+                lastLaunchTime: 0,  // 記錄上次發射時間
+                launchInterval: 1000 / 3  // 每秒3枚 = 333.33ms間隔
+            };
         } 
         // [New] DJ 三階段初始化
         else if (type === 'dj') {
@@ -324,7 +334,7 @@ const VisualFX = {
 
         // 2. 绘制胜利特效
         if (this.state.celebrationType === 'fireworks') {
-            this.renderFireworks(ctx, w, h);
+            this.renderFireworks(ctx, w, h, now);  // 傳遞 now 參數
         } else if (this.state.celebrationType === 'dj') {
             this.renderDJGame(ctx, w, h, now);
         }
@@ -386,7 +396,7 @@ const VisualFX = {
         // 創建爆發粒子
         for (let i = 0; i < 20; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = 2 + Math.random() * 4;
+            const speed = (2 + Math.random() * 4) * 1.2;  // 提速 20%
             dj.victoryParticles.push({
                 x: drumX,
                 y: drumY,
@@ -425,8 +435,8 @@ const VisualFX = {
                 dj.victoryParticles.push({
                     x: w / 2,
                     y: h - 80,
-                    vx: (Math.random() - 0.5) * 8,
-                    vy: -5 - Math.random() * 5,
+                    vx: (Math.random() - 0.5) * 8 * 1.2,  // 提速 20%
+                    vy: (-5 - Math.random() * 5) * 1.2,  // 提速 20%
                     life: 1.0,
                     color: `hsl(${Math.random() * 360}, 100%, 60%)`
                 });
@@ -649,8 +659,8 @@ const VisualFX = {
             const p = dj.victoryParticles[i];
             p.x += p.vx;
             p.y += p.vy;
-            p.vy += 0.2; // 重力
-            p.life -= 0.02;
+            p.vy += 0.24;  // 提速 20% (0.2 * 1.2)
+            p.life -= 0.024;  // 提速 20% (0.02 * 1.2)
             
             if (p.life <= 0) {
                 dj.victoryParticles.splice(i, 1);
@@ -667,23 +677,55 @@ const VisualFX = {
     },
 
     // =========================================
-    // ✨ 煙花邏輯 (Fireworks) - 性能優化版
+    // ✨ 煙花邏輯 (Fireworks) - 優化版
     // =========================================
-    renderFireworks: function(ctx, w, h) {
+    renderFireworks: function(ctx, w, h, now) {
         const fw = this.state.fireworks;
         
-        // 控制火箭發射頻率
-        if (Math.random() < 0.025) { 
+        // 固定頻率發射火箭（每秒3枚）
+        if (!fw.lastLaunchTime) fw.lastLaunchTime = now;
+        if (now - fw.lastLaunchTime >= fw.launchInterval) {
+            fw.lastLaunchTime = now;
+            
             const hue = Math.floor(Math.random() * 360);
+            
+            // 計算朝向鼠標的方向
+            let targetX = this.mouse.active ? this.mouse.x : w / 2;
+            let targetY = this.mouse.active ? this.mouse.y : h * 0.3;
+            
+            // 隨機起始位置（屏幕底部）
+            const startX = Math.random() * w;
+            const startY = h + 10;
+            
+            // 計算方向向量
+            const dx = targetX - startX;
+            const dy = targetY - startY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // 歸一化並設置速度（朝向鼠標）
+            const speed = 12 * 1.2;  // 提速 20%
+            const vx = (dx / distance) * speed;
+            const vy = (dy / distance) * speed;
+            
+            // 記錄目標爆炸位置（鼠標附近隨機範圍）
+            const explodeRadius = 150;  // 在鼠標周圍150px範圍內隨機爆炸
+            const randomAngle = Math.random() * Math.PI * 2;
+            const randomDist = Math.random() * explodeRadius;
+            const explodeX = targetX + Math.cos(randomAngle) * randomDist;
+            const explodeY = targetY + Math.sin(randomAngle) * randomDist;
+            
             fw.rockets.push({
-                x: Math.random() * w, 
-                y: h + 10,
-                vx: (Math.random() - 0.5) * 4 + (w/2 - Math.random()*w) * 0.003, 
-                vy: -(Math.random() * 4 + 8), 
-                hue: hue, 
-                trail: [] 
+                x: startX,
+                y: startY,
+                vx: vx,
+                vy: vy,
+                hue: hue,
+                trail: [],
+                explodeX: explodeX,  // 目標爆炸位置
+                explodeY: explodeY
             });
-            if (typeof SoundEngine !== 'undefined') SoundEngine.playFireworkLaunch();
+            
+            // 移除發射音效，改為在爆炸時播放
         }
         
         // 渲染火箭
@@ -691,23 +733,11 @@ const VisualFX = {
         for (let i = fw.rockets.length - 1; i >= 0; i--) {
             let r = fw.rockets[i];
             
-            // 鼠標交互
-            if (this.mouse.active) {
-                const dx = this.mouse.x - r.x;
-                const dy = this.mouse.y - r.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist > 80) {
-                    const force = 0.3; 
-                    r.vx += (dx / dist) * force + (Math.random()-0.5) * 0.3;
-                    r.vy += (dy / dist) * force + (Math.random()-0.5) * 0.3;
-                }
-            }
-            
-            // 更新位置
+            // 更新位置（不再受鼠標吸引，保持直線飛行）
             r.x += r.vx; 
             r.y += r.vy; 
-            r.vy += 0.1; 
-            r.vx *= 0.98; 
+            r.vy += 0.12;  // 提速 20% (0.1 * 1.2) - 輕微重力
+            r.vx *= 0.99;  // 輕微空氣阻力
             
             // 更新軌跡
             r.trail.push({x: r.x, y: r.y}); 
@@ -729,13 +759,24 @@ const VisualFX = {
             }
             ctx.stroke();
             
-            // 檢查是否爆炸
-            let detonate = false; 
-            if (r.vy >= -0.5) detonate = true;
-            if (this.mouse.active) { 
-                const dToMouse = Math.hypot(this.mouse.x - r.x, this.mouse.y - r.y); 
-                if (dToMouse < 80) detonate = true; 
+            // 檢查是否到達目標爆炸位置
+            let detonate = false;
+            const distToTarget = Math.hypot(r.explodeX - r.x, r.explodeY - r.y);
+            
+            // 當接近目標位置時爆炸（50px範圍內）
+            if (distToTarget < 50) {
+                detonate = true;
             }
+            // 或者速度變慢時爆炸（到達頂點）
+            else if (r.vy >= -0.5) {
+                detonate = true;
+            }
+            // 或者飛出屏幕時移除
+            else if (r.y < -50 || r.x < -50 || r.x > w + 50) {
+                fw.rockets.splice(i, 1);
+                continue;
+            }
+            
             if (detonate) { 
                 this.explodeFirework(r.x, r.y, r.hue); 
                 fw.rockets.splice(i, 1); 
@@ -776,7 +817,7 @@ const VisualFX = {
             p.y += p.vy; 
             p.vx *= 0.96; 
             p.vy *= 0.96; 
-            p.vy += 0.03; 
+            p.vy += 0.036;  // 提速 20% (0.03 * 1.2)
             p.life -= p.decay; 
             
             if (p.life <= 0) { 
@@ -805,7 +846,8 @@ const VisualFX = {
     },
     
     explodeFirework: function(x, y, hue) {
-        if (typeof SoundEngine !== 'undefined') SoundEngine.playFireworkBlast(Math.random());
+        // 播放煙花爆炸音效
+        if (typeof SoundEngine !== 'undefined') SoundEngine.playFireworkBlast();
         
         // 閃光效果
         this.state.fireworks.explosions.push({ 
@@ -822,7 +864,7 @@ const VisualFX = {
         const count = 50 + Math.random() * 20; 
         for(let i=0; i<count; i++) {
             const angle = Math.random() * Math.PI * 2; 
-            const speed = Math.random() * 4 + 1; 
+            const speed = (Math.random() * 4 + 1) * 1.2;  // 提速 20%
             this.state.fireworks.explosions.push({ 
                 x: x, 
                 y: y, 
@@ -856,7 +898,7 @@ const VisualFX = {
             const px = start.x + (end.x - start.x) * p.t;
             const py = start.y + (end.y - start.y) * p.t;
             ctx.globalAlpha = (Math.sin(elapsed * p.blinkSpeed + p.life) + 1) * 0.5;
-            ctx.beginPath(); ctx.arc(px, py + p.offset - (elapsed * 0.02), p.size, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(px, py + p.offset - (elapsed * 0.024), p.size, 0, Math.PI*2); ctx.fill();  // 提速 20% (0.02 * 1.2)
         });
     },
 
@@ -864,15 +906,111 @@ const VisualFX = {
         const ctx = this.ctx;
         if (!data || Math.random() > 0.85) return; 
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        
+        // 能量波動效果（電流強度變化）
+        const energyPulse = Math.sin(elapsed * 0.008) * 0.3 + 0.7; // 0.4 到 1.0
+        const flicker = 0.8 + Math.random() * 0.2;
+        const combinedIntensity = energyPulse * flicker;
+        
         const drawPath = (pathData, width, color, blur, alpha) => {
             ctx.beginPath(); ctx.moveTo(pathData.main[0].x, pathData.main[0].y);
             pathData.main.forEach(p => ctx.lineTo(p.x, p.y));
             pathData.branches.forEach(branch => { ctx.moveTo(branch[0].x, branch[0].y); branch.forEach(p => ctx.lineTo(p.x, p.y)); });
             ctx.lineWidth = width; ctx.strokeStyle = color; ctx.globalAlpha = alpha; ctx.shadowColor = blur ? '#03a9f4' : 'transparent'; ctx.shadowBlur = blur; ctx.stroke();
         };
-        const flicker = 0.8 + Math.random() * 0.2;
-        drawPath(data, 6, '#00B0FF', 40, 0.4 * flicker); drawPath(data, 3, '#40C4FF', 20, 0.8 * flicker); drawPath(data, 1.5, '#FFFFFF', 0, 1.0 * flicker);
-        ctx.globalAlpha = 1; 
+        
+        // 1. 環境電離效果（外層光暈）
+        drawPath(data, 12, '#00B0FF', 50, 0.2 * combinedIntensity);
+        
+        // 2. 主閃電路徑（三層）
+        drawPath(data, 6, '#00B0FF', 40, 0.4 * combinedIntensity); 
+        drawPath(data, 3, '#40C4FF', 20, 0.8 * combinedIntensity); 
+        drawPath(data, 1.5, '#FFFFFF', 0, 1.0 * combinedIntensity);
+        
+        // 3. 電流粒子（沿路徑移動）
+        const particleCount = 5;
+        for (let i = 0; i < particleCount; i++) {
+            const offset = (i / particleCount + elapsed * 0.003) % 1; // 不同起始位置
+            const pathIndex = Math.floor(offset * (data.main.length - 1));
+            const nextIndex = Math.min(pathIndex + 1, data.main.length - 1);
+            const localT = (offset * (data.main.length - 1)) % 1;
+            
+            const p1 = data.main[pathIndex];
+            const p2 = data.main[nextIndex];
+            const px = p1.x + (p2.x - p1.x) * localT;
+            const py = p1.y + (p2.y - p1.y) * localT;
+            
+            // 粒子大小隨位置變化
+            const size = 3 + Math.sin(offset * Math.PI * 2) * 2;
+            
+            // 繪製粒子
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#00E5FF';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.globalAlpha = 0.8 + Math.sin(elapsed * 0.01 + i) * 0.2;
+            ctx.beginPath();
+            ctx.arc(px, py, size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 粒子拖尾
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = '#40C4FF';
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath();
+            ctx.arc(px, py, size * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // 4. 電弧爆發（在分支點）
+        if (Math.random() > 0.7) { // 30% 機率出現
+            data.branches.forEach((branch, idx) => {
+                if (Math.random() > 0.5) return; // 每個分支 50% 機率
+                
+                const root = branch[0];
+                const burstCount = 3;
+                
+                for (let i = 0; i < burstCount; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const length = 10 + Math.random() * 15;
+                    const endX = root.x + Math.cos(angle) * length;
+                    const endY = root.y + Math.sin(angle) * length;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(root.x, root.y);
+                    ctx.lineTo(endX, endY);
+                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = '#80D8FF';
+                    ctx.globalAlpha = 0.6 * flicker;
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#00E5FF';
+                    ctx.stroke();
+                }
+            });
+        }
+        
+        // 5. 能量核心閃光（隨機在主路徑上）
+        if (Math.random() > 0.6) { // 40% 機率
+            const flashIndex = Math.floor(Math.random() * data.main.length);
+            const flashPoint = data.main[flashIndex];
+            
+            const flashSize = 8 + Math.random() * 8;
+            const gradient = ctx.createRadialGradient(flashPoint.x, flashPoint.y, 0, flashPoint.x, flashPoint.y, flashSize);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            gradient.addColorStop(0.3, 'rgba(0, 229, 255, 0.8)');
+            gradient.addColorStop(1, 'rgba(0, 176, 255, 0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.globalAlpha = 0.8;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(flashPoint.x, flashPoint.y, flashSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // 重置狀態
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
     },
 
     generateLightningPath: function(start, end, displace) {
@@ -904,7 +1042,7 @@ const VisualFX = {
     renderGold: function(points, elapsed) {
         const ctx = this.ctx;
         const start = points[0], end = points[points.length-1];
-        const shift = (elapsed * 0.0015) % 1; 
+        const shift = (elapsed * 0.0018) % 1;  // 提速 20% (0.0015 * 1.2) 
         
         // 優化：減少 gradient 創建，使用緩存
         if (!this._goldGradientCache || this._goldGradientCache.shift !== shift) {
@@ -1005,7 +1143,7 @@ const VisualFX = {
         ctx.stroke();
         
         // 優化：簡化 runner 動畫，移除 save/restore
-        const runnerT = (elapsed * 0.004) % 1;
+        const runnerT = (elapsed * 0.0048) % 1;  // 提速 20% (0.004 * 1.2)
         const rx = start.x + (end.x - start.x) * runnerT;
         const ry = start.y + (end.y - start.y) * runnerT;
         const angle = Math.atan2(end.y - start.y, end.x - start.x);

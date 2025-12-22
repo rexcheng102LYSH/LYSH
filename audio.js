@@ -440,30 +440,67 @@ const SoundEngine = {
         }, 1200);
     },
 
-    playFireworkLaunch: function() {
+    // 煙花爆炸音效（優化版）
+    playFireworkBlast: function() {
         if (this.isMuted) return;
-        const o = this.ctx.createOscillator();
-        const g = this.ctx.createGain();
+        
         const now = this.ctx.currentTime;
-        o.type = 'sine';
-        o.frequency.setValueAtTime(400, now);
-        o.frequency.exponentialRampToValueAtTime(1200, now + 0.3); 
-        g.gain.setValueAtTime(0.1 * this.sfxVolume, now);
-        g.gain.linearRampToValueAtTime(0, now + 0.3);
-        o.connect(g);
-        g.connect(this.ctx.destination);
-        o.start();
-        o.stop(now + 0.4);
-    },
-
-    playFireworkBlast: function(size = 1.0) {
-        if (this.isMuted) return;
-        const freq = 150 + (1.0 - size) * 300; 
-        const duration = 0.5 + size * 0.5;
-        const vol = 0.3 * this.sfxVolume * size;
-        const { filter, gain } = this.playNoise(duration, vol, 'lowpass', freq);
-        filter.frequency.setValueAtTime(freq, this.ctx.currentTime);
-        filter.frequency.exponentialRampToValueAtTime(10, this.ctx.currentTime + duration);
+        
+        // 第一層：爆炸衝擊聲 - 使用更高的頻率和更強的包絡，確保能聽到
+        const bass = this.ctx.createOscillator();
+        const bassGain = this.ctx.createGain();
+        bass.type = 'sine';
+        bass.frequency.setValueAtTime(150, now);  // 提升到 150Hz，更容易聽到
+        bass.frequency.exponentialRampToValueAtTime(60, now + 0.25);
+        bassGain.gain.setValueAtTime(1.6 * this.sfxVolume, now);  // 調到 1.6
+        bassGain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        bass.connect(bassGain);
+        bassGain.connect(this.ctx.destination);
+        bass.start(now);
+        bass.stop(now + 0.25);
+        
+        // 第二層：白噪聲爆裂聲（嘶嘶聲）- 調到 0
+        const noiseBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.5, this.ctx.sampleRate);
+        const noiseData = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < noiseBuffer.length; i++) {
+            noiseData[i] = Math.random() * 2 - 1;
+        }
+        
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = noiseBuffer;
+        
+        const noiseFilter = this.ctx.createBiquadFilter();
+        noiseFilter.type = 'bandpass';
+        noiseFilter.frequency.setValueAtTime(3000, now);
+        noiseFilter.frequency.exponentialRampToValueAtTime(500, now + 0.5);
+        noiseFilter.Q.value = 1;
+        
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(1.0 * this.sfxVolume, now);  // 調到 1.0
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(this.ctx.destination);
+        noise.start(now);
+        noise.stop(now + 0.5);
+        
+        // 第三層：高頻閃爍聲（啪啪聲）- 調到 0.02
+        for (let i = 0; i < 3; i++) {
+            const crackle = this.ctx.createOscillator();
+            const crackleGain = this.ctx.createGain();
+            const startTime = now + i * 0.05;
+            
+            crackle.type = 'square';
+            crackle.frequency.setValueAtTime(1500 + Math.random() * 1000, startTime);
+            crackleGain.gain.setValueAtTime(0.02 * this.sfxVolume, startTime);  // 調到 0.02
+            crackleGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.08);
+            
+            crackle.connect(crackleGain);
+            crackleGain.connect(this.ctx.destination);
+            crackle.start(startTime);
+            crackle.stop(startTime + 0.08);
+        }
     },
 
     // Legacy

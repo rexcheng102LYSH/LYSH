@@ -109,7 +109,7 @@ window.BackgroundEngine = {
     },
 
     loop: function() {
-        this.time += 0.01;
+        this.time += 0.012;  // 提速 20% (0.01 * 1.2)
         this.clearCanvas();
 
         this.drawSkyBackground();
@@ -253,12 +253,12 @@ window.BackgroundEngine = {
             x: Math.random() * this.width,
             y: randomY ? Math.random() * (this.height - 50) : -20, 
             size: 8 + Math.random() * 8,       
-            vx: (Math.random() - 0.5) * 1.5,   
-            vy: 1 + Math.random() * 1.5,       
+            vx: (Math.random() - 0.5) * 1.5 * 1.2,  // 提速 20%
+            vy: (1 + Math.random() * 1.5) * 1.2,  // 提速 20%
             rotation: Math.random() * Math.PI * 2, 
-            rotSpeed: (Math.random() - 0.5) * 0.05, 
+            rotSpeed: (Math.random() - 0.5) * 0.05 * 1.2,  // 提速 20%
             flip: 0, 
-            flipSpeed: 0.02 + Math.random() * 0.03, 
+            flipSpeed: (0.02 + Math.random() * 0.03) * 1.2,  // 提速 20%
             color: Math.random() > 0.6 ? '#D84315' : (Math.random() > 0.5 ? '#EF6C00' : '#FF8F00'), 
             state: 'falling', 
             life: 1.0 
@@ -323,9 +323,9 @@ window.BackgroundEngine = {
             y: randomY ? Math.random() * this.height : -10,
             z: z,
             size: 2 + z * 3, 
-            speed: 0.5 + z * 1.5, 
+            speed: (0.5 + z * 1.5) * 1.2,  // 提速 20%
             sway: Math.random() * Math.PI * 2, 
-            swayAmp: 0.5 + Math.random() * 1.0, 
+            swayAmp: (0.5 + Math.random() * 1.0) * 1.2,  // 提速 20%
             opacity: 0.4 + z * 0.5 
         };
     },
@@ -333,7 +333,7 @@ window.BackgroundEngine = {
     updateWinterSnow: function() {
         this.snowflakes.forEach(s => {
             s.y += s.speed;
-            s.sway += 0.02; 
+            s.sway += 0.024;  // 提速 20% (0.02 * 1.2)
             s.x += Math.sin(s.sway) * s.swayAmp; 
             if (s.y > this.height) Object.assign(s, this.createSnowflake(false));
         });
@@ -389,7 +389,7 @@ window.BackgroundEngine = {
             x: randomX ? Math.random() * this.width : -250,
             y: Math.random() * (this.height * 0.4),
             scale: (0.5 + Math.random() * 0.5) * (type==='autumn'?1.5:1), 
-            speed: speedBase + Math.random() * 0.1,
+            speed: (speedBase + Math.random() * 0.1) * 1.2,  // 提速 20%
             puffs: puffs,
             opacity: opacity,
             scaleY: scaleY,
@@ -441,7 +441,7 @@ window.BackgroundEngine = {
             x: Math.random() * this.width,
             y: Math.random() * this.height - this.height,
             length: Math.random() * 25 + 15,
-            speed: Math.random() * 8 + 8,
+            speed: (Math.random() * 8 + 8) * 1.2,  // 提速 20%
             width: Math.random() * 1.5 + 0.5
         };
     },
@@ -458,7 +458,7 @@ window.BackgroundEngine = {
         }
         for (let i = this.splashes.length - 1; i >= 0; i--) {
             const s = this.splashes[i];
-            s.x += s.vx; s.y += s.vy; s.vy += 0.2; s.life -= 0.05;
+            s.x += s.vx; s.y += s.vy; s.vy += 0.24; s.life -= 0.06;  // 提速 20%
             if (s.life <= 0) this.splashes.splice(i, 1);
         }
     },
@@ -468,8 +468,8 @@ window.BackgroundEngine = {
         for(let i=0; i<count; i++) {
             this.splashes.push({
                 x: x, y: y,
-                vx: (Math.random() - 0.5) * 4,
-                vy: -(Math.random() * 3 + 1),
+                vx: (Math.random() - 0.5) * 4 * 1.2,  // 提速 20%
+                vy: -(Math.random() * 3 + 1) * 1.2,  // 提速 20%
                 life: 1.0, radius: Math.random() * 1.5 + 0.5
             });
         }
