@@ -1,21 +1,31 @@
-// ================= 核心遊戲邏輯 (Core Game Logic) =================
+// ================= 核心游戏逻辑 (Core Game Logic) =================
+// [Alpha 0.7.8.3]
+// - DJ 底鼓提示灯开关系统：可在帧率选择中开启/关闭
+// - 无限制按钮改造：改为底鼓提示灯开关，不改变实际帧数
+//
 // [Alpha 0.7.8.2]
-// - DJ 勝利特效完善：修復判定邏輯、MISS/PERFECT 顯示位置優化
+// - DJ 胜利特效完善：修复判定逻辑、MISS/PERFECT 显示位置优化
 //
 // [Alpha 0.7.8.1 State Management Separation]
-// - 將 GameState 分離到 gamestate.js，減輕 game.js 負擔
-// - 專注於遊戲邏輯：棋盤渲染、回合管理、技能系統、勝負判定
+// - 将 GameState 分离到 gamestate.js，减轻 game.js 负担
+// - 专注于游戏逻辑：棋盘渲染、回合管理、技能系统、胜负判定
 //
 // [Alpha 0.7.8.0 State Management Refactoring]
-// - 引入集中式 GameState 對象，統一管理所有遊戲狀態
-// - 提供 resetGame()、createSnapshot()、restoreSnapshot() 等狀態管理方法
-// - 完全向後兼容，保留舊的全局變量引用
-// - 為未來的存檔/讀檔、回放、統計等功能打下基礎
+// - 引入集中式 GameState 对象，统一管理所有游戏状态
+// - 提供 resetGame()、createSnapshot()、restoreSnapshot() 等状态管理方法
+// - 完全向后兼容，保留旧的全局变量引用
+// - 为未来的存档/读档、回放、统计等功能打下基础
 //
 // [Alpha 0.7.7.9 Final Release]
 // - 整合 DJ 节奏游戏：在 updateWinCelebrationUI 中恢复 DJ 选项，并在 highlightWin 中正确触发
 // - 优化胜负逻辑：PvE 败北时播放 playDefeat() 并静默特效；胜利时根据选项触发 VisualFX
 // - 强化状态管理：enterTurnSelection 和 initGame 强制清除特效，防止残留
+
+// ================= DJ 底鼓提示灯开关 =================
+let djDrumIndicatorEnabled = false;  // 默认关闭（60FPS 时）
+
+// [CRITICAL FIX] 将变量暴露到 window 对象，确保跨文件安全访问
+window.djDrumIndicatorEnabled = djDrumIndicatorEnabled;
 
 function getIcon(player) {
     if (typeof PIECE_ICONS === 'undefined') return (player === MAPLE ? 'B' : 'W');
@@ -35,30 +45,30 @@ function getIcon(player) {
     return '?';
 }
 
-// ================= 幀率控制系統 =================
-// 統一的主循環管理器，確保穩定的幀率
+// ================= 帧率控制系统 =================
+// 统一的主循环管理器，确保稳定的帧率
 const FrameRateController = {
-    targetFPS: 60,  // 鎖定 60fps
-    frameTime: 1000 / 60,  // 每幀時間 (ms)
+    targetFPS: 60,  // 锁定 60fps
+    frameTime: 1000 / 60,  // 每帧时间 (ms)
     lastFrameTime: 0,
     animationId: null,
     
-    // 更新幀率限制（暫時禁用無限制模式）
+    // 更新帧率限制（暂时禁用无限制模式）
     setFPSLimit: function(limit) {
-        // 先停止當前動畫循環
+        // 先停止当前动画循环
         const wasRunning = this.animationId !== null;
         if (wasRunning) {
             this.stop();
         }
         
-        // 強制鎖定 60fps
+        // 强制锁定 60fps
         this.targetFPS = 60;
         this.frameTime = 1000 / 60;
         
-        // 重置時間戳，避免 deltaTime 異常
+        // 重置时间戳，避免 deltaTime 异常
         this.lastFrameTime = performance.now();
         
-        // 如果之前在運行，重新啟動
+        // 如果之前在运行，重新启动
         if (wasRunning) {
             this.start();
         }
@@ -66,7 +76,7 @@ const FrameRateController = {
     
     init: function() {
         this.lastFrameTime = performance.now();
-        this.setFPSLimit(GameState.fpsLimit);  // 根據設置初始化
+        this.setFPSLimit(GameState.fpsLimit);  // 根据设置初始化
         this.start();
     },
     
@@ -75,24 +85,36 @@ const FrameRateController = {
         const loop = (now) => {
             const deltaTime = now - this.lastFrameTime;
             
-            // 只在達到目標幀時間時執行（無限制模式下 frameTime = 0，總是執行）
+            // 只在达到目标帧时间时执行（无限制模式下 frameTime = 0，总是执行）
             if (deltaTime >= this.frameTime) {
-                // 更新時間戳（無限制模式下直接使用當前時間）
+                // 更新时间戳（无限制模式下直接使用当前时间）
                 if (this.frameTime > 0) {
                     this.lastFrameTime = now - (deltaTime % this.frameTime);
                 } else {
                     this.lastFrameTime = now;
                 }
                 
-                // 執行所有引擎的更新
-                if (typeof BackgroundEngine !== 'undefined' && BackgroundEngine.loop) {
-                    BackgroundEngine.loop();
+                // [CRITICAL FIX] 执行所有引擎的更新，添加异常捕获防止渲染循环中断
+                try {
+                    if (typeof BackgroundEngine !== 'undefined' && BackgroundEngine.loop) {
+                        BackgroundEngine.loop();
+                    }
+                } catch (error) {
+                    console.error('[FrameRateController] BackgroundEngine.loop 错误:', error);
+                    // 不中断循环，继续执行
                 }
-                if (typeof VisualFX !== 'undefined' && VisualFX.renderFrame) {
-                    VisualFX.renderFrame(now);
+                
+                try {
+                    if (typeof VisualFX !== 'undefined' && VisualFX.renderFrame) {
+                        VisualFX.renderFrame(now);
+                    }
+                } catch (error) {
+                    console.error('[FrameRateController] VisualFX.renderFrame 错误:', error);
+                    // 不中断循环，继续执行
                 }
             }
             
+            // [CRITICAL FIX] 确保无论如何都会调度下一帧
             this.animationId = requestAnimationFrame(loop);
         };
         this.animationId = requestAnimationFrame(loop);
@@ -274,19 +296,35 @@ function updateSeasonUI() {
 
 function changeFPSLimit(limit) {
     SoundEngine.playPlace();
-    GameState.fpsLimit = limit;
-    fpsLimit = GameState.fpsLimit; // 同步
-    FrameRateController.setFPSLimit(limit);
+    
+    // [Alpha 0.7.8.3] 改造：无限制按钮现在控制底鼓提示灯开关
+    // 60 FPS 按钮：关闭提示灯（默认）
+    // 无限制按钮：开启提示灯（内部测试用）
+    if (limit === '60') {
+        djDrumIndicatorEnabled = false;
+        window.djDrumIndicatorEnabled = false; // [CRITICAL FIX] 同步到 window 对象
+    } else if (limit === 'unlimited') {
+        djDrumIndicatorEnabled = true;
+        window.djDrumIndicatorEnabled = true; // [CRITICAL FIX] 同步到 window 对象
+    }
+    
+    // 不改变实际帧数，保持锁帧 60fps
+    GameState.fpsLimit = '60';
+    fpsLimit = '60';
+    FrameRateController.setFPSLimit('60');
+    
     updateFPSUI();
 }
 
 function updateFPSUI() {
     document.querySelectorAll('.fps-opt').forEach(el => el.classList.remove('active'));
-    if (fpsLimit === '60') {
-        const el = document.getElementById('fps60');
+    
+    // 根据提示灯状态更新 UI
+    if (djDrumIndicatorEnabled) {
+        const el = document.getElementById('fpsUnlimited');
         if (el) el.classList.add('active');
     } else {
-        const el = document.getElementById('fpsUnlimited');
+        const el = document.getElementById('fps60');
         if (el) el.classList.add('active');
     }
 }
@@ -299,6 +337,45 @@ function goToMenu() {
     if (GameState.gameTicker) clearInterval(GameState.gameTicker);
     if (GameState.aiTimer) clearTimeout(GameState.aiTimer);
     if (GameState.bombInterval) clearInterval(GameState.bombInterval);
+    
+    // [Fix Alpha 0.7.8.4] 完整状态重置，解决系统性 bug
+    
+    // 1. 重新启用所有被禁用的按钮（修复技能按钮失效）
+    const skillBtn = document.getElementById('skillBtn');
+    if (skillBtn) {
+        skillBtn.disabled = false;
+        skillBtn.style.pointerEvents = 'auto';
+    }
+    const undoBtn = document.querySelector('[onclick="undoMove()"]');
+    if (undoBtn) {
+        undoBtn.disabled = false;
+        undoBtn.style.pointerEvents = 'auto';
+    }
+    
+    // 2. [Fix Alpha 0.7.8.4] 彻底停止 DJ 游戏和音乐
+    if (SoundEngine.djGame.active) {
+        SoundEngine.stopDJGame();
+        // 强制切换到用户选择的音乐
+        SoundEngine.switchTrack(GameState.userMusicPref);
+    }
+    // 如果当前是炸弹音乐，也要恢复用户选择的音乐
+    else if (SoundEngine.currentTrack === 'bomb') {
+        SoundEngine.switchTrack(GameState.userMusicPref);
+    }
+    
+    // 3. 完整重置 GameState 向后兼容变量（修复悔棋失效）
+    GameState.historyStack = [];
+    GameState.isBO3 = false;
+    GameState.activeEffect = null;
+    GameState.selectedCell = null;
+    GameState.bombTarget = null;
+    
+    // 同步所有向后兼容变量
+    historyStack = GameState.historyStack;
+    isBO3 = GameState.isBO3;
+    activeEffect = GameState.activeEffect;
+    selectedCell = GameState.selectedCell;
+    bombTarget = GameState.bombTarget;
     
     // 不要停止 FrameRateController，讓背景動畫繼續運行
     
@@ -328,6 +405,18 @@ function startPvPFlow(subMode) {
 function enterTurnSelection(mode, diff) { 
     // [Fix] 进入新游戏流程前，强制清空上一局的特效
     if (typeof VisualFX !== 'undefined') VisualFX.clear();
+    
+    // [Fix Alpha 0.7.8.4] 重新启用按钮，修复【再来一局】bug
+    const skillBtn = document.getElementById('skillBtn');
+    if (skillBtn) {
+        skillBtn.disabled = false;
+        skillBtn.style.pointerEvents = 'auto';
+    }
+    const undoBtn = document.querySelector('[onclick="undoMove()"]');
+    if (undoBtn) {
+        undoBtn.disabled = false;
+        undoBtn.style.pointerEvents = 'auto';
+    }
     
     SoundEngine.playPlace(); 
     document.getElementById('winnerModal').style.display = 'none'; 

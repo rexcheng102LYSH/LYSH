@@ -1,15 +1,15 @@
 // ================= 视觉特效引擎 (Visual Effects) =================
 // [Alpha 0.7.8.2]
-// - 閃電特效全面升級：電流粒子、電弧爆發、能量波動、環境電離
-// - 新增五層視覺效果：光暈、主路徑、移動粒子、分支爆發、核心閃光
-// - 保持其他特效穩定性
+// - 闪电特效全面升级：电流粒子、电弧爆发、能量波动、环境电离
+// - 新增五层视觉效果：光晕、主路径、移动粒子、分支爆发、核心闪光
+// - 保持其他特效稳定性
 
 const VisualFX = {
     canvas: null,
     ctx: null,
     animationId: null,
     
-    // FPS 計數器
+    // FPS 计数器
     fps: {
         frameCount: 0,
         lastTime: performance.now(),
@@ -34,29 +34,29 @@ const VisualFX = {
         celebrationType: null, 
         fireworks: { rockets: [], explosions: [] },
         
-        // [New] DJ 節奏遊戲數據 - 三階段系統
+        // [New] DJ 节奏游戏数据 - 三阶段系统
         dj: {
             phase: 'idle', // 'challenge', 'fail', 'victory'
             
-            // 挑戰階段
-            notes: [], // 飛向鼓的音符 {x, y, vx, vy, targetTime, hit}
+            // 挑战阶段
+            notes: [], // 飞向鼓的音符 {x, y, vx, vy, targetTime, hit}
             kickScale: 1.0,
             bgFlash: 0,
             spotlights: [],
             
-            // 失敗階段
-            darknessAlpha: 0, // 黑暗覆蓋透明度
+            // 失败阶段
+            darknessAlpha: 0, // 黑暗覆盖透明度
             
-            // 勝利階段
+            // 胜利阶段
             autoKickTimer: 0,
-            victoryParticles: [] // 勝利粒子效果
+            victoryParticles: [] // 胜利粒子效果
         }
     },
 
     init: function() {
-        // 【修復】防止重複初始化導致事件監聽器多次綁定
+        // 【修复】防止重复初始化导致事件监听器多次绑定
         if (this._initialized) {
-            console.log('[FX] 已初始化，跳過重複綁定');
+            console.log('[FX] 已初始化，跳过重复绑定');
             // 只更新 canvas 尺寸
             if (this.canvas) this.resize();
             return;
@@ -64,7 +64,7 @@ const VisualFX = {
         
         this.canvas = document.getElementById('fxCanvas');
         if (this.canvas) {
-            // 啟用低延遲模式和透明度
+            // 启用低延迟模式和透明度
             this.ctx = this.canvas.getContext('2d', { 
                 alpha: true, 
                 desynchronized: true 
@@ -81,31 +81,31 @@ const VisualFX = {
             
             // [New] 绑定点击事件用于打鼓
             this.canvas.addEventListener('mousedown', (e) => {
-                console.log('[Canvas] mousedown 事件觸發！celebrationType:', this.state.celebrationType);
+                console.log('[Canvas] mousedown 事件触发！celebrationType:', this.state.celebrationType);
                 if (this.state.celebrationType === 'dj') {
-                    console.log('[Canvas] 是 DJ 模式，調用 handleDrumHit');
+                    console.log('[Canvas] 是 DJ 模式，调用 handleDrumHit');
                     this.handleDrumHit(e);
                 } else {
-                    console.log('[Canvas] 不是 DJ 模式，忽略點擊');
+                    console.log('[Canvas] 不是 DJ 模式，忽略点击');
                 }
-            }, true); // 使用捕獲階段，優先處理
+            }, true); // 使用捕获阶段，优先处理
             
-            // 【調試】添加全局點擊監聽
+            // 【调试】添加全局点击监听
             document.addEventListener('mousedown', (e) => {
-                console.log('[Document] 全局點擊事件，目標:', e.target.tagName, e.target.id);
+                console.log('[Document] 全局点击事件，目标:', e.target.tagName, e.target.id);
             }, true);
             
-            // Canvas 預熱優化：提前觸發 GPU 編譯
+            // Canvas 预热优化：提前触发 GPU 编译
             this.warmupCanvas();
             
-            // 標記已初始化
+            // 标记已初始化
             this._initialized = true;
-            console.log('[FX] 初始化完成，事件監聽器已綁定');
+            console.log('[FX] 初始化完成，事件监听器已绑定');
         }
     },
 
-    // Canvas 預熱函數：提前觸發所有渲染操作的 GPU 編譯
-    // 解決首次播放特效時的卡頓問題
+    // Canvas 预热函数：提前触发所有渲染操作的 GPU 编译
+    // 解决首次播放特效时的卡顿问题
     warmupCanvas: function() {
         if (!this.ctx) return;
         
@@ -113,14 +113,14 @@ const VisualFX = {
         const w = this.canvas.width;
         const h = this.canvas.height;
         
-        // 保存當前狀態
+        // 保存当前状态
         ctx.save();
         
-        // 1. 預熱混合模式
+        // 1. 预热混合模式
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalCompositeOperation = 'source-over';
         
-        // 2. 預熱線性漸變
+        // 2. 预热线性渐变
         const linearGrad = ctx.createLinearGradient(0, 0, w, h);
         linearGrad.addColorStop(0, 'rgba(255, 0, 0, 1)');
         linearGrad.addColorStop(0.5, 'rgba(0, 255, 0, 0.5)');
@@ -128,28 +128,28 @@ const VisualFX = {
         ctx.fillStyle = linearGrad;
         ctx.fillRect(0, 0, 1, 1);
         
-        // 3. 預熱徑向漸變
+        // 3. 预热径向渐变
         const radialGrad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, 100);
         radialGrad.addColorStop(0, 'rgba(255, 255, 255, 1)');
         radialGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.fillStyle = radialGrad;
         ctx.fillRect(0, 0, 1, 1);
         
-        // 4. 預熱各種繪製操作
-        // 填充圓形
+        // 4. 预热各种绘制操作
+        // 填充圆形
         ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
         ctx.beginPath();
         ctx.arc(10, 10, 5, 0, Math.PI * 2);
         ctx.fill();
         
-        // 描邊圓形
+        // 描边圆形
         ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(20, 20, 5, 0, Math.PI * 2);
         ctx.stroke();
         
-        // 陰影效果
+        // 阴影效果
         ctx.shadowBlur = 10;
         ctx.shadowColor = 'rgba(0, 0, 255, 0.5)';
         ctx.fillStyle = 'rgba(0, 0, 255, 0.5)';
@@ -161,13 +161,13 @@ const VisualFX = {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.fillText('W', 40, 40);
         
-        // 5. 預熱 HSL 顏色（煙花特效使用）
+        // 5. 预热 HSL 颜色（烟花特效使用）
         for (let i = 0; i < 360; i += 60) {
             ctx.fillStyle = `hsla(${i}, 100%, 60%, 0.5)`;
             ctx.fillRect(0, 0, 1, 1);
         }
         
-        // 6. 預熱線條繪製（連珠特效使用）
+        // 6. 预热线条绘制（连珠特效使用）
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.strokeStyle = 'rgba(0, 230, 118, 0.5)';
@@ -177,12 +177,12 @@ const VisualFX = {
         ctx.lineTo(10, 10);
         ctx.stroke();
         
-        // 7. 預熱 lighter 混合模式（煙花和聚光燈使用）
+        // 7. 预热 lighter 混合模式（烟花和聚光灯使用）
         ctx.globalCompositeOperation = 'lighter';
         ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
         ctx.fillRect(0, 0, 10, 10);
         
-        // 清除預熱痕跡
+        // 清除预热痕迹
         ctx.restore();
         ctx.clearRect(0, 0, w, h);
     },
@@ -202,24 +202,24 @@ const VisualFX = {
             this.ctx.setTransform(1, 0, 0, 1, 0, 0);
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             this.ctx.globalCompositeOperation = 'source-over';
-            // 重置所有 Canvas 狀態
+            // 重置所有 Canvas 状态
             this.ctx.shadowBlur = 0;
             this.ctx.shadowColor = 'transparent';
             this.ctx.globalAlpha = 1.0;
         }
         
-        // 【修復】恢復 Canvas 點擊穿透
+        // 【修复】恢复 Canvas 点击穿透
         if (this.canvas) {
             this.canvas.style.pointerEvents = 'none';
         }
         
-        // 【修復】恢復技能按鈕和悔棋按鈕顯示
+        // 【修复】恢复技能按钮和悔棋按钮显示
         const skillBtn = document.getElementById('skillBtn');
         if (skillBtn) skillBtn.style.display = '';
         const undoBtn = document.querySelector('[onclick="undoMove()"]');
         if (undoBtn) undoBtn.style.display = '';
         
-        // 清理緩存
+        // 清理缓存
         this._goldGradientCache = null;
         
         this.state = {
@@ -241,7 +241,7 @@ const VisualFX = {
                 notes: [], 
                 kickScale: 1.0, 
                 bgFlash: 0, 
-                spotlights: [], 
+                spotlights: [], // [CRITICAL FIX] 强制清空聚光灯，防止内存泄漏 
                 darknessAlpha: 0,
                 autoKickTimer: 0,
                 victoryParticles: []
@@ -249,6 +249,40 @@ const VisualFX = {
         };
         
         if (typeof SoundEngine !== 'undefined' && SoundEngine.stopDJGame) SoundEngine.stopDJGame();
+        
+        // [CRITICAL FIX] 强制清理DJ特效，防止崩溃和内存泄漏
+        this.forceStopDJ();
+    },
+    
+    // [NEW] 强制停止DJ特效的专用函数
+    forceStopDJ: function() {
+        // 1. 强制重置DJ状态
+        if (this.state && this.state.dj) {
+            this.state.dj.phase = 'idle';
+            this.state.dj.spotlights = [];
+            this.state.dj.victoryParticles = [];
+            this.state.dj.notes = [];
+        }
+        
+        // 2. 强制重置庆祝类型
+        if (this.state) {
+            this.state.celebrationType = null;
+        }
+        
+        // 3. 清理可能的定时器
+        if (typeof SoundEngine !== 'undefined' && SoundEngine.djGame) {
+            const dj = SoundEngine.djGame;
+            if (dj.schedulerID) {
+                clearTimeout(dj.schedulerID);
+                dj.schedulerID = null;
+            }
+            if (dj.autoKickInterval) {
+                clearInterval(dj.autoKickInterval);
+                dj.autoKickInterval = null;
+            }
+        }
+        
+        console.log('[FX] DJ特效已强制清理');
     },
 
     getCoords: function(r, c) {
@@ -262,7 +296,7 @@ const VisualFX = {
     },
 
     startLoop: function() {
-        // 由 FrameRateController 統一管理，已在頁面加載時啟動
+        // 由 FrameRateController 统一管理，已在页面加载时启动
         this.state.active = true;
         this.state.startTime = performance.now();
     },
@@ -300,31 +334,31 @@ const VisualFX = {
             this.state.fireworks = { 
                 rockets: [], 
                 explosions: [],
-                lastLaunchTime: 0,  // 記錄上次發射時間
-                launchInterval: 1000 / 3  // 每秒3枚 = 333.33ms間隔
+                lastLaunchTime: 0,  // 记录上次发射时间
+                launchInterval: 1000 / 3  // 每秒3枚 = 333.33ms间隔
             };
         } 
-        // [New] DJ 三階段初始化
+        // [New] DJ 三阶段初始化
         else if (type === 'dj') {
-            console.log('[DJ] 啟動 DJ 模式');
+            console.log('[DJ] 启动 DJ 模式');
             
-            // 【修復】隱藏技能按鈕和悔棋按鈕
+            // 【修复】隐藏技能按钮和悔棋按钮
             const skillBtn = document.getElementById('skillBtn');
             if (skillBtn) {
                 skillBtn.style.display = 'none';
-                console.log('[DJ] 隱藏技能按鈕');
+                console.log('[DJ] 隐藏技能按钮');
             }
             const undoBtn = document.querySelector('[onclick="undoMove()"]');
             if (undoBtn) {
                 undoBtn.style.display = 'none';
-                console.log('[DJ] 隱藏悔棋按鈕');
+                console.log('[DJ] 隐藏悔棋按钮');
             }
             
-            // 【修復】Canvas 接收點擊事件
+            // 【修复】Canvas 接收点击事件
             if (this.canvas) {
                 this.canvas.style.pointerEvents = 'auto';
-                console.log('[DJ] Canvas pointerEvents 設為 auto');
-                console.log('[DJ] Canvas 當前樣式:', window.getComputedStyle(this.canvas).pointerEvents);
+                console.log('[DJ] Canvas pointerEvents 设为 auto');
+                console.log('[DJ] Canvas 当前样式:', window.getComputedStyle(this.canvas).pointerEvents);
             }
             
             this.state.dj = {
@@ -333,10 +367,10 @@ const VisualFX = {
                 kickScale: 1.0,
                 bgFlash: 0,
                 spotlights: [
-                    { x: 0.2, fixed: true, color: '#B3E5FC' }, // 淺藍
-                    { x: 0.4, fixed: true, color: '#E1BEE7' }, // 淺紫
-                    { x: 0.6, fixed: true, color: '#C8E6C9' }, // 淺綠
-                    { x: 0.8, fixed: true, color: '#FFF9C4' }  // 淺黃
+                    { x: 0.2, fixed: true, color: '#B3E5FC' }, // 浅蓝
+                    { x: 0.4, fixed: true, color: '#E1BEE7' }, // 浅紫
+                    { x: 0.6, fixed: true, color: '#C8E6C9' }, // 浅绿
+                    { x: 0.8, fixed: true, color: '#FFF9C4' }  // 浅黄
                 ],
                 darknessAlpha: 0,
                 autoKickTimer: 0,
@@ -345,17 +379,17 @@ const VisualFX = {
                 perfectText: null    // PERFECT 文字特效
             };
             
-            console.log('[DJ] DJ 狀態初始化完成');
+            console.log('[DJ] DJ 状态初始化完成');
             
-            // 設置回調函數供 audio.js 調用
+            // 设置回调函数供 audio.js 调用
             window.djMissCallback = () => this.onDJMiss();
             window.djFailCallback = () => this.onDJFail();
             window.djVictoryCallback = () => this.onDJVictory();
             window.djAutoKickCallback = () => this.onDJAutoKick();
             
-            // 啟動音頻引擎的 DJ 挑戰
+            // 启动音频引擎的 DJ 挑战
             if (typeof SoundEngine !== 'undefined') {
-                console.log('[DJ] 啟動音頻引擎');
+                console.log('[DJ] 启动音频引擎');
                 SoundEngine.startDJChallenge();
             }
         }
@@ -364,7 +398,13 @@ const VisualFX = {
     },
 
     renderFrame: function(now) {
-        // 如果沒有活動特效，跳過渲染以節省 GPU
+        // [CRITICAL FIX] 安全检查，防止渲染冲突导致崩溃
+        if (!this.ctx || !this.canvas) {
+            console.warn('[FX] Canvas未初始化，跳过渲染');
+            return;
+        }
+        
+        // 如果没有活动特效，跳过渲染以节省 GPU
         if (!this.state.active && !this.state.lineType && !this.state.celebrationType) {
             this.updateAndRenderFPS(now);
             return;
@@ -375,42 +415,78 @@ const VisualFX = {
         const h = this.canvas.height;
         const elapsed = now - this.state.startTime;
 
+        // === 应用屏幕震动效果 ===
+        const shakeOffset = this.updateScreenShake(now);
+        if (shakeOffset.x !== 0 || shakeOffset.y !== 0) {
+            ctx.save();
+            ctx.translate(shakeOffset.x, shakeOffset.y);
+        }
+
         // 清屏
-        ctx.clearRect(0, 0, w, h);
+        ctx.clearRect(-shakeOffset.x, -shakeOffset.y, w + Math.abs(shakeOffset.x) * 2, h + Math.abs(shakeOffset.y) * 2);
 
         // 1. 绘制连珠 (Win Line)
         if (this.state.lineType && this.state.linePoints.length >= 2) {
             const type = this.state.lineType;
             const pts = this.state.linePoints;
-            // DJ 模式下为了突出节奏，稍微压暗连珠
-            if (this.state.celebrationType === 'dj') ctx.globalAlpha = 0.6;
             
-            if (type === 'default') this.renderDefaultLine(pts, elapsed);
-            else if (type === 'lightning') this.renderLightning(pts, this.state.lightningData, elapsed);
-            else if (type === 'gold') this.renderGold(pts, elapsed);
-            else if (type === 'future') this.renderFuture(pts, elapsed);
-            
-            ctx.globalAlpha = 1.0;
+            // [CRITICAL FIX] 状态隔离：防止连珠特效污染 DJ 特效
+            ctx.save();
+            try {
+                // DJ 模式下为了突出节奏，稍微压暗连珠
+                if (this.state.celebrationType === 'dj') ctx.globalAlpha = 0.6;
+                
+                if (type === 'default') this.renderDefaultLine(pts, elapsed);
+                else if (type === 'lightning') this.renderLightning(pts, this.state.lightningData, elapsed);
+                else if (type === 'gold') this.renderGold(pts, elapsed);
+                else if (type === 'future') this.renderFuture(pts, elapsed);
+            } finally {
+                // 确保无论是否发生异常都恢复状态
+                ctx.restore();
+            }
         }
 
         // 2. 绘制胜利特效
         if (this.state.celebrationType === 'fireworks') {
-            this.renderFireworks(ctx, w, h, now);  // 傳遞 now 參數
+            // [CRITICAL FIX] 状态隔离：防止烟花特效污染其他渲染
+            ctx.save();
+            try {
+                this.renderFireworks(ctx, w, h, now);
+            } finally {
+                ctx.restore();
+            }
         } else if (this.state.celebrationType === 'dj') {
-            this.renderDJGame(ctx, w, h, now);
+            // [CRITICAL FIX] 状态隔离 + DJ渲染安全检查
+            ctx.save();
+            try {
+                if (this.state.dj && this.state.dj.phase) {
+                    this.renderDJGame(ctx, w, h, now);
+                }
+            } catch (error) {
+                console.error('[FX] DJ渲染错误:', error);
+                // 发生错误时强制清理DJ特效
+                this.forceStopDJ();
+            } finally {
+                ctx.restore();
+            }
         }
         
-        // 3. 繪製 FPS 計數器
+        // === 恢复屏幕震动变换 ===
+        if (shakeOffset.x !== 0 || shakeOffset.y !== 0) {
+            ctx.restore();
+        }
+        
+        // 3. 绘制 FPS 计数器（不受震动影响）
         this.updateAndRenderFPS(now);
     },
 
     // =========================================
-    // 🥁 DJ 三階段系統
+    // 🥁 DJ 三阶段系统
     // =========================================
     
-    // FPS 計算和渲染
+    // FPS 计算和渲染
     updateAndRenderFPS: function(now) {
-        // 更新 FPS 計數
+        // 更新 FPS 计数
         this.fps.frameCount++;
         const timeDelta = now - this.fps.lastTime;
         
@@ -428,52 +504,55 @@ const VisualFX = {
         }
     },
     
-    // 玩家擊鼓（僅在挑戰階段有效）
+    // 玩家击鼓（仅在挑战阶段有效）
     handleDrumHit: function(e) {
         const dj = this.state.dj;
-        console.log('[FX] handleDrumHit 被調用，phase:', dj.phase);
+        console.log('[FX] handleDrumHit 被调用，phase:', dj.phase);
         
         if (dj.phase !== 'challenge') return;
         
-        // 【修復】阻止事件冒泡和默認行為
+        // 【修复】阻止事件冒泡和默认行为
         if (e) {
             e.stopPropagation();
-            e.stopImmediatePropagation(); // 阻止同一元素上的其他監聽器
+            e.stopImmediatePropagation(); // 阻止同一元素上的其他监听器
             e.preventDefault();
         }
         
-        // 【防抖】防止短時間內多次調用
+        // 【防抖】防止短时间内多次调用
         const now = performance.now();
         if (this._lastHitTime && now - this._lastHitTime < 100) {
-            console.log('[FX] 防抖：忽略重複點擊');
+            console.log('[FX] 防抖：忽略重复点击');
             return;
         }
         this._lastHitTime = now;
         
-        // 視覺反馈：鼓面收縮
+        // 视觉反馈：鼓面收缩
         dj.kickScale = 0.8;
         
-        // 調用音頻引擎判定
+        // 调用音频引擎判定
         if (typeof SoundEngine !== 'undefined') {
-            console.log('[FX] 調用 SoundEngine.djPlayerHit()');
+            console.log('[FX] 调用 SoundEngine.djPlayerHit()');
             const success = SoundEngine.djPlayerHit();
-            console.log('[FX] 判定結果:', success ? '成功' : '失敗');
+            console.log('[FX] 判定结果:', success ? '成功' : '失败');
             if (success) {
-                dj.bgFlash = 1.0; // 屏幕閃白
-                dj.kickScale = 1.3; // 鼓面膨脹
+                dj.bgFlash = 1.0; // 屏幕闪白
+                dj.kickScale = 1.3; // 鼓面膨胀
                 this.createHitParticles();
             }
         }
     },
     
-    // 擊中粒子效果
+    // 击中粒子效果
     createHitParticles: function() {
         const dj = this.state.dj;
         const w = this.canvas.width;
         const drumX = w / 2;
         const drumY = this.canvas.height - 80;
         
-        // 創建爆發粒子
+        // === 屏幕震动效果 ===
+        this.triggerScreenShake(8, 200); // 强度8，持续200ms
+        
+        // 创建爆发粒子
         for (let i = 0; i < 20; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = (2 + Math.random() * 4) * 1.2;  // 提速 20%
@@ -486,59 +565,138 @@ const VisualFX = {
                 color: `hsl(${Math.random() * 60 + 150}, 100%, 60%)`
             });
         }
+        
+        // === 波纹扩散效果 ===
+        dj.ripples = dj.ripples || [];
+        dj.ripples.push({
+            x: drumX,
+            y: drumY,
+            radius: 0,
+            maxRadius: 150,
+            alpha: 1.0,
+            life: 1.0
+        });
     },
     
-    // 回調：錯過節拍（顯示 MISS）
+    // 屏幕震动系统
+    triggerScreenShake: function(intensity, duration) {
+        this.screenShake = {
+            intensity: intensity,
+            duration: duration,
+            startTime: performance.now(),
+            offsetX: 0,
+            offsetY: 0
+        };
+    },
+    
+    // 更新屏幕震动
+    updateScreenShake: function(now) {
+        if (!this.screenShake) return { x: 0, y: 0 };
+        
+        const shake = this.screenShake;
+        const elapsed = now - shake.startTime;
+        
+        if (elapsed >= shake.duration) {
+            this.screenShake = null;
+            return { x: 0, y: 0 };
+        }
+        
+        // 震动强度随时间衰减
+        const progress = elapsed / shake.duration;
+        const currentIntensity = shake.intensity * (1 - progress);
+        
+        // 生成随机震动偏移
+        shake.offsetX = (Math.random() - 0.5) * currentIntensity * 2;
+        shake.offsetY = (Math.random() - 0.5) * currentIntensity * 2;
+        
+        return { x: shake.offsetX, y: shake.offsetY };
+    },
+    
+    // 回调：错过节拍（显示 MISS）
     onDJMiss: function() {
         const dj = this.state.dj;
         dj.bgFlash = 0.3;
         
-        // 創建 MISS 文字特效（永久停留）
+        // 创建 MISS 文字特效（永久停留）
         const w = this.canvas.width;
         const h = this.canvas.height;
         dj.missText = {
             x: w / 2,
-            y: h / 4, // 【修復】移到畫面上方 1/4，避免被彈窗遮住
+            y: h / 4, // 【修复】移到画面上方 1/4，避免被弹窗遮住
             alpha: 0,
             scale: 0.5,
             targetScale: 1.5,
-            permanent: true // 永久顯示
+            permanent: true // 永久显示
         };
     },
     
-    // 回調：挑戰失敗
+    // 回调：挑战失败
     onDJFail: function() {
         const dj = this.state.dj;
         dj.phase = 'fail';
         dj.darknessAlpha = 0;
-        // 開始黑暗吞噬動畫
+        // 开始黑暗吞噬动画
     },
     
-    // 回調：挑戰成功
+    // 回调：挑战成功
     onDJVictory: function() {
         const dj = this.state.dj;
         dj.phase = 'victory';
         
-        // 創建 PERFECT 文字特效
+        // 创建 PERFECT 文字特效
         const w = this.canvas.width;
         const h = this.canvas.height;
         dj.perfectText = {
             x: w / 2,
-            y: h / 4, // 與 MISS 等高，避免被彈窗遮住
+            y: h / 4, // 与 MISS 等高，避免被弹窗遮住
             alpha: 0,
             scale: 0.5,
             life: 1.0
         };
         
-        // 聚光燈改為旋轉模式（五顏六色）
-        dj.spotlights = Array(4).fill(0).map(() => ({ 
-            angle: Math.random() * Math.PI, 
-            speed: (Math.random()-0.5)*0.02, 
-            color: `hsl(${Math.random()*360}, 80%, 60%)`,
-            fixed: false
-        }));
+        // === 聚光灯渐变过渡系统 ===
+        // 记录过渡开始时间
+        dj.transitionStartTime = performance.now();
+        dj.transitionDuration = 2000; // 2秒过渡时间
         
-        // 創建勝利粒子噴泉
+        // 初始化过渡状态：从固定位置开始
+        dj.spotlights = [
+            { 
+                x: 0.2, 
+                fixed: true, 
+                color: '#B3E5FC',
+                // 过渡目标状态
+                targetAngle: Math.random() * Math.PI,
+                targetSpeed: (Math.random()-0.5)*0.02,
+                targetColor: `hsl(${Math.random()*360}, 80%, 60%)`
+            },
+            { 
+                x: 0.4, 
+                fixed: true, 
+                color: '#E1BEE7',
+                targetAngle: Math.random() * Math.PI,
+                targetSpeed: (Math.random()-0.5)*0.02,
+                targetColor: `hsl(${Math.random()*360}, 80%, 60%)`
+            },
+            { 
+                x: 0.6, 
+                fixed: true, 
+                color: '#C8E6C9',
+                targetAngle: Math.random() * Math.PI,
+                targetSpeed: (Math.random()-0.5)*0.02,
+                targetColor: `hsl(${Math.random()*360}, 80%, 60%)`
+            },
+            { 
+                x: 0.8, 
+                fixed: true, 
+                color: '#FFF9C4',
+                targetAngle: Math.random() * Math.PI,
+                targetSpeed: (Math.random()-0.5)*0.02,
+                targetColor: `hsl(${Math.random()*360}, 80%, 60%)`
+            }
+        ];
+        
+        // 创建胜利粒子喷泉
         for (let i = 0; i < 50; i++) {
             setTimeout(() => {
                 dj.victoryParticles.push({
@@ -553,7 +711,7 @@ const VisualFX = {
         }
     },
     
-    // 回調：自動擊鼓
+    // 回调：自动击鼓
     onDJAutoKick: function() {
         const dj = this.state.dj;
         dj.kickScale = 0.7;
@@ -564,29 +722,29 @@ const VisualFX = {
     renderDJGame: function(ctx, w, h, now) {
         const dj = this.state.dj;
         
-        // === 階段一：挑戰模式 ===
+        // === 阶段一：挑战模式 ===
         if (dj.phase === 'challenge') {
             this.renderDJChallenge(ctx, w, h, now);
         }
-        // === 階段二：失敗模式 ===
+        // === 阶段二：失败模式 ===
         else if (dj.phase === 'fail') {
             this.renderDJFailure(ctx, w, h, now);
         }
-        // === 階段三：勝利模式 ===
+        // === 阶段三：胜利模式 ===
         else if (dj.phase === 'victory') {
             this.renderDJVictory(ctx, w, h, now);
         }
     },
     
-    // 渲染挑戰階段
+    // 渲染挑战阶段
     renderDJChallenge: function(ctx, w, h, now) {
         const dj = this.state.dj;
         
-        // 1. 壓暗背景
+        // 1. 压暗背景
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.fillRect(0, 0, w, h);
         
-        // 2. 固定聚光燈（挑戰階段）
+        // 2. 固定聚光灯（挑战阶段）
         ctx.globalCompositeOperation = 'lighter';
         const drumX = w / 2;
         const drumY = h - 80;
@@ -594,7 +752,7 @@ const VisualFX = {
         dj.spotlights.forEach(s => {
             const sx = w * s.x;  // 固定 x 位置
             const sy = -100;
-            const ex = drumX;    // 統一照射鼓心
+            const ex = drumX;    // 统一照射鼓心
             const ey = drumY;
             
             const grd = ctx.createLinearGradient(sx, sy, ex, ey);
@@ -609,7 +767,7 @@ const VisualFX = {
             ctx.fill();
         });
         
-        // 3. 閃白效果
+        // 3. 闪白效果
         if (dj.bgFlash > 0.01) {
             ctx.fillStyle = `rgba(255, 255, 255, ${dj.bgFlash * 0.3})`;
             ctx.fillRect(0, 0, w, h);
@@ -617,7 +775,7 @@ const VisualFX = {
         }
         ctx.globalCompositeOperation = 'source-over';
         
-        // 4. 繪製節拍提示圓環
+        // 4. 绘制节拍提示圆环
         if (typeof SoundEngine !== 'undefined' && SoundEngine.djGame.active) {
             const beats = SoundEngine.djGame.challengeBeats;
             const currentTime = SoundEngine.ctx.currentTime;
@@ -650,13 +808,13 @@ const VisualFX = {
             });
         }
         
-        // 5. 繪製鼓
+        // 5. 绘制鼓
         this.drawDrum(ctx, w, h, dj);
         
-        // 6. 繪製粒子
+        // 6. 绘制粒子
         this.updateAndDrawParticles(ctx, dj);
         
-        // 7. 繪製 MISS 文字特效
+        // 7. 绘制 MISS 文字特效
         if (dj.missText && dj.missText.life > 0) {
             const miss = dj.missText;
             miss.y += miss.vy;
@@ -683,11 +841,11 @@ const VisualFX = {
         }
     },
     
-    // 渲染失敗階段
+    // 渲染失败阶段
     renderDJFailure: function(ctx, w, h, now) {
         const dj = this.state.dj;
         
-        // 黑暗逐漸吞噬
+        // 黑暗逐渐吞噬
         if (dj.darknessAlpha < 1.0) {
             dj.darknessAlpha += 0.02;
         }
@@ -695,11 +853,11 @@ const VisualFX = {
         ctx.fillStyle = `rgba(0, 0, 0, ${dj.darknessAlpha})`;
         ctx.fillRect(0, 0, w, h);
         
-        // 【修復】MISS 文字永久停留在黑屏上
+        // 【修复】MISS 文字永久停留在黑屏上
         if (dj.missText) {
             const miss = dj.missText;
             
-            // 動畫：淡入 + 放大
+            // 动画：淡入 + 放大
             if (miss.alpha < 1.0) {
                 miss.alpha += 0.05;
             }
@@ -724,11 +882,11 @@ const VisualFX = {
         }
     },
     
-    // 渲染勝利階段
+    // 渲染胜利阶段
     renderDJVictory: function(ctx, w, h, now) {
         const dj = this.state.dj;
         
-        // 1. 華麗背景
+        // 1. 华丽背景
         const gradient = ctx.createLinearGradient(0, 0, 0, h);
         gradient.addColorStop(0, 'rgba(138, 43, 226, 0.3)');
         gradient.addColorStop(0.5, 'rgba(255, 20, 147, 0.3)');
@@ -736,15 +894,120 @@ const VisualFX = {
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, w, h);
         
-        // 2. 旋轉聚光燈（五顏六色）
+        // 2. 渐变聚光灯系统
         ctx.globalCompositeOperation = 'lighter';
-        dj.spotlights.forEach(s => {
-            if (!s.fixed) {
-                s.angle += s.speed * 2;
-                const sx = w/2 + Math.cos(s.angle) * w * 0.5;
-                const sy = -100;
-                const ex = w/2 + Math.sin(s.angle) * (w*0.8);
-                const ey = h;
+        
+        // 计算过渡进度
+        let transitionProgress = 1.0; // 默认完全过渡
+        if (dj.transitionStartTime && dj.transitionDuration) {
+            const elapsed = now - dj.transitionStartTime;
+            transitionProgress = Math.min(elapsed / dj.transitionDuration, 1.0);
+            // 使用 easeInOutCubic 缓动函数，让过渡更自然
+            transitionProgress = transitionProgress < 0.5 
+                ? 4 * transitionProgress * transitionProgress * transitionProgress
+                : 1 - Math.pow(-2 * transitionProgress + 2, 3) / 2;
+        }
+        
+        const drumX = w / 2;
+        const drumY = h - 80;
+        
+        dj.spotlights.forEach((s, index) => {
+            if (s.fixed && transitionProgress < 1.0) {
+                // === 过渡阶段：从固定位置渐变到旋转模式 ===
+                
+                // 固定模式的起始位置
+                const fixedX = w * s.x;
+                const fixedY = -100;
+                const fixedEndX = drumX;
+                const fixedEndY = drumY;
+                
+                // 旋转模式的目标位置（改为小范围摆动）
+                if (!s.angle) s.angle = s.targetAngle;
+                if (!s.speed) s.speed = s.targetSpeed;
+                if (!s.baseX) s.baseX = w * (0.2 + index * 0.2); // 固定基础位置
+                
+                s.angle += s.speed * transitionProgress * 0.1; // 大幅减小角度变化
+                
+                // 小范围摆动目标位置
+                const microSwing = 5;
+                const rotateStartX = s.baseX + Math.cos(s.angle) * microSwing;
+                const rotateStartY = -100;
+                const rotateEndX = s.baseX + Math.sin(s.angle) * microSwing;
+                const rotateEndY = h;
+                
+                // 插值计算当前位置
+                const currentStartX = fixedX + (rotateStartX - fixedX) * transitionProgress;
+                const currentStartY = fixedY + (rotateStartY - fixedY) * transitionProgress;
+                const currentEndX = fixedEndX + (rotateEndX - fixedEndX) * transitionProgress;
+                const currentEndY = fixedEndY + (rotateEndY - fixedEndY) * transitionProgress;
+                
+                // 颜色渐变
+                const currentColor = this.interpolateColor(s.color, s.targetColor, transitionProgress);
+                
+                // 绘制渐变聚光灯
+                const grd = ctx.createLinearGradient(currentStartX, currentStartY, currentEndX, currentEndY);
+                grd.addColorStop(0, currentColor);
+                grd.addColorStop(1, 'rgba(0,0,0,0)');
+                
+                ctx.fillStyle = grd;
+                ctx.beginPath();
+                ctx.moveTo(currentStartX, currentStartY);
+                ctx.lineTo(currentEndX - 50, currentEndY);
+                ctx.lineTo(currentEndX + 50, currentEndY);
+                ctx.fill();
+            }
+            else if (s.fixed && transitionProgress >= 1.0) {
+                // === 过渡完成，转换为旋转模式 ===
+                s.fixed = false;
+                s.color = s.targetColor;
+                
+                // [CRITICAL FIX] 保存第2阶段结束时的聚光灯位置（固定不变）
+                if (!s.fixedStartX) {
+                    // 计算第2阶段结束时的聚光灯起始位置（这个位置在第3阶段保持不变）
+                    const fixedX = w * s.x;
+                    const fixedY = -100;
+                    const fixedEndX = drumX;
+                    const fixedEndY = drumY;
+                    
+                    const microSwing = 5;
+                    const rotateStartX = s.baseX + Math.cos(s.angle) * microSwing;
+                    const rotateStartY = -100;
+                    const rotateEndX = s.baseX + Math.sin(s.angle) * microSwing;
+                    const rotateEndY = h;
+                    
+                    // 聚光灯的固定起始位置（不再改变）
+                    s.fixedStartX = fixedX + (rotateStartX - fixedX) * 1.0;
+                    s.fixedStartY = fixedY + (rotateStartY - fixedY) * 1.0;
+                    
+                    // [FIX] 重置摇摆参数：从正下方开始，每个聚光灯独立随机
+                    s.swingPhase = 0; // 从正下方开始
+                    s.swingSpeed = 0.03 + Math.random() * 0.04; // 随机速度 (0.03-0.07)
+                    s.swingRange = 0.8 + Math.random() * 0.6; // 随机摇摆幅度 (0.8-1.4弧度)
+                }
+            } 
+            else if (!s.fixed) {
+                // === 完全旋转模式（固定位置，疯狂角度摇摆）===
+                
+                // 确保有固定起始位置和随机参数
+                if (!s.fixedStartX) {
+                    s.fixedStartX = w/2;
+                    s.fixedStartY = -100;
+                    s.swingPhase = 0;
+                    s.swingSpeed = 0.03 + Math.random() * 0.04;
+                    s.swingRange = 0.8 + Math.random() * 0.6;
+                }
+                
+                s.swingPhase += s.swingSpeed;
+                
+                // 聚光灯位置固定，但照射角度疯狂左右摇摆
+                const sx = s.fixedStartX; // 起始位置固定
+                const sy = s.fixedStartY; // 起始位置固定
+                
+                // 计算疯狂摇摆的照射角度
+                const swingAngle = Math.sin(s.swingPhase) * s.swingRange; // 大幅度摇摆
+                const beamLength = h + 100; // 光束长度
+                const ex = sx + Math.sin(swingAngle) * beamLength; // 根据角度计算终点X
+                const ey = sy + Math.cos(swingAngle) * beamLength; // 根据角度计算终点Y
                 
                 const grd = ctx.createLinearGradient(sx, sy, ex, ey);
                 grd.addColorStop(0, s.color);
@@ -759,7 +1022,7 @@ const VisualFX = {
             }
         });
         
-        // 3. 閃白效果
+        // 3. 闪白效果
         if (dj.bgFlash > 0.01) {
             ctx.fillStyle = `rgba(255, 255, 255, ${dj.bgFlash * 0.4})`;
             ctx.fillRect(0, 0, w, h);
@@ -767,13 +1030,13 @@ const VisualFX = {
         }
         ctx.globalCompositeOperation = 'source-over';
         
-        // 4. 繪製自動擊鼓的鼓
+        // 4. 绘制自动击鼓的鼓
         this.drawDrum(ctx, w, h, dj);
         
-        // 5. 繪製勝利粒子
+        // 5. 绘制胜利粒子
         this.updateAndDrawParticles(ctx, dj);
         
-        // 6. 繪製 PERFECT 文字特效
+        // 6. 绘制 PERFECT 文字特效
         if (dj.perfectText && dj.perfectText.life > 0) {
             const perfect = dj.perfectText;
             perfect.alpha += (1.0 - perfect.alpha) * 0.05;
@@ -799,63 +1062,99 @@ const VisualFX = {
         }
     },
     
-    // 繪製鼓
+    // 颜色插值函数
+    interpolateColor: function(color1, color2, t) {
+        // 简化版颜色插值，支持 hex 和 hsl
+        if (color1.startsWith('#') && color2.startsWith('hsl')) {
+            // 从 hex 到 hsl 的过渡，直接返回 hsl（简化处理）
+            return color2;
+        }
+        if (color1.startsWith('hsl') && color2.startsWith('hsl')) {
+            // hsl 到 hsl 的插值
+            const hsl1 = this.parseHSL(color1);
+            const hsl2 = this.parseHSL(color2);
+            const h = hsl1.h + (hsl2.h - hsl1.h) * t;
+            const s = hsl1.s + (hsl2.s - hsl1.s) * t;
+            const l = hsl1.l + (hsl2.l - hsl1.l) * t;
+            return `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%)`;
+        }
+        // 默认返回目标颜色
+        return t > 0.5 ? color2 : color1;
+    },
+    
+    // 解析 HSL 颜色
+    parseHSL: function(hslString) {
+        const match = hslString.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+        if (match) {
+            return {
+                h: parseInt(match[1]),
+                s: parseInt(match[2]),
+                l: parseInt(match[3])
+            };
+        }
+        return { h: 0, s: 50, l: 50 }; // 默认值
+    },
+    
+    // 绘制鼓
     drawDrum: function(ctx, w, h, dj) {
         const drumX = w / 2;
         const drumY = h - 80;
         
-        // 【調試】判定提示燈 - 顯示當前是否可以擊中
-        let canHit = false;
-        let indicatorColor = '#FF1744'; // 默認紅色（不可擊中）
-        
-        if (typeof SoundEngine !== 'undefined' && SoundEngine.djGame.active) {
-            const currentTime = SoundEngine.ctx.currentTime;
-            const hitWindow = 0.4; // 【翻倍】400ms 判定窗口
-            const beats = SoundEngine.djGame.challengeBeats;
+        // === 【Alpha 0.7.8.3】判定提示灯 - 根据开关决定是否显示 ===
+        // 仅当 djDrumIndicatorEnabled 为 true 时才显示提示灯
+        if (typeof djDrumIndicatorEnabled !== 'undefined' && djDrumIndicatorEnabled) {
+            let canHit = false;
+            let indicatorColor = '#FF1744'; // 默认红色（不可击中）
             
-            // 檢查是否有節拍在判定窗口內
-            for (let beat of beats) {
-                if (!beat.hit && !beat.missed) {
-                    const timeDiff = Math.abs(currentTime - beat.time);
-                    if (timeDiff <= hitWindow) {
-                        canHit = true;
-                        indicatorColor = '#00E676'; // 綠色（可擊中）
-                        break;
+            if (typeof SoundEngine !== 'undefined' && SoundEngine.djGame.active) {
+                const currentTime = SoundEngine.ctx.currentTime;
+                const hitWindow = 0.4; // 【翻倍】400ms 判定窗口
+                const beats = SoundEngine.djGame.challengeBeats;
+                
+                // 检查是否有节拍在判定窗口内
+                for (let beat of beats) {
+                    if (!beat.hit && !beat.missed) {
+                        const timeDiff = Math.abs(currentTime - beat.time);
+                        if (timeDiff <= hitWindow) {
+                            canHit = true;
+                            indicatorColor = '#00E676'; // 绿色（可击中）
+                            break;
+                        }
                     }
                 }
             }
+            
+            // 绘制提示灯（鼓上方）
+            const indicatorY = drumY - 60;
+            const indicatorSize = 15;
+            
+            // 外圈光晕
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = indicatorColor;
+            ctx.fillStyle = indicatorColor;
+            ctx.globalAlpha = 0.3;
+            ctx.beginPath();
+            ctx.arc(drumX, indicatorY, indicatorSize + 10, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 内圈实心
+            ctx.globalAlpha = 1.0;
+            ctx.fillStyle = indicatorColor;
+            ctx.beginPath();
+            ctx.arc(drumX, indicatorY, indicatorSize, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 高光
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.beginPath();
+            ctx.arc(drumX - 5, indicatorY - 5, indicatorSize * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1.0;
         }
         
-        // 繪製提示燈（鼓上方）
-        const indicatorY = drumY - 60;
-        const indicatorSize = 15;
-        
-        // 外圈光暈
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = indicatorColor;
-        ctx.fillStyle = indicatorColor;
-        ctx.globalAlpha = 0.3;
-        ctx.beginPath();
-        ctx.arc(drumX, indicatorY, indicatorSize + 10, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // 內圈實心
-        ctx.globalAlpha = 1.0;
-        ctx.fillStyle = indicatorColor;
-        ctx.beginPath();
-        ctx.arc(drumX, indicatorY, indicatorSize, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // 高光
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-        ctx.beginPath();
-        ctx.arc(drumX - 5, indicatorY - 5, indicatorSize * 0.3, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.shadowBlur = 0;
-        ctx.globalAlpha = 1.0;
-        
-        // 鼓的縮放動畫
+        // 鼓的缩放动画
         dj.kickScale += (1.0 - dj.kickScale) * 0.2;
         const radius = 40 * dj.kickScale;
         
@@ -877,8 +1176,9 @@ const VisualFX = {
         ctx.shadowBlur = 0;
     },
     
-    // 更新並繪製粒子
+    // 更新并绘制粒子
     updateAndDrawParticles: function(ctx, dj) {
+        // 1. 更新和绘制击中粒子
         for (let i = dj.victoryParticles.length - 1; i >= 0; i--) {
             const p = dj.victoryParticles[i];
             p.x += p.vx;
@@ -897,42 +1197,84 @@ const VisualFX = {
             ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
             ctx.fill();
         }
+        
+        // 2. 更新和绘制波纹扩散效果
+        if (dj.ripples) {
+            for (let i = dj.ripples.length - 1; i >= 0; i--) {
+                const ripple = dj.ripples[i];
+                
+                // 更新波纹
+                ripple.radius += 4; // 扩散速度
+                ripple.life -= 0.02;
+                ripple.alpha = ripple.life * 0.8;
+                
+                if (ripple.life <= 0 || ripple.radius >= ripple.maxRadius) {
+                    dj.ripples.splice(i, 1);
+                    continue;
+                }
+                
+                // 绘制波纹（三层同心圆）
+                ctx.globalAlpha = ripple.alpha;
+                
+                // 外层波纹（最淡）
+                ctx.strokeStyle = `rgba(0, 230, 118, ${ripple.alpha * 0.3})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(ripple.x, ripple.y, ripple.radius, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // 中层波纹
+                ctx.strokeStyle = `rgba(0, 230, 118, ${ripple.alpha * 0.6})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(ripple.x, ripple.y, ripple.radius * 0.7, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // 内层波纹（最亮）
+                ctx.strokeStyle = `rgba(255, 255, 255, ${ripple.alpha})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(ripple.x, ripple.y, ripple.radius * 0.4, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+        
         ctx.globalAlpha = 1.0;
     },
 
     // =========================================
-    // ✨ 煙花邏輯 (Fireworks) - 優化版
+    // ✨ 烟花逻辑 (Fireworks) - 优化版
     // =========================================
     renderFireworks: function(ctx, w, h, now) {
         const fw = this.state.fireworks;
         
-        // 固定頻率發射火箭（每秒3枚）
+        // 固定频率发射火箭（每秒3枚）
         if (!fw.lastLaunchTime) fw.lastLaunchTime = now;
         if (now - fw.lastLaunchTime >= fw.launchInterval) {
             fw.lastLaunchTime = now;
             
             const hue = Math.floor(Math.random() * 360);
             
-            // 計算朝向鼠標的方向
+            // 计算朝向鼠标的方向
             let targetX = this.mouse.active ? this.mouse.x : w / 2;
             let targetY = this.mouse.active ? this.mouse.y : h * 0.3;
             
-            // 隨機起始位置（屏幕底部）
+            // 随机起始位置（屏幕底部）
             const startX = Math.random() * w;
             const startY = h + 10;
             
-            // 計算方向向量
+            // 计算方向向量
             const dx = targetX - startX;
             const dy = targetY - startY;
             const distance = Math.sqrt(dx * dx + dy * dy);
             
-            // 歸一化並設置速度（朝向鼠標）
+            // 归一化并设置速度（朝向鼠标）
             const speed = 12 * 1.2;  // 提速 20%
             const vx = (dx / distance) * speed;
             const vy = (dy / distance) * speed;
             
-            // 記錄目標爆炸位置（鼠標附近隨機範圍）
-            const explodeRadius = 150;  // 在鼠標周圍150px範圍內隨機爆炸
+            // 记录目标爆炸位置（鼠标附近随机范围）
+            const explodeRadius = 150;  // 在鼠标周围150px范围内随机爆炸
             const randomAngle = Math.random() * Math.PI * 2;
             const randomDist = Math.random() * explodeRadius;
             const explodeX = targetX + Math.cos(randomAngle) * randomDist;
@@ -945,11 +1287,11 @@ const VisualFX = {
                 vy: vy,
                 hue: hue,
                 trail: [],
-                explodeX: explodeX,  // 目標爆炸位置
+                explodeX: explodeX,  // 目标爆炸位置
                 explodeY: explodeY
             });
             
-            // 移除發射音效，改為在爆炸時播放
+            // 移除发射音效，改为在爆炸时播放
         }
         
         // 渲染火箭
@@ -957,17 +1299,17 @@ const VisualFX = {
         for (let i = fw.rockets.length - 1; i >= 0; i--) {
             let r = fw.rockets[i];
             
-            // 更新位置（不再受鼠標吸引，保持直線飛行）
+            // 更新位置（不再受鼠标吸引，保持直线飞行）
             r.x += r.vx; 
             r.y += r.vy; 
-            r.vy += 0.12;  // 提速 20% (0.1 * 1.2) - 輕微重力
-            r.vx *= 0.99;  // 輕微空氣阻力
+            r.vy += 0.12;  // 提速 20% (0.1 * 1.2) - 轻微重力
+            r.vx *= 0.99;  // 轻微空气阻力
             
-            // 更新軌跡
+            // 更新轨迹
             r.trail.push({x: r.x, y: r.y}); 
             if (r.trail.length > 12) r.trail.shift();
             
-            // 優化：使用純色代替 gradient
+            // 优化：使用纯色代替 gradient
             ctx.lineWidth = 5;
             ctx.strokeStyle = `hsla(${r.hue}, 100%, 80%, 0.8)`;
             ctx.beginPath();
@@ -983,19 +1325,19 @@ const VisualFX = {
             }
             ctx.stroke();
             
-            // 檢查是否到達目標爆炸位置
+            // 检查是否到达目标爆炸位置
             let detonate = false;
             const distToTarget = Math.hypot(r.explodeX - r.x, r.explodeY - r.y);
             
-            // 當接近目標位置時爆炸（50px範圍內）
+            // 当接近目标位置时爆炸（50px范围内）
             if (distToTarget < 50) {
                 detonate = true;
             }
-            // 或者速度變慢時爆炸（到達頂點）
+            // 或者速度变慢时爆炸（到达顶点）
             else if (r.vy >= -0.5) {
                 detonate = true;
             }
-            // 或者飛出屏幕時移除
+            // 或者飞出屏幕时移除
             else if (r.y < -50 || r.x < -50 || r.x > w + 50) {
                 fw.rockets.splice(i, 1);
                 continue;
@@ -1011,7 +1353,7 @@ const VisualFX = {
         for (let i = fw.explosions.length - 1; i >= 0; i--) {
             let p = fw.explosions[i];
             
-            // 閃光效果（優化：移除 gradient）
+            // 闪光效果（优化：移除 gradient）
             if (p.isFlash) { 
                 p.life -= p.decay; 
                 if (p.life <= 0) { 
@@ -1021,13 +1363,13 @@ const VisualFX = {
                 
                 const rad = p.size * p.life;
                 if (rad > 0) {
-                    // 使用純色圓形代替 gradient
+                    // 使用纯色圆形代替 gradient
                     ctx.fillStyle = `hsla(${p.hue}, 100%, 90%, ${p.life * 0.6})`;
                     ctx.beginPath(); 
                     ctx.arc(p.x, p.y, rad, 0, Math.PI*2); 
                     ctx.fill();
                     
-                    // 添加內圈高亮
+                    // 添加内圈高亮
                     ctx.fillStyle = `rgba(255, 255, 255, ${p.life * 0.8})`;
                     ctx.beginPath(); 
                     ctx.arc(p.x, p.y, rad * 0.3, 0, Math.PI*2); 
@@ -1049,7 +1391,7 @@ const VisualFX = {
                 continue; 
             }
             
-            // 優化：簡化顏色計算
+            // 优化：简化颜色计算
             let lightness = 50;
             if (p.life > 0.7) { 
                 lightness = 90; 
@@ -1070,10 +1412,10 @@ const VisualFX = {
     },
     
     explodeFirework: function(x, y, hue) {
-        // 播放煙花爆炸音效
+        // 播放烟花爆炸音效
         if (typeof SoundEngine !== 'undefined') SoundEngine.playFireworkBlast();
         
-        // 閃光效果
+        // 闪光效果
         this.state.fireworks.explosions.push({ 
             x: x, 
             y: y, 
@@ -1084,7 +1426,7 @@ const VisualFX = {
             decay: 0.1 
         });
         
-        // 優化：減少粒子數量（從 60-100 降到 50-70）
+        // 优化：减少粒子数量（从 60-100 降到 50-70）
         const count = 50 + Math.random() * 20; 
         for(let i=0; i<count; i++) {
             const angle = Math.random() * Math.PI * 2; 
@@ -1098,7 +1440,7 @@ const VisualFX = {
                 hue: hue + (Math.random() - 0.5) * 40, 
                 size: Math.random() * 3 + 2, 
                 life: 1.0, 
-                decay: 0.01 + Math.random() * 0.015  // 加快衰減
+                decay: 0.01 + Math.random() * 0.015  // 加快衰减
             });
         }
     },
@@ -1131,7 +1473,7 @@ const VisualFX = {
         if (!data || Math.random() > 0.85) return; 
         ctx.lineCap = 'round'; ctx.lineJoin = 'round';
         
-        // 能量波動效果（電流強度變化）
+        // 能量波动效果（电流强度变化）
         const energyPulse = Math.sin(elapsed * 0.008) * 0.3 + 0.7; // 0.4 到 1.0
         const flicker = 0.8 + Math.random() * 0.2;
         const combinedIntensity = energyPulse * flicker;
@@ -1143,15 +1485,15 @@ const VisualFX = {
             ctx.lineWidth = width; ctx.strokeStyle = color; ctx.globalAlpha = alpha; ctx.shadowColor = blur ? '#03a9f4' : 'transparent'; ctx.shadowBlur = blur; ctx.stroke();
         };
         
-        // 1. 環境電離效果（外層光暈）
+        // 1. 环境电离效果（外层光晕）
         drawPath(data, 12, '#00B0FF', 50, 0.2 * combinedIntensity);
         
-        // 2. 主閃電路徑（三層）
+        // 2. 主闪电路径（三层）
         drawPath(data, 6, '#00B0FF', 40, 0.4 * combinedIntensity); 
         drawPath(data, 3, '#40C4FF', 20, 0.8 * combinedIntensity); 
         drawPath(data, 1.5, '#FFFFFF', 0, 1.0 * combinedIntensity);
         
-        // 3. 電流粒子（沿路徑移動）
+        // 3. 电流粒子（沿路径移动）
         const particleCount = 5;
         for (let i = 0; i < particleCount; i++) {
             const offset = (i / particleCount + elapsed * 0.003) % 1; // 不同起始位置
@@ -1164,10 +1506,10 @@ const VisualFX = {
             const px = p1.x + (p2.x - p1.x) * localT;
             const py = p1.y + (p2.y - p1.y) * localT;
             
-            // 粒子大小隨位置變化
+            // 粒子大小随位置变化
             const size = 3 + Math.sin(offset * Math.PI * 2) * 2;
             
-            // 繪製粒子
+            // 绘制粒子
             ctx.shadowBlur = 15;
             ctx.shadowColor = '#00E5FF';
             ctx.fillStyle = '#FFFFFF';
@@ -1185,10 +1527,10 @@ const VisualFX = {
             ctx.fill();
         }
         
-        // 4. 電弧爆發（在分支點）
-        if (Math.random() > 0.7) { // 30% 機率出現
+        // 4. 电弧爆发（在分支点）
+        if (Math.random() > 0.7) { // 30% 机率出现
             data.branches.forEach((branch, idx) => {
-                if (Math.random() > 0.5) return; // 每個分支 50% 機率
+                if (Math.random() > 0.5) return; // 每个分支 50% 机率
                 
                 const root = branch[0];
                 const burstCount = 3;
@@ -1212,8 +1554,8 @@ const VisualFX = {
             });
         }
         
-        // 5. 能量核心閃光（隨機在主路徑上）
-        if (Math.random() > 0.6) { // 40% 機率
+        // 5. 能量核心闪光（随机在主路径上）
+        if (Math.random() > 0.6) { // 40% 机率
             const flashIndex = Math.floor(Math.random() * data.main.length);
             const flashPoint = data.main[flashIndex];
             
@@ -1232,7 +1574,7 @@ const VisualFX = {
             ctx.fill();
         }
         
-        // 重置狀態
+        // 重置状态
         ctx.globalAlpha = 1;
         ctx.shadowBlur = 0;
     },
@@ -1268,7 +1610,7 @@ const VisualFX = {
         const start = points[0], end = points[points.length-1];
         const shift = (elapsed * 0.0018) % 1;  // 提速 20% (0.0015 * 1.2) 
         
-        // 優化：減少 gradient 創建，使用緩存
+        // 优化：减少 gradient 创建，使用缓存
         if (!this._goldGradientCache || this._goldGradientCache.shift !== shift) {
             const grad = ctx.createLinearGradient(start.x, start.y, end.x, end.y);
             grad.addColorStop(0, '#FFC107'); 
@@ -1284,11 +1626,11 @@ const VisualFX = {
         ctx.moveTo(start.x, start.y); 
         ctx.lineTo(end.x, end.y);
         
-        // 優化：減少 shadowBlur 使用
+        // 优化：减少 shadowBlur 使用
         ctx.lineWidth = 10; 
         ctx.strokeStyle = 'rgba(255, 193, 7, 0.4)'; 
         ctx.shadowColor = '#FF6F00'; 
-        ctx.shadowBlur = 15; // 從 25 降到 15
+        ctx.shadowBlur = 15; // 从 25 降到 15
         ctx.stroke();
         
         ctx.lineWidth = 6; 
@@ -1296,8 +1638,8 @@ const VisualFX = {
         ctx.shadowBlur = 0; // 移除第二次 shadowBlur
         ctx.stroke();
         
-        // 優化：減少粒子的 shadowBlur
-        ctx.shadowBlur = 0; // 關閉 shadow
+        // 优化：减少粒子的 shadowBlur
+        ctx.shadowBlur = 0; // 关闭 shadow
         this.state.lineParticles.forEach(p => {
             p.t += p.speed; 
             if(p.t > 1) p.t = 0;
@@ -1309,7 +1651,7 @@ const VisualFX = {
             const py = start.y + (end.y - start.y) * p.t + p.offset;
             const size = p.size * twinkle * 1.5;
             
-            // 使用純色代替 shadow，性能更好
+            // 使用纯色代替 shadow，性能更好
             ctx.fillStyle = `rgba(255, 255, 255, ${twinkle})`;
             ctx.beginPath(); 
             ctx.arc(px, py, size, 0, Math.PI*2); 
@@ -1324,8 +1666,8 @@ const VisualFX = {
         const ctx = this.ctx;
         const start = points[0], end = points[points.length-1];
         
-        // 優化：減少 shadowBlur
-        ctx.shadowBlur = 10; // 從 20 降到 10
+        // 优化：减少 shadowBlur
+        ctx.shadowBlur = 10; // 从 20 降到 10
         ctx.shadowColor = '#ea80fc';
         ctx.beginPath(); 
         ctx.moveTo(start.x, start.y); 
@@ -1334,15 +1676,15 @@ const VisualFX = {
         ctx.strokeStyle = 'rgba(224, 64, 251, 0.3)'; 
         ctx.stroke();
         
-        // 優化：減少隨機計算，使用預計算的偏移
+        // 优化：减少随机计算，使用预计算的偏移
         const segments = 12;
         const dx = (end.x - start.x) / segments;
         const dy = (end.y - start.y) / segments;
         
-        // 使用固定的隨機種子，避免每幀重新計算
-        const frameOffset = Math.floor(elapsed / 100) % 4; // 每 100ms 變化一次
+        // 使用固定的随机种子，避免每帧重新计算
+        const frameOffset = Math.floor(elapsed / 100) % 4; // 每 100ms 变化一次
         
-        ctx.shadowBlur = 0; // 關閉 shadow 以提升性能
+        ctx.shadowBlur = 0; // 关闭 shadow 以提升性能
         ctx.beginPath();
         for (let i = 0; i < segments; i++) {
             const sX = start.x + dx * i;
@@ -1350,7 +1692,7 @@ const VisualFX = {
             const eX = start.x + dx * (i+1);
             const eY = start.y + dy * (i+1);
             
-            // 優化：使用簡單的偏移模式代替隨機
+            // 优化：使用简单的偏移模式代替随机
             let offsetX = 0, offsetY = 0;
             if ((i + frameOffset) % 3 === 0) { 
                 offsetX = ((i % 2) - 0.5) * 10; 
@@ -1361,23 +1703,23 @@ const VisualFX = {
             ctx.lineTo(eX + offsetX, eY + offsetY);
         }
         
-        // 優化：使用固定顏色，避免每幀隨機
+        // 优化：使用固定颜色，避免每帧随机
         ctx.lineWidth = 2; 
         ctx.strokeStyle = Math.floor(elapsed / 200) % 2 === 0 ? '#00e5ff' : '#d500f9';
         ctx.stroke();
         
-        // 優化：簡化 runner 動畫，移除 save/restore
+        // 优化：简化 runner 动画，移除 save/restore
         const runnerT = (elapsed * 0.0048) % 1;  // 提速 20% (0.004 * 1.2)
         const rx = start.x + (end.x - start.x) * runnerT;
         const ry = start.y + (end.y - start.y) * runnerT;
         const angle = Math.atan2(end.y - start.y, end.x - start.x);
         
-        // 使用簡單的矩形代替變換
+        // 使用简单的矩形代替变换
         ctx.fillStyle = '#fff'; 
-        ctx.shadowBlur = 8; // 從 15 降到 8
+        ctx.shadowBlur = 8; // 从 15 降到 8
         ctx.shadowColor = '#fff';
         
-        // 手動計算旋轉後的矩形頂點，避免 save/restore
+        // 手动计算旋转后的矩形顶点，避免 save/restore
         const cos = Math.cos(angle);
         const sin = Math.sin(angle);
         const w = 20, h = 6;
