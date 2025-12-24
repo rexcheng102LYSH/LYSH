@@ -1293,6 +1293,110 @@ const SoundEngine = {
         });
     },
 
+    // 金币收集音效 - 清脆的金属碰撞声
+    playCoinCollect: function() {
+        if (this.isMuted || !this.ctx) return;
+        const t = this.ctx.currentTime;
+        
+        // 主音：高频金属撞击声
+        const osc1 = this.ctx.createOscillator();
+        const gain1 = this.ctx.createGain();
+        osc1.frequency.setValueAtTime(2000, t);
+        osc1.frequency.exponentialRampToValueAtTime(3000, t + 0.05);
+        osc1.type = 'triangle';
+        gain1.gain.setValueAtTime(0.3 * this.sfxVolume, t);
+        gain1.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+        osc1.connect(gain1).connect(this.ctx.destination);
+        osc1.start(t);
+        osc1.stop(t + 0.2);
+        
+        // 和声：中频共鸣
+        const osc2 = this.ctx.createOscillator();
+        const gain2 = this.ctx.createGain();
+        osc2.frequency.setValueAtTime(1200, t);
+        osc2.frequency.exponentialRampToValueAtTime(1500, t + 0.08);
+        osc2.type = 'sine';
+        gain2.gain.setValueAtTime(0.2 * this.sfxVolume, t);
+        gain2.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+        osc2.connect(gain2).connect(this.ctx.destination);
+        osc2.start(t);
+        osc2.stop(t + 0.15);
+    },
+
+    // 彩带喷射音效 - 升级版礼花筒爆发声
+    playStreamerBlast: function() {
+        if (this.isMuted || !this.ctx) return;
+        const t = this.ctx.currentTime;
+        
+        // 1. 强力低频爆发声 - 更深沉有力
+        const bassOsc = this.ctx.createOscillator();
+        const bassGain = this.ctx.createGain();
+        bassOsc.frequency.setValueAtTime(60, t); // 更低的起始频率
+        bassOsc.frequency.exponentialRampToValueAtTime(25, t + 0.4); // 更长的衰减
+        bassOsc.type = 'sawtooth';
+        bassGain.gain.setValueAtTime(0.6 * this.sfxVolume, t); // 更大的音量
+        bassGain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+        bassOsc.connect(bassGain).connect(this.ctx.destination);
+        bassOsc.start(t);
+        bassOsc.stop(t + 0.4);
+        
+        // 2. 中频冲击波 - 增加厚度
+        const midOsc = this.ctx.createOscillator();
+        const midGain = this.ctx.createGain();
+        midOsc.frequency.setValueAtTime(150, t);
+        midOsc.frequency.exponentialRampToValueAtTime(80, t + 0.25);
+        midOsc.type = 'square';
+        midGain.gain.setValueAtTime(0.4 * this.sfxVolume, t);
+        midGain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+        midOsc.connect(midGain).connect(this.ctx.destination);
+        midOsc.start(t);
+        midOsc.stop(t + 0.25);
+        
+        // 3. 高频气流爆发声 - 更强烈
+        const noise = this.ctx.createBufferSource();
+        const noiseBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.3, this.ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < output.length; i++) {
+            // 增加噪音强度和变化
+            output[i] = (Math.random() * 2 - 1) * (1 - i / output.length);
+        }
+        noise.buffer = noiseBuffer;
+        
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'bandpass'; // 改为带通滤波器，保留更多频率
+        filter.frequency.setValueAtTime(3000, t);
+        filter.Q.setValueAtTime(2, t); // 增加共振
+        
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.5 * this.sfxVolume, t); // 增加音量
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+        
+        noise.connect(filter).connect(noiseGain).connect(this.ctx.destination);
+        noise.start(t);
+        noise.stop(t + 0.3);
+        
+        // 4. 新增：金属撞击声 - 模拟礼花筒金属部分
+        const metalOsc = this.ctx.createOscillator();
+        const metalGain = this.ctx.createGain();
+        metalOsc.frequency.setValueAtTime(800, t);
+        metalOsc.frequency.exponentialRampToValueAtTime(200, t + 0.1);
+        metalOsc.type = 'triangle';
+        metalGain.gain.setValueAtTime(0.3 * this.sfxVolume, t);
+        metalGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+        metalOsc.connect(metalGain).connect(this.ctx.destination);
+        metalOsc.start(t);
+        metalOsc.stop(t + 0.1);
+        
+        // 5. 新增：回响效果
+        const echoDelay = this.ctx.createDelay(0.2);
+        const echoGain = this.ctx.createGain();
+        echoDelay.delayTime.setValueAtTime(0.08, t);
+        echoGain.gain.setValueAtTime(0.2 * this.sfxVolume, t);
+        
+        // 将低频部分连接到回响
+        bassOsc.connect(echoDelay).connect(echoGain).connect(this.ctx.destination);
+    },
+
     playFutureSound: function() {
         if (this.isMuted || !this.ctx) return;
         const now = this.ctx.currentTime;

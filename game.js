@@ -225,8 +225,8 @@ function updateWinCelebrationUI() {
         const el = document.getElementById('celDefault'); if(el) el.classList.add('active');
     } else if (winCelebration === 'fireworks') {
         const el = document.getElementById('celFireworks'); if(el) el.classList.add('active');
-    } else if (winCelebration === 'chromatic') {
-        const el = document.getElementById('celChromatic'); if(el) el.classList.add('active');
+    } else if (winCelebration === 'golden') {
+        const el = document.getElementById('celGolden'); if(el) el.classList.add('active');
     } else if (winCelebration === 'dj') {
         const el = document.getElementById('celDJ'); if(el) el.classList.add('active');
     }

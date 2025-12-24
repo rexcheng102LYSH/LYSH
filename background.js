@@ -441,7 +441,7 @@ window.BackgroundEngine = {
             x: Math.random() * this.width,
             y: Math.random() * this.height - this.height,
             length: Math.random() * 25 + 15,
-            speed: (Math.random() * 8 + 8) * 1.2,  // 提速 20%
+            speed: (Math.random() * 8 + 8) * 1.44,  // 提速 44% (1.2 * 1.2)
             width: Math.random() * 1.5 + 0.5
         };
     },

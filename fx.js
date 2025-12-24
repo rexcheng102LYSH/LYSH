@@ -85,8 +85,14 @@ const VisualFX = {
                 if (this.state.celebrationType === 'dj') {
                     console.log('[Canvas] 是 DJ 模式，调用 handleDrumHit');
                     this.handleDrumHit(e);
+                } else if (this.state.celebrationType === 'golden') {
+                    console.log('[Canvas] 是流金模式，检测金币点击');
+                    const rect = this.canvas.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left;
+                    const mouseY = e.clientY - rect.top;
+                    this.checkCoinClick(mouseX, mouseY);
                 } else {
-                    console.log('[Canvas] 不是 DJ 模式，忽略点击');
+                    console.log('[Canvas] 不是交互模式，忽略点击');
                 }
             }, true); // 使用捕获阶段，优先处理
             
@@ -252,6 +258,9 @@ const VisualFX = {
         
         // [CRITICAL FIX] 强制清理DJ特效，防止崩溃和内存泄漏
         this.forceStopDJ();
+        
+        // [NEW] 强制清理流金特效
+        this.forceStopGolden();
     },
     
     // [NEW] 强制停止DJ特效的专用函数
@@ -393,6 +402,52 @@ const VisualFX = {
                 SoundEngine.startDJChallenge();
             }
         }
+        // [New] 流金特效初始化
+        else if (type === 'golden') {
+            console.log('[Golden] 启动流金模式');
+            
+            // Canvas 接收点击事件（金币收集）
+            if (this.canvas) {
+                this.canvas.style.pointerEvents = 'auto';
+            }
+            
+            this.state.golden = {
+                // 探照灯系统 - 画面外光源版
+                spotlights: [
+                    { 
+                        x: -0.3, y: -0.2, // 画面外左上角
+                        angle: 0, speed: 0.008, // 较慢的扫射速度
+                        color: '#FFD700',
+                        intensity: 0.9 // 高强度
+                    },
+                    { 
+                        x: 1.3, y: -0.2, // 画面外右上角
+                        angle: Math.PI, speed: -0.006, // 反向扫射
+                        color: '#FFA500',
+                        intensity: 0.8
+                    }
+                ],
+                
+                // 彩带与碎纸系统（恢复）
+                streamers: [],
+                confetti: [],
+                lastStreamerTime: 0,
+                streamerInterval: 2400, // 每2400ms喷射一次（对齐4/4拍 @ 100BPM）
+                
+                // 金币雨系统（优化）
+                coins: [],
+                lastCoinTime: 0,
+                coinInterval: 1500, // 每1.5秒生成一枚金币（更慢）
+                collectedCoins: 0,
+                totalCoins: 0, // 已生成的金币总数
+                maxCoins: 12, // 最大金币数量
+                
+                // 粒子效果
+                particles: []
+            };
+            
+            console.log('[Golden] 流金状态初始化完成');
+        }
         
         this.startLoop();
     },
@@ -466,6 +521,20 @@ const VisualFX = {
                 console.error('[FX] DJ渲染错误:', error);
                 // 发生错误时强制清理DJ特效
                 this.forceStopDJ();
+            } finally {
+                ctx.restore();
+            }
+        } else if (this.state.celebrationType === 'golden') {
+            // [New] 流金特效渲染
+            ctx.save();
+            try {
+                if (this.state.golden) {
+                    this.renderGoldenRain(ctx, w, h, now);
+                }
+            } catch (error) {
+                console.error('[FX] 流金渲染错误:', error);
+                // 发生错误时强制清理流金特效
+                this.forceStopGolden();
             } finally {
                 ctx.restore();
             }
@@ -1243,8 +1312,586 @@ const VisualFX = {
     },
 
     // =========================================
-    // ✨ 烟花逻辑 (Fireworks) - 优化版
+    // 💰 流金特效系统 (Golden Rain Effect)
     // =========================================
+    
+    // 强制停止流金特效
+    forceStopGolden: function() {
+        if (this.state && this.state.golden) {
+            this.state.golden = null;
+        }
+        if (this.state) {
+            this.state.celebrationType = null;
+        }
+        console.log('[FX] 流金特效已强制清理');
+    },
+    
+    // 流金特效主渲染函数
+    renderGoldenRain: function(ctx, w, h, now) {
+        const golden = this.state.golden;
+        if (!golden) return;
+        
+        try {
+            // 1. 绘制华丽背景渐变
+            this.renderGoldenBackground(ctx, w, h, now);
+            
+            // 2. 绘制暖色探照灯
+            this.renderGoldenSpotlights(ctx, w, h, now, golden);
+            
+            // 3. 更新和生成彩带碎纸（恢复）
+            this.updateStreamersAndConfetti(ctx, w, h, now, golden);
+            
+            // 4. 绘制彩带和碎纸（恢复）
+            this.renderStreamersAndConfetti(ctx, golden);
+            
+            // 5. 更新和生成金币（优化版）
+            this.updateCoins(ctx, w, h, now, golden);
+            
+            // 6. 绘制金币
+            this.renderCoins(ctx, golden, now);
+            
+            // 7. 绘制收集粒子效果
+            this.renderGoldenParticles(ctx, golden);
+            
+        } catch (error) {
+            console.error('[Golden] 渲染子系统错误:', error);
+            // 如果出错，至少显示一个简单的金色背景
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+            ctx.fillRect(0, 0, w, h);
+        }
+    },
+    
+    // 绘制华丽背景
+    renderGoldenBackground: function(ctx, w, h, now) {
+        // 深色背景
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, w, h);
+        
+        // 金色渐变覆盖
+        const gradient = ctx.createLinearGradient(0, 0, 0, h);
+        gradient.addColorStop(0, 'rgba(255, 215, 0, 0.1)');
+        gradient.addColorStop(0.5, 'rgba(255, 165, 0, 0.05)');
+        gradient.addColorStop(1, 'rgba(184, 134, 11, 0.1)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, w, h);
+    },
+    
+    // 绘制暖色探照灯 - 真正固定版
+    renderGoldenSpotlights: function(ctx, w, h, now, golden) {
+        ctx.globalCompositeOperation = 'lighter';
+        
+        golden.spotlights.forEach((spotlight, index) => {
+            // 更新探照灯角度（左右扫射）
+            spotlight.angle += spotlight.speed;
+            
+            // 【真正固定】光源位置和屏幕入射点都固定！
+            const isLeft = index === 0;
+            const lightSourceX = isLeft ? -w * 0.2 : w * 1.2; // 固定光源X
+            const lightSourceY = -h * 0.1; // 固定光源Y
+            
+            // 【真正固定】屏幕入射点也固定！不再计算！
+            const startX = isLeft ? 0 : w; // 固定入射X
+            const startY = 0; // 固定入射Y - 从最顶部射入！
+            
+            // 【只改变照射角度】：光源固定，入射点固定，只有照射终点变化
+            const sweepRange = 0.4; // 扫射范围
+            const baseDirection = isLeft ? 0.6 : -0.6; // 基础照射角度
+            const swayAngle = Math.sin(spotlight.angle) * sweepRange + baseDirection;
+            
+            // 计算聚光灯照射区域 - 只有终点变化
+            const beamDistance = Math.max(w, h) * 1.8;
+            const beamWidth = w * 0.4; // 聚光灯宽度
+            
+            // 光束中心点 - 基于固定入射点和变化角度
+            const centerX = startX + Math.sin(swayAngle) * beamDistance;
+            const centerY = startY + Math.cos(swayAngle) * beamDistance;
+            
+            // 光束左右边界点
+            const leftX = centerX - Math.cos(swayAngle) * beamWidth;
+            const leftY = centerY + Math.sin(swayAngle) * beamWidth;
+            const rightX = centerX + Math.cos(swayAngle) * beamWidth;
+            const rightY = centerY - Math.sin(swayAngle) * beamWidth;
+            
+            // 绘制完整的聚光灯锥形
+            const grd = ctx.createLinearGradient(startX, startY, centerX, centerY);
+            grd.addColorStop(0, `${spotlight.color}${Math.floor(spotlight.intensity * 255).toString(16).padStart(2, '0')}`);
+            grd.addColorStop(0.3, `${spotlight.color}A0`);
+            grd.addColorStop(0.7, `${spotlight.color}60`);
+            grd.addColorStop(1, `${spotlight.color}20`);
+            
+            // 绘制聚光灯主体 - 一个完整的锥形
+            ctx.fillStyle = grd;
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(leftX, leftY);
+            ctx.lineTo(rightX, rightY);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 聚光灯中心的强光带
+            const centerGrd = ctx.createLinearGradient(startX, startY, centerX, centerY);
+            centerGrd.addColorStop(0, `rgba(255, 255, 255, ${spotlight.intensity * 0.6})`);
+            centerGrd.addColorStop(0.4, `${spotlight.color}80`);
+            centerGrd.addColorStop(1, 'rgba(0,0,0,0)');
+            
+            const centerWidth = beamWidth * 0.3; // 中心强光宽度
+            const centerLeftX = centerX - Math.cos(swayAngle) * centerWidth;
+            const centerLeftY = centerY + Math.sin(swayAngle) * centerWidth;
+            const centerRightX = centerX + Math.cos(swayAngle) * centerWidth;
+            const centerRightY = centerY - Math.sin(swayAngle) * centerWidth;
+            
+            ctx.fillStyle = centerGrd;
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(centerLeftX, centerLeftY);
+            ctx.lineTo(centerRightX, centerRightY);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 聚光灯边缘的柔和渐变
+            const edgeGrd = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, beamWidth);
+            edgeGrd.addColorStop(0, 'rgba(0,0,0,0)');
+            edgeGrd.addColorStop(0.7, 'rgba(0,0,0,0)');
+            edgeGrd.addColorStop(0.9, `${spotlight.color}30`);
+            edgeGrd.addColorStop(1, `${spotlight.color}10`);
+            
+            ctx.fillStyle = edgeGrd;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, beamWidth, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 大地反射效果
+            if (centerY > h * 0.7) { // 只有当光束照到屏幕下方时才显示反射
+                const reflectionGrd = ctx.createRadialGradient(centerX, h, 0, centerX, h, beamWidth * 0.8);
+                reflectionGrd.addColorStop(0, `${spotlight.color}40`);
+                reflectionGrd.addColorStop(0.5, `${spotlight.color}20`);
+                reflectionGrd.addColorStop(1, 'rgba(0,0,0,0)');
+                
+                ctx.fillStyle = reflectionGrd;
+                ctx.beginPath();
+                ctx.arc(centerX, h, beamWidth * 0.8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        });
+        
+        ctx.globalCompositeOperation = 'source-over';
+    },
+    
+    // 更新彩带和碎纸
+    updateStreamersAndConfetti: function(ctx, w, h, now, golden) {
+        // 只有在金币总数未达到上限时才生成彩带
+        if (golden.totalCoins < golden.maxCoins && now - golden.lastStreamerTime > golden.streamerInterval) {
+            golden.lastStreamerTime = now;
+            
+            // 播放彩带喷射音效
+            if (typeof SoundEngine !== 'undefined') {
+                SoundEngine.playStreamerBlast();
+            }
+            
+            // 【暴力升级】三点同时爆发：左、中、右
+            this.createStreamers(golden, w, h, 'left');   // 左侧爆发
+            this.createStreamers(golden, w, h, 'center'); // 中央爆发
+            this.createStreamers(golden, w, h, 'right');  // 右侧爆发
+            
+            // 生成更多碎纸
+            this.createConfetti(golden, w, h);
+            this.createConfetti(golden, w, h); // 双倍碎纸
+        }
+        
+        // 更新现有彩带
+        for (let i = golden.streamers.length - 1; i >= 0; i--) {
+            const streamer = golden.streamers[i];
+            
+            // 物理更新
+            streamer.x += streamer.vx;
+            streamer.y += streamer.vy;
+            streamer.vy += 0.1; // 重力
+            streamer.vx *= 0.98; // 空气阻力
+            streamer.rotation += streamer.rotSpeed;
+            streamer.life -= 0.005;
+            
+            // 移除过期彩带
+            if (streamer.life <= 0 || streamer.y > h + 50) {
+                golden.streamers.splice(i, 1);
+            }
+        }
+        
+        // 更新碎纸
+        for (let i = golden.confetti.length - 1; i >= 0; i--) {
+            const conf = golden.confetti[i];
+            
+            conf.x += conf.vx;
+            conf.y += conf.vy;
+            conf.vy += 0.08; // 重力
+            conf.vx *= 0.99; // 空气阻力
+            conf.rotation += conf.rotSpeed;
+            conf.life -= 0.008;
+            
+            if (conf.life <= 0 || conf.y > h + 50) {
+                golden.confetti.splice(i, 1);
+            }
+        }
+    },
+    
+    // 创建彩带 - 修正版
+    createStreamers: function(golden, w, h, side) {
+        const count = 20 + Math.random() * 15; // 暴增数量 (20-35 每个发射点)
+        let startX, targetX, baseAngle, startY;
+        
+        // 根据发射点确定位置和方向
+        if (side === 'left') {
+            startX = -100; // 更远的起始位置
+            startY = h * 0.85;
+            targetX = w * 0.7; // 朝向右侧
+            baseAngle = Math.atan2(-h * 0.4, targetX - startX);
+        } else if (side === 'right') {
+            startX = w + 100;
+            startY = h * 0.85;
+            targetX = w * 0.3; // 朝向左侧
+            baseAngle = Math.atan2(-h * 0.4, targetX - startX);
+        } else { // center - 修正从底部发射
+            startX = w * 0.5;
+            startY = h + 20; // 从屏幕底部外侧发射
+            targetX = w * 0.5; // 垂直向上
+            baseAngle = -Math.PI / 2; // 垂直向上
+        }
+        
+        for (let i = 0; i < count; i++) {
+            // 更大的角度变化，营造爆发感
+            const angleVariation = (Math.random() - 0.5) * 1.8; // 更大的扩散角度
+            const angle = baseAngle + angleVariation;
+            
+            const speed = 8 + Math.random() * 10; // 更强的初始速度 (8-18)
+            
+            golden.streamers.push({
+                x: startX + (Math.random() - 0.5) * 200, // 更大的起始位置变化
+                y: startY + (Math.random() - 0.5) * 50,  // 减少高度变化，确保从底部
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                length: 25 + Math.random() * 50, // 更大的长度变化 (25-75)
+                width: 3 + Math.random() * 5,   // 更大的宽度变化 (3-8)
+                color: this.getRandomStreamerColor(),
+                rotation: Math.random() * Math.PI * 2,
+                rotSpeed: (Math.random() - 0.5) * 0.2, // 更快的旋转
+                life: 1.0,
+                // 彩带类型分布：更多飘带
+                type: Math.random() > 0.2 ? 'ribbon' : 'streamer' // 80% 飘带
+            });
+        }
+    },
+    
+    // 创建碎纸
+    createConfetti: function(golden, w, h) {
+        const count = 20 + Math.random() * 10;
+        
+        for (let i = 0; i < count; i++) {
+            const side = Math.random() > 0.5 ? 'left' : 'right';
+            const startX = side === 'left' ? -30 : w + 30;
+            const targetX = w * 0.5;
+            const startY = h * 0.8;
+            
+            const angle = Math.atan2(-h * 0.6, targetX - startX) + (Math.random() - 0.5) * 1.0;
+            const speed = 6 + Math.random() * 3;
+            
+            golden.confetti.push({
+                x: startX + (Math.random() - 0.5) * 80,
+                y: startY + (Math.random() - 0.5) * 40,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                size: 3 + Math.random() * 3,
+                color: this.getRandomConfettiColor(),
+                rotation: Math.random() * Math.PI * 2,
+                rotSpeed: (Math.random() - 0.5) * 0.2,
+                life: 1.0
+            });
+        }
+    },
+    
+    // 获取随机彩带颜色
+    getRandomStreamerColor: function() {
+        const colors = [
+            '#FFD700', '#FFA500', '#FF6347', '#FF1493', '#9370DB', '#00CED1',
+            '#FF69B4', '#32CD32', '#FF4500', '#DA70D6', '#00FA9A', '#FF8C00',
+            '#BA55D3', '#20B2AA', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'
+        ];
+        return colors[Math.floor(Math.random() * colors.length)];
+    },
+    
+    // 获取随机碎纸颜色
+    getRandomConfettiColor: function() {
+        const colors = ['#FFD700', '#FFA500', '#FF69B4', '#00FA9A', '#87CEEB', '#DDA0DD'];
+        return colors[Math.floor(Math.random() * colors.length)];
+    },
+    
+    // 渲染彩带和碎纸 - 恢复简洁材质
+    renderStreamersAndConfetti: function(ctx, golden) {
+        // 渲染彩带
+        golden.streamers.forEach(streamer => {
+            ctx.save();
+            ctx.translate(streamer.x, streamer.y);
+            ctx.rotate(streamer.rotation);
+            ctx.globalAlpha = streamer.life;
+            
+            if (streamer.type === 'ribbon') {
+                // 飘带类型：柔软曲线，简洁材质
+                ctx.fillStyle = streamer.color;
+                ctx.beginPath();
+                ctx.moveTo(-streamer.length / 2, -streamer.width / 2);
+                ctx.quadraticCurveTo(0, -streamer.width, streamer.length / 2, -streamer.width / 2);
+                ctx.quadraticCurveTo(0, streamer.width, -streamer.length / 2, streamer.width / 2);
+                ctx.closePath();
+                ctx.fill();
+                
+                // 简单高光
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fillRect(-streamer.length / 2, -streamer.width / 4, streamer.length, streamer.width / 2);
+            } else {
+                // 传统长条彩带
+                ctx.fillStyle = streamer.color;
+                ctx.fillRect(-streamer.length / 2, -streamer.width / 2, streamer.length, streamer.width);
+                
+                // 简单边框
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(-streamer.length / 2, -streamer.width / 2, streamer.length, streamer.width);
+            }
+            
+            ctx.restore();
+        });
+        
+        // 渲染碎纸
+        golden.confetti.forEach(conf => {
+            ctx.save();
+            ctx.translate(conf.x, conf.y);
+            ctx.rotate(conf.rotation);
+            ctx.globalAlpha = conf.life;
+            
+            // 随机形状的碎纸
+            if (Math.random() > 0.5) {
+                // 方形碎纸
+                ctx.fillStyle = conf.color;
+                ctx.fillRect(-conf.size / 2, -conf.size / 2, conf.size, conf.size);
+            } else {
+                // 圆形碎纸
+                ctx.fillStyle = conf.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, conf.size / 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // 简单高光
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.beginPath();
+            ctx.arc(-conf.size / 4, -conf.size / 4, conf.size / 4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        });
+        
+        ctx.globalAlpha = 1.0;
+    },
+    
+    // 更新金币系统
+    updateCoins: function(ctx, w, h, now, golden) {
+        // 只有在未达到最大金币数时才生成新金币
+        if (golden.totalCoins < golden.maxCoins && now - golden.lastCoinTime > golden.coinInterval) {
+            golden.lastCoinTime = now;
+            golden.totalCoins++;
+            
+            // 优化安全区域：避开屏幕中央胜利弹窗区域
+            let coinX;
+            const centerStart = w * 0.35; // 中央区域开始
+            const centerEnd = w * 0.65;   // 中央区域结束
+            
+            // 随机选择左侧或右侧安全区域
+            if (Math.random() > 0.5) {
+                // 左侧安全区域 (15% - 35%)
+                coinX = w * 0.15 + Math.random() * (centerStart - w * 0.15);
+            } else {
+                // 右侧安全区域 (65% - 85%)
+                coinX = centerEnd + Math.random() * (w * 0.85 - centerEnd);
+            }
+            
+            golden.coins.push({
+                x: coinX,
+                y: -30,
+                vx: (Math.random() - 0.5) * 0.5, // 减少水平漂移
+                vy: 1.3, // 固定下落速度 1.3
+                rotation: 0,
+                rotSpeed: 0.05, // 固定旋转速度
+                size: 30, // 固定大小 30px
+                life: 1.0,
+                collected: false,
+                glowPhase: Math.random() * Math.PI * 2
+            });
+        }
+        
+        // 更新现有金币
+        for (let i = golden.coins.length - 1; i >= 0; i--) {
+            const coin = golden.coins[i];
+            
+            if (!coin.collected) {
+                // 物理更新（更慢）
+                coin.x += coin.vx;
+                coin.y += coin.vy;
+                coin.vy += 0.01; // 非常轻微的重力加速度
+                coin.rotation += coin.rotSpeed;
+                coin.glowPhase += 0.08; // 更慢的发光动画
+                
+                // 移除超出屏幕的金币
+                if (coin.y > h + 100) {
+                    golden.coins.splice(i, 1);
+                }
+            } else {
+                // 收集动画
+                coin.size *= 1.1;
+                coin.life -= 0.05;
+                
+                if (coin.life <= 0) {
+                    golden.coins.splice(i, 1);
+                }
+            }
+        }
+    },
+    
+    // 渲染金币
+    renderCoins: function(ctx, golden, now) {
+        golden.coins.forEach(coin => {
+            if (coin.collected) {
+                // 收集动画：放大消散
+                ctx.save();
+                ctx.translate(coin.x, coin.y);
+                ctx.scale(coin.size / 20, coin.size / 20);
+                ctx.globalAlpha = coin.life;
+                
+                // 光芒效果
+                const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, 20);
+                grd.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+                grd.addColorStop(0.5, 'rgba(255, 215, 0, 0.6)');
+                grd.addColorStop(1, 'rgba(255, 215, 0, 0)');
+                ctx.fillStyle = grd;
+                ctx.beginPath();
+                ctx.arc(0, 0, 20, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            } else {
+                // 正常金币渲染
+                ctx.save();
+                ctx.translate(coin.x, coin.y);
+                ctx.rotate(coin.rotation);
+                
+                // 外发光
+                const glowIntensity = 0.3 + Math.sin(coin.glowPhase) * 0.2;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = `rgba(255, 215, 0, ${glowIntensity})`;
+                
+                // 金币主体
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(0, 0, coin.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 内圈装饰
+                ctx.fillStyle = '#FFA500';
+                ctx.beginPath();
+                ctx.arc(0, 0, coin.size * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 高光
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.beginPath();
+                ctx.arc(-coin.size * 0.3, -coin.size * 0.3, coin.size * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 金币符号
+                ctx.fillStyle = '#B8860B';
+                ctx.font = `bold ${coin.size * 0.8}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('¥', 0, 0);
+                
+                ctx.shadowBlur = 0;
+                ctx.restore();
+            }
+        });
+    },
+    
+    // 金币点击检测（在鼠标事件中调用）
+    checkCoinClick: function(mouseX, mouseY) {
+        if (!this.state.golden) return false;
+        
+        const golden = this.state.golden;
+        let hitCoin = false;
+        
+        golden.coins.forEach(coin => {
+            if (!coin.collected) {
+                const distance = Math.hypot(mouseX - coin.x, mouseY - coin.y);
+                if (distance < coin.size) {
+                    // 金币被点击
+                    coin.collected = true;
+                    golden.collectedCoins++;
+                    hitCoin = true;
+                    
+                    // 播放收集音效
+                    if (typeof SoundEngine !== 'undefined') {
+                        SoundEngine.playCoinCollect();
+                    }
+                    
+                    // 创建收集粒子效果
+                    this.createCoinCollectParticles(golden, coin.x, coin.y);
+                }
+            }
+        });
+        
+        return hitCoin;
+    },
+    
+    // 创建金币收集粒子效果
+    createCoinCollectParticles: function(golden, x, y) {
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const speed = 2 + Math.random() * 3;
+            
+            golden.particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 1.0,
+                color: '#FFD700',
+                size: 3 + Math.random() * 2
+            });
+        }
+    },
+    
+    // 渲染收集粒子效果
+    renderGoldenParticles: function(ctx, golden) {
+        for (let i = golden.particles.length - 1; i >= 0; i--) {
+            const particle = golden.particles[i];
+            
+            // 更新粒子
+            particle.x += particle.vx;
+            particle.y += particle.vy;
+            particle.vy += 0.1; // 重力
+            particle.life -= 0.02;
+            
+            if (particle.life <= 0) {
+                golden.particles.splice(i, 1);
+                continue;
+            }
+            
+            // 渲染粒子
+            ctx.save();
+            ctx.globalAlpha = particle.life;
+            ctx.fillStyle = particle.color;
+            ctx.beginPath();
+            ctx.arc(particle.x, particle.y, particle.size * particle.life, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    },
+
     renderFireworks: function(ctx, w, h, now) {
         const fw = this.state.fireworks;
         
@@ -1269,12 +1916,12 @@ const VisualFX = {
             const distance = Math.sqrt(dx * dx + dy * dy);
             
             // 归一化并设置速度（朝向鼠标）
-            const speed = 12 * 1.2;  // 提速 20%
+            const speed = 12 * 1.44;  // 提速 44% (1.2 * 1.2)
             const vx = (dx / distance) * speed;
             const vy = (dy / distance) * speed;
             
             // 记录目标爆炸位置（鼠标附近随机范围）
-            const explodeRadius = 150;  // 在鼠标周围150px范围内随机爆炸
+            const explodeRadius = 120;  // 缩减20% (150 * 0.8)
             const randomAngle = Math.random() * Math.PI * 2;
             const randomDist = Math.random() * explodeRadius;
             const explodeX = targetX + Math.cos(randomAngle) * randomDist;
@@ -1302,7 +1949,7 @@ const VisualFX = {
             // 更新位置（不再受鼠标吸引，保持直线飞行）
             r.x += r.vx; 
             r.y += r.vy; 
-            r.vy += 0.12;  // 提速 20% (0.1 * 1.2) - 轻微重力
+            r.vy += 0.144;  // 提速 44% (0.12 * 1.2) - 轻微重力
             r.vx *= 0.99;  // 轻微空气阻力
             
             // 更新轨迹
@@ -1329,16 +1976,21 @@ const VisualFX = {
             let detonate = false;
             const distToTarget = Math.hypot(r.explodeX - r.x, r.explodeY - r.y);
             
-            // 当接近目标位置时爆炸（50px范围内）
-            if (distToTarget < 50) {
+            // 强制爆炸条件：
+            // 1. 飞到画面顶部（防止飞过屏幕）
+            if (r.y <= 10) {
                 detonate = true;
             }
-            // 或者速度变慢时爆炸（到达顶点）
+            // 2. 当接近目标位置时爆炸（50px范围内）
+            else if (distToTarget < 50) {
+                detonate = true;
+            }
+            // 3. 或者速度变慢时爆炸（到达顶点）
             else if (r.vy >= -0.5) {
                 detonate = true;
             }
-            // 或者飞出屏幕时移除
-            else if (r.y < -50 || r.x < -50 || r.x > w + 50) {
+            // 4. 或者飞出屏幕左右边界时移除
+            else if (r.x < -50 || r.x > w + 50) {
                 fw.rockets.splice(i, 1);
                 continue;
             }
@@ -1383,7 +2035,7 @@ const VisualFX = {
             p.y += p.vy; 
             p.vx *= 0.96; 
             p.vy *= 0.96; 
-            p.vy += 0.036;  // 提速 20% (0.03 * 1.2)
+            p.vy += 0.0432;  // 提速 44% (0.036 * 1.2)
             p.life -= p.decay; 
             
             if (p.life <= 0) { 
@@ -1430,7 +2082,7 @@ const VisualFX = {
         const count = 50 + Math.random() * 20; 
         for(let i=0; i<count; i++) {
             const angle = Math.random() * Math.PI * 2; 
-            const speed = (Math.random() * 4 + 1) * 1.2;  // 提速 20%
+            const speed = (Math.random() * 4 + 1) * 1.44;  // 提速 44% (1.2 * 1.2)
             this.state.fireworks.explosions.push({ 
                 x: x, 
                 y: y, 

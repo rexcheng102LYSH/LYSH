@@ -1,50 +1,50 @@
-# 技術棧
+# 技术栈
 
-## 核心技術
+## 核心技术
 
 - **前端框架**：原生 JavaScript (ES6+)、HTML5、CSS3
-- **圖形渲染**：HTML5 Canvas API 用於背景和視覺特效
-- **音頻系統**：Web Audio API 用於程序化聲音合成、HTML5 Audio 用於 MP3 播放
-- **無構建系統**：直接在瀏覽器中執行，無需打包工具或編譯
+- **图形渲染**：HTML5 Canvas API 用于背景和视觉特效
+- **音频系统**：Web Audio API 用于程序化声音合成、HTML5 Audio 用于 MP3 播放
+- **无构建系统**：直接在浏览器中执行，无需打包工具或编译
 
-## 關鍵庫與 API
+## 关键库与 API
 
-- **Web Audio API**：實時聲音合成（振盪器、增益節點、濾波器）
-- **Canvas 2D Context**：粒子系統、天氣效果、煙花、節奏遊戲視覺效果
-- **RequestAnimationFrame**：流暢的 60fps 動畫
+- **Web Audio API**：实时声音合成（振荡器、增益节点、滤波器）
+- **Canvas 2D Context**：粒子系统、天气效果、烟花、节奏游戏视觉效果
+- **RequestAnimationFrame**：流畅的 60fps 动画
 
-## 架構模式
+## 架构模式
 
-- **模塊模式**：全局命名空間對象（例如 `SoundEngine`、`BackgroundEngine`、`VisualFX`、`I18N`）
-- **事件驅動**：DOM 事件監聽器處理用戶交互
-- **狀態管理**：全局遊戲狀態變量，手動同步
+- **模块模式**：全局命名空间对象（例如 `SoundEngine`、`BackgroundEngine`、`VisualFX`、`I18N`）
+- **事件驱动**：DOM 事件监听器处理用户交互
+- **状态管理**：全局游戏状态变量，手动同步
 
-## 文件結構
+## 文件结构
 
-- `index.html` - 主入口文件，UI 結構
-- `style.css` - 所有樣式、動畫、響應式設計
-- `game.js` - 核心遊戲邏輯、棋盤狀態、回合管理
-- `ai.js` - AI 對手邏輯，包含難度級別
+- `index.html` - 主入口文件，UI 结构
+- `style.css` - 所有样式、动画、响应式设计
+- `game.js` - 核心游戏逻辑、棋盘状态、回合管理
+- `ai.js` - AI 对手逻辑，包含难度级别
 - `audio.js` - 音效引擎，程序化合成
 - `background.js` - 四季背景特效引擎
-- `fx.js` - 視覺特效（連珠線、煙花、DJ 遊戲）
-- `lang.js` - 國際化系統，語言切換
-- `assets.js` - SVG 圖標和圖像資源定義
+- `fx.js` - 视觉特效（连珠线、烟花、DJ 游戏）
+- `lang.js` - 国际化系统，语言切换
+- `assets.js` - SVG 图标和图像资源定义
 
 ## 常用命令
 
-**開發環境**：
+**开发环境**：
 ```bash
-# 本地啟動服務器（任意 HTTP 服務器）
+# 本地启动服务器（任意 HTTP 服务器）
 python -m http.server 8000
 # 或者
 npx serve
 ```
 
-**測試**：
-- 在現代瀏覽器中打開 `index.html`（Chrome、Firefox、Safari、Edge）
-- 無需編譯或構建步驟
+**测试**：
+- 在现代浏览器中打开 `index.html`（Chrome、Firefox、Safari、Edge）
+- 无需编译或构建步骤
 
 **部署**：
-- 將所有文件上傳到靜態託管服務（GitHub Pages、Netlify、Vercel）
-- 確保 `.mp3` 和 `.png` 文件的 MIME 類型正確
+- 将所有文件上传到静态托管服务（GitHub Pages、Netlify、Vercel）
+- 确保 `.mp3` 和 `.png` 文件的 MIME 类型正确
