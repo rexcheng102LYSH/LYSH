@@ -32,13 +32,21 @@ const SoundEngine = {
         
         // 挑战阶段数据
         challengeBeats: [], // 需要玩家击打的节拍时间点
-        totalBeats: 8, // 总共8个节拍
+        totalBeats: 12, // 总共12个节拍（从8个增加到12个）
         hitBeats: 0, // 成功击中的节拍数
         missedBeats: 0, // 错过的节拍数
         
         // 胜利阶段数据
         victoryStartTime: 0,
-        autoKickInterval: null
+        autoKickInterval: null,
+        
+        // 【新增】隐藏轨道系统 - 双轨同步
+        hiddenTrack: {
+            active: false,           // 隐藏轨道是否激活
+            startTime: 0,           // 隐藏轨道开始时间（与 bgm5.mp3 同步）
+            kickInterval: null,     // 隐藏轨道的计时器
+            beatCount: 0           // 隐藏轨道的节拍计数
+        }
     },
 
     init: function() { 
@@ -138,17 +146,19 @@ const SoundEngine = {
     // 🥁 DJ 节奏游戏专用音效
     // =========================================
 
-    // 1. 强劲底鼓 (Kick) - 完美判定时触发
+    // 1. 强劲底鼓 (Kick) - 基于最初沙锤版本的升级
     playKick: function() {
         if (this.isMuted || !this.ctx) return;
         const t = this.ctx.currentTime;
         
-        // 低频冲击
+        // === 主体：升级版沙锤鼓 ===
         const o = this.ctx.createOscillator();
         const g = this.ctx.createGain();
+        
         o.frequency.setValueAtTime(150, t);
         o.frequency.exponentialRampToValueAtTime(0.01, t + 0.5);
-        g.gain.setValueAtTime(1.0 * this.sfxVolume, t);
+        
+        g.gain.setValueAtTime(1.2 * this.sfxVolume, t); // 稍微增强
         g.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
         
         o.connect(g);
@@ -156,8 +166,24 @@ const SoundEngine = {
         o.start(t);
         o.stop(t + 0.5);
 
-        // 增加一点高频 Click 增加打击感
-        this.playNoise(0.05, 0.3 * this.sfxVolume, 'highpass', 4000);
+        // === 升级：增强版高频 Click ===
+        this.playNoise(0.08, 0.5 * this.sfxVolume, 'highpass', 4000); // 增强时长和音量
+        
+        // === 升级：添加低频支撑 ===
+        const bass = this.ctx.createOscillator();
+        const bassGain = this.ctx.createGain();
+        
+        bass.type = 'sine';
+        bass.frequency.setValueAtTime(60, t);
+        bass.frequency.exponentialRampToValueAtTime(0.1, t + 0.2);
+        
+        bassGain.gain.setValueAtTime(0.6 * this.sfxVolume, t);
+        bassGain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+        
+        bass.connect(bassGain);
+        bassGain.connect(this.ctx.destination);
+        bass.start(t);
+        bass.stop(t + 0.2);
     },
 
     // 2. 失误音效 (Miss) - 尴尬的走调/弱音
@@ -185,7 +211,7 @@ const SoundEngine = {
         dj.missedBeats = 0;
         dj.challengeBeats = [];
         
-        // 生成8个节拍的挑战时间点
+        // 生成12个节拍的挑战时间点
         for (let i = 0; i < dj.totalBeats; i++) {
             dj.challengeBeats.push({
                 time: dj.startTime + 1.0 + (i * dj.beatDuration), // 1秒延遲開始
@@ -198,7 +224,7 @@ const SoundEngine = {
         this.djScheduler();
         
         // 播放挑戰旋律
-        this.playChallengemelody();
+        // 【移除】this.playChallengemelody(); // 已被 bgm5.mp3 替代
     },
     
     // DJ 调度器
@@ -693,6 +719,21 @@ const SoundEngine = {
         dj.phase = 'fail';
         dj.active = false;
         
+        // 【补丁二】立即停止 bgm5.mp3
+        if (this.victoryBGM) {
+            try {
+                this.victoryBGM.pause();
+                this.victoryBGM.currentTime = 0;
+                this.victoryBGM = null;
+                console.log('[DJ失败] bgm5.mp3 已停止');
+            } catch (e) {
+                console.warn('[DJ失败] bgm5.mp3 停止异常:', e);
+            }
+        }
+        
+        // 【补丁二】停止隐藏轨道
+        this.stopHiddenTrack();
+        
         // 【修复】播放明显的失败音效
         // 低沉的下降音阶 + 不和谐音
         const now = this.ctx.currentTime;
@@ -734,28 +775,127 @@ const SoundEngine = {
         dj.phase = 'victory';
         dj.victoryStartTime = this.ctx.currentTime;
         
-        // 播放勝利旋律
-        this.playVictoryMelody();
+        // 播放勝利旋律（合成音效）
+        // 【移除】this.playVictoryMelody(); // 已被 bgm5.mp3 替代
         
-        // 自動擊鼓（每0.6秒一次）
-        let kickCount = 0;
-        dj.autoKickInterval = setInterval(() => {
-            if (kickCount < 12) { // 持續12次擊鼓
-                this.playKick();
-                kickCount++;
-                // 通知 fx.js 自動擊鼓
-                if (typeof window.djAutoKickCallback === 'function') {
-                    window.djAutoKickCallback();
-                }
-            } else {
-                clearInterval(dj.autoKickInterval);
-            }
-        }, 600);
+        // 【关键】从隐藏轨道无缝切换到可见轨道
+        this.switchToVisibleTrack();
         
         // 通知 fx.js 進入勝利狀態
         if (typeof window.djVictoryCallback === 'function') {
             window.djVictoryCallback();
         }
+    },
+    
+    // 【新增】从隐藏轨道切换到可见轨道 - 保持完美同步
+    switchToVisibleTrack: function() {
+        const dj = this.djGame;
+        const hiddenTrack = dj.hiddenTrack;
+        
+        // 停止隐藏轨道
+        this.stopHiddenTrack();
+        
+        // 计算当前在 600ms 周期中的位置
+        const elapsedTime = performance.now() - hiddenTrack.startTime;
+        const beatPosition = elapsedTime % 600; // 当前节拍内的位置 (0-599ms)
+        
+        console.log(`[轨道切换] 隐藏轨道运行了 ${elapsedTime}ms，当前节拍位置: ${beatPosition}ms`);
+        
+        // 智能切换逻辑：确保 4/4 拍永远准确
+        let nextBeatDelay;
+        
+        if (beatPosition <= 100) {
+            // 如果在节拍开始的 100ms 内，立即开始（认为是准时的）
+            nextBeatDelay = 0;
+            console.log('[轨道切换] 接近节拍开始，立即切换');
+        } else if (beatPosition >= 500) {
+            // 如果在节拍结束的 100ms 内，等到下一个节拍开始
+            nextBeatDelay = 600 - beatPosition;
+            console.log(`[轨道切换] 接近节拍结束，等待 ${nextBeatDelay}ms 到下一节拍`);
+        } else {
+            // 在节拍中间，等到下一个节拍开始
+            nextBeatDelay = 600 - beatPosition;
+            console.log(`[轨道切换] 节拍中间，等待 ${nextBeatDelay}ms 到下一节拍`);
+        }
+        
+        // 在计算出的时间启动可见轨道
+        setTimeout(() => {
+            // 启动可见轨道：有音效、有视觉反馈，严格按 600ms 节拍
+            dj.autoKickInterval = setInterval(() => {
+                if (dj.phase === 'victory') {
+                    this.playKick(); // 播放音效
+                    // 通知 fx.js 自動擊鼓（视觉反馈）
+                    if (typeof window.djAutoKickCallback === 'function') {
+                        window.djAutoKickCallback();
+                    }
+                }
+            }, 600); // 严格保持 600ms = 100 BPM = 4/4 拍
+            
+            console.log('[可见轨道] 已启动，4/4 拍节奏锁定');
+        }, Math.max(0, nextBeatDelay));
+    },
+    
+    // 【新增】播放胜利 BGM（bgm5.mp3）- 在连珠特效出现时立即调用
+    playVictoryBGM: function() {
+        // 停止当前 BGM
+        this.stopBGM();
+        
+        // 创建新的 Audio 对象播放 bgm5.mp3
+        if (!this.isMuted) {
+            try {
+                // 添加缓存破坏参数，强制浏览器重新加载最新的文件
+                const timestamp = new Date().getTime();
+                this.victoryBGM = new Audio(`bgm5.mp3?t=${timestamp}`);
+                this.victoryBGM.volume = this.musicVolume;
+                this.victoryBGM.play().catch(e => console.log('[Victory] bgm5.mp3 播放等待交互:', e));
+                console.log('[Victory] bgm5.mp3 已播放');
+            } catch (error) {
+                console.warn('[Victory] bgm5.mp3 加载失败:', error);
+            }
+        }
+        
+        // 【新增】启动隐藏轨道系统 - 与 bgm5.mp3 完美同步
+        this.startHiddenTrack();
+    },
+    
+    // 【新增】启动隐藏轨道 - 从 bgm5.mp3 开始时就按节拍运行
+    startHiddenTrack: function() {
+        const dj = this.djGame;
+        const hiddenTrack = dj.hiddenTrack;
+        
+        // 重置隐藏轨道状态
+        hiddenTrack.active = true;
+        hiddenTrack.startTime = performance.now();
+        hiddenTrack.beatCount = 0;
+        
+        // 清理可能存在的旧计时器
+        if (hiddenTrack.kickInterval) {
+            clearInterval(hiddenTrack.kickInterval);
+        }
+        
+        // 启动隐藏轨道计时器 - 600ms 节拍，完全静默
+        hiddenTrack.kickInterval = setInterval(() => {
+            if (hiddenTrack.active) {
+                hiddenTrack.beatCount++;
+                // 隐藏轨道：无音效、无视觉反馈，只记录节拍
+                console.log(`[隐藏轨道] 节拍 ${hiddenTrack.beatCount} - ${performance.now() - hiddenTrack.startTime}ms`);
+            }
+        }, 600); // 100 BPM = 600ms per beat
+        
+        console.log('[隐藏轨道] 已启动，与 bgm5.mp3 同步');
+    },
+    
+    // 【新增】停止隐藏轨道
+    stopHiddenTrack: function() {
+        const hiddenTrack = this.djGame.hiddenTrack;
+        
+        if (hiddenTrack.kickInterval) {
+            clearInterval(hiddenTrack.kickInterval);
+            hiddenTrack.kickInterval = null;
+        }
+        
+        hiddenTrack.active = false;
+        console.log(`[隐藏轨道] 已停止，总计 ${hiddenTrack.beatCount} 个节拍`);
     },
     
     // 勝利旋律（副歌爆发 + 狂欢高潮 - 7秒，12拍，100 BPM）
@@ -1004,6 +1144,21 @@ const SoundEngine = {
             window.djAutoKickCallback = null;
         }
         
+        // 6. [NEW] 清理胜利 BGM（bgm5.mp3）
+        if (this.victoryBGM) {
+            try {
+                this.victoryBGM.pause();
+                this.victoryBGM.currentTime = 0;
+                this.victoryBGM = null;
+                console.log('[DJ] 胜利 BGM 已清理');
+            } catch (e) {
+                console.warn('[DJ] 胜利 BGM 清理异常:', e);
+            }
+        }
+        
+        // 7. [NEW] 清理隐藏轨道系统
+        this.stopHiddenTrack();
+
         console.log('[DJ] DJ 游戏已完全停止，胜利聚光灯保持显示');
     },
 

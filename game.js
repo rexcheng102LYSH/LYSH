@@ -979,6 +979,10 @@ function highlightWin(line, winner) {
             VisualFX.drawWinLine(line, winEffect);
             // 只有当不是默认特效时才调用 startCelebration
             if (winCelebration !== 'default') {
+                // 【新增】如果是 DJ 模式，立即播放 bgm5.mp3
+                if (winCelebration === 'dj' && typeof SoundEngine !== 'undefined' && SoundEngine.playVictoryBGM) {
+                    SoundEngine.playVictoryBGM();
+                }
                 VisualFX.startCelebration(winCelebration);
             }
         }
@@ -990,7 +994,7 @@ function highlightWin(line, winner) {
     });
     
     // 延遲顯示結算界面，等待連珠特效播放完畢
-    const delay = 2500;
+    const delay = 1200;
     setTimeout(() => handleMatchEnd(winner), delay);
 }
 
