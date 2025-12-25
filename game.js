@@ -983,6 +983,10 @@ function highlightWin(line, winner) {
                 if (winCelebration === 'dj' && typeof SoundEngine !== 'undefined' && SoundEngine.playVictoryBGM) {
                     SoundEngine.playVictoryBGM();
                 }
+                // 【新增】如果是流金模式，立即播放 bgm6.mp3
+                if (winCelebration === 'golden' && typeof SoundEngine !== 'undefined' && SoundEngine.playGoldenBGM) {
+                    SoundEngine.playGoldenBGM();
+                }
                 VisualFX.startCelebration(winCelebration);
             }
         }

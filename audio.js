@@ -32,7 +32,7 @@ const SoundEngine = {
         
         // 挑战阶段数据
         challengeBeats: [], // 需要玩家击打的节拍时间点
-        totalBeats: 12, // 总共12个节拍（从8个增加到12个）
+        totalBeats: 7, // 总共7个节拍（奇数拍：1、3、5、7、9、11、13）
         hitBeats: 0, // 成功击中的节拍数
         missedBeats: 0, // 错过的节拍数
         
@@ -211,12 +211,14 @@ const SoundEngine = {
         dj.missedBeats = 0;
         dj.challengeBeats = [];
         
-        // 生成12个节拍的挑战时间点
+        // 生成7个奇数拍的挑战时间点（1、3、5、7、9、11、13拍，每1200ms间隔）
         for (let i = 0; i < dj.totalBeats; i++) {
+            const beatNumber = (i * 2) + 1; // 奇数拍：1, 3, 5, 7, 9, 11, 13
             dj.challengeBeats.push({
-                time: dj.startTime + 1.0 + (i * dj.beatDuration), // 1秒延遲開始
+                time: dj.startTime + 1.0 + (i * 1.2), // 1秒延遲開始，每1200ms一拍
                 hit: false,
-                missed: false
+                missed: false,
+                beatNumber: beatNumber // 记录拍号，便于调试
             });
         }
         
@@ -429,7 +431,8 @@ const SoundEngine = {
         
         try {
             const currentTime = this.ctx.currentTime;
-            const hitWindow = 0.4; // 【翻倍】前后各 400ms 判定窗口
+            const hitWindow = 0.4; // 后判定窗口：400ms
+            const preHitWindow = 0.35; // 前判定窗口：350ms（减少50ms）
             
             console.log('[DJ判定] 点击时间:', currentTime.toFixed(3));
             
@@ -468,10 +471,10 @@ const SoundEngine = {
             // 计算相对时间（负数 = 提前，正数 = 延迟）
             const timeDiff = currentTime - nearestBeat.time;
             
-            console.log('[DJ判定] 最近节拍:', nearestBeat.time.toFixed(3), '相对时间:', timeDiff.toFixed(3), '判定窗口:', hitWindow);
+            console.log('[DJ判定] 最近节拍:', nearestBeat.time.toFixed(3), '相对时间:', timeDiff.toFixed(3), '前窗口:', preHitWindow, '后窗口:', hitWindow);
             
-            // 判定窗口：前后各 400ms
-            if (Math.abs(timeDiff) <= hitWindow) {
+            // 判定窗口：前 350ms + 后 400ms（不对称窗口）
+            if (timeDiff >= -preHitWindow && timeDiff <= hitWindow) {
                 // 成功击中！
                 console.log('[DJ判定] ✅ 成功击中！');
                 nearestBeat.hit = true;
@@ -829,7 +832,7 @@ const SoundEngine = {
                         window.djAutoKickCallback();
                     }
                 }
-            }, 600); // 严格保持 600ms = 100 BPM = 4/4 拍
+            }, 600); // 胜利阶段保持 600ms 快节奏！
             
             console.log('[可见轨道] 已启动，4/4 拍节奏锁定');
         }, Math.max(0, nextBeatDelay));
@@ -856,6 +859,26 @@ const SoundEngine = {
         
         // 【新增】启动隐藏轨道系统 - 与 bgm5.mp3 完美同步
         this.startHiddenTrack();
+    },
+    
+    // 【新增】播放流金 BGM（bgm6.mp3）- 在流金特效出现时立即调用
+    playGoldenBGM: function() {
+        // 停止当前 BGM
+        this.stopBGM();
+        
+        // 创建新的 Audio 对象播放 bgm6.mp3
+        if (!this.isMuted) {
+            try {
+                // 添加缓存破坏参数，强制浏览器重新加载最新的文件
+                const timestamp = new Date().getTime();
+                this.goldenBGM = new Audio(`bgm6.mp3?t=${timestamp}`);
+                this.goldenBGM.volume = this.musicVolume;
+                this.goldenBGM.play().catch(e => console.log('[Golden] bgm6.mp3 播放等待交互:', e));
+                console.log('[Golden] bgm6.mp3 已播放');
+            } catch (error) {
+                console.warn('[Golden] bgm6.mp3 加载失败:', error);
+            }
+        }
     },
     
     // 【新增】启动隐藏轨道 - 从 bgm5.mp3 开始时就按节拍运行
@@ -1156,7 +1179,19 @@ const SoundEngine = {
             }
         }
         
-        // 7. [NEW] 清理隐藏轨道系统
+        // 7. [NEW] 清理流金 BGM（bgm6.mp3）
+        if (this.goldenBGM) {
+            try {
+                this.goldenBGM.pause();
+                this.goldenBGM.currentTime = 0;
+                this.goldenBGM = null;
+                console.log('[Golden] 流金 BGM 已清理');
+            } catch (e) {
+                console.warn('[Golden] 流金 BGM 清理异常:', e);
+            }
+        }
+        
+        // 8. [NEW] 清理隐藏轨道系统
         this.stopHiddenTrack();
 
         console.log('[DJ] DJ 游戏已完全停止，胜利聚光灯保持显示');
@@ -1293,108 +1328,206 @@ const SoundEngine = {
         });
     },
 
-    // 金币收集音效 - 清脆的金属碰撞声
+    // 金币收集音效 - 真正的金币"叮"声 + shot.m4a（音效同步优化版）
     playCoinCollect: function() {
         if (this.isMuted || !this.ctx) return;
         const t = this.ctx.currentTime;
         
-        // 主音：高频金属撞击声
+        // === 立即播放 shot.m4a 音频文件（枪响音效）===
+        try {
+            const shotAudio = new Audio('shot.m4a');
+            shotAudio.volume = this.sfxVolume;
+            shotAudio.play().catch(e => console.warn('[Audio] shot.m4a 播放失败:', e));
+        } catch (e) {
+            console.warn('[Audio] shot.m4a 加载失败:', e);
+        }
+        
+        // === 延迟 50ms 播放合成音效（金币撞击声）===
+        const delayTime = t + 0.05; // 50ms 延迟
+        
+        // === 第一层：金属撞击的"叮"声 ===
         const osc1 = this.ctx.createOscillator();
         const gain1 = this.ctx.createGain();
-        osc1.frequency.setValueAtTime(2000, t);
-        osc1.frequency.exponentialRampToValueAtTime(3000, t + 0.05);
+        osc1.frequency.setValueAtTime(3200, delayTime);
+        osc1.frequency.exponentialRampToValueAtTime(2800, delayTime + 0.02);
+        osc1.frequency.exponentialRampToValueAtTime(2400, delayTime + 0.08);
         osc1.type = 'triangle';
-        gain1.gain.setValueAtTime(0.3 * this.sfxVolume, t);
-        gain1.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+        gain1.gain.setValueAtTime(0.4 * this.sfxVolume, delayTime);
+        gain1.gain.exponentialRampToValueAtTime(0.01, delayTime + 0.12);
         osc1.connect(gain1).connect(this.ctx.destination);
-        osc1.start(t);
-        osc1.stop(t + 0.2);
+        osc1.start(delayTime);
+        osc1.stop(delayTime + 0.12);
         
-        // 和声：中频共鸣
+        // === 第二层：金属共鸣回响 ===
         const osc2 = this.ctx.createOscillator();
         const gain2 = this.ctx.createGain();
-        osc2.frequency.setValueAtTime(1200, t);
-        osc2.frequency.exponentialRampToValueAtTime(1500, t + 0.08);
+        osc2.frequency.setValueAtTime(1600, delayTime + 0.01);
+        osc2.frequency.exponentialRampToValueAtTime(1200, delayTime + 0.15);
         osc2.type = 'sine';
-        gain2.gain.setValueAtTime(0.2 * this.sfxVolume, t);
-        gain2.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+        gain2.gain.setValueAtTime(0.25 * this.sfxVolume, delayTime + 0.01);
+        gain2.gain.exponentialRampToValueAtTime(0.01, delayTime + 0.25);
         osc2.connect(gain2).connect(this.ctx.destination);
-        osc2.start(t);
-        osc2.stop(t + 0.15);
+        osc2.start(delayTime + 0.01);
+        osc2.stop(delayTime + 0.25);
+        
+        // === 第三层：低频厚重感（钱币的重量感）===
+        const osc3 = this.ctx.createOscillator();
+        const gain3 = this.ctx.createGain();
+        osc3.frequency.setValueAtTime(400, delayTime);
+        osc3.frequency.exponentialRampToValueAtTime(200, delayTime + 0.1);
+        osc3.type = 'sine';
+        gain3.gain.setValueAtTime(0.15 * this.sfxVolume, delayTime);
+        gain3.gain.exponentialRampToValueAtTime(0.01, delayTime + 0.2);
+        osc3.connect(gain3).connect(this.ctx.destination);
+        osc3.start(delayTime);
+        osc3.stop(delayTime + 0.2);
+        
+        // === 第四层：高频闪烁（金属光泽感）===
+        const osc4 = this.ctx.createOscillator();
+        const gain4 = this.ctx.createGain();
+        osc4.frequency.setValueAtTime(4800, delayTime);
+        osc4.frequency.exponentialRampToValueAtTime(3600, delayTime + 0.03);
+        osc4.type = 'square';
+        gain4.gain.setValueAtTime(0.2 * this.sfxVolume, delayTime);
+        gain4.gain.exponentialRampToValueAtTime(0.01, delayTime + 0.06);
+        osc4.connect(gain4).connect(this.ctx.destination);
+        osc4.start(delayTime);
+        osc4.stop(delayTime + 0.06);
     },
 
-    // 彩带喷射音效 - 升级版礼花筒爆发声
+    // 彩带喷射音效 - 演唱会集体鼓掌共鸣版
     playStreamerBlast: function() {
         if (this.isMuted || !this.ctx) return;
         const t = this.ctx.currentTime;
         
-        // 1. 强力低频爆发声 - 更深沉有力
+        // === 演唱会集体鼓掌 - 一次强烈共鸣感 ===
+        // 模拟数千人同时鼓掌的震撼效果
+        const clapBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.4, this.ctx.sampleRate);
+        const clapData = clapBuffer.getChannelData(0);
+        
+        // 生成超厚重的鼓掌声 - 多层叠加模拟大型演唱会群体效果
+        for (let i = 0; i < clapData.length; i++) {
+            const progress = i / clapData.length;
+            let sample = 0;
+            
+            // 叠加更多随机脉冲，模拟数千人鼓掌
+            for (let j = 0; j < 12; j++) {
+                const offset = j * 0.0008; // 更密集的时间偏移
+                const pos = Math.max(0, i - offset * this.ctx.sampleRate);
+                if (pos < clapData.length) {
+                    // 更强的个体鼓掌声
+                    sample += (Math.random() * 2 - 1) * 0.25;
+                }
+            }
+            
+            // 添加共鸣衰减，但保持更长的余韵
+            clapData[i] = sample * Math.exp(-progress * 2.5);
+        }
+        
+        const clapSource = this.ctx.createBufferSource();
+        clapSource.buffer = clapBuffer;
+        
+        // 中频增强滤波器，突出鼓掌的共鸣感和厚重感
+        const clapFilter = this.ctx.createBiquadFilter();
+        clapFilter.type = 'peaking';
+        clapFilter.frequency.setValueAtTime(800, t); // 中频共鸣
+        clapFilter.Q.value = 2;
+        clapFilter.gain.setValueAtTime(6, t); // 增强中频
+        
+        const clapGain = this.ctx.createGain();
+        clapGain.gain.setValueAtTime(1.2 * this.sfxVolume, t); // 更强的音量
+        clapGain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+        
+        clapSource.connect(clapFilter);
+        clapFilter.connect(clapGain);
+        clapGain.connect(this.ctx.destination);
+        clapSource.start(t);
+    },
+
+    // 魔法完成音效 - 象征"完成任务"的神奇音效
+    playMagicComplete: function() {
+        if (this.isMuted || !this.ctx) return;
+        const t = this.ctx.currentTime;
+        
+        // 1. 低频层：神秘的低沉音（象征完成的沉稳感）
         const bassOsc = this.ctx.createOscillator();
         const bassGain = this.ctx.createGain();
-        bassOsc.frequency.setValueAtTime(60, t); // 更低的起始频率
-        bassOsc.frequency.exponentialRampToValueAtTime(25, t + 0.4); // 更长的衰减
-        bassOsc.type = 'sawtooth';
-        bassGain.gain.setValueAtTime(0.6 * this.sfxVolume, t); // 更大的音量
-        bassGain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+        bassOsc.frequency.setValueAtTime(80, t);
+        bassOsc.frequency.exponentialRampToValueAtTime(120, t + 0.3); // 缓慢上升
+        bassOsc.type = 'sine';
+        bassGain.gain.setValueAtTime(0.4 * this.sfxVolume, t);
+        bassGain.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
         bassOsc.connect(bassGain).connect(this.ctx.destination);
         bassOsc.start(t);
-        bassOsc.stop(t + 0.4);
+        bassOsc.stop(t + 0.5);
         
-        // 2. 中频冲击波 - 增加厚度
-        const midOsc = this.ctx.createOscillator();
-        const midGain = this.ctx.createGain();
-        midOsc.frequency.setValueAtTime(150, t);
-        midOsc.frequency.exponentialRampToValueAtTime(80, t + 0.25);
-        midOsc.type = 'square';
-        midGain.gain.setValueAtTime(0.4 * this.sfxVolume, t);
-        midGain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
-        midOsc.connect(midGain).connect(this.ctx.destination);
-        midOsc.start(t);
-        midOsc.stop(t + 0.25);
+        // 2. 中频层：魔法闪烁音（800-1200Hz，象征魔法的闪耀）
+        const magicOsc1 = this.ctx.createOscillator();
+        const magicGain1 = this.ctx.createGain();
+        magicOsc1.frequency.setValueAtTime(1000, t);
+        magicOsc1.frequency.exponentialRampToValueAtTime(1200, t + 0.2);
+        magicOsc1.type = 'triangle';
+        magicGain1.gain.setValueAtTime(0.3 * this.sfxVolume, t);
+        magicGain1.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+        magicOsc1.connect(magicGain1).connect(this.ctx.destination);
+        magicOsc1.start(t);
+        magicOsc1.stop(t + 0.3);
         
-        // 3. 高频气流爆发声 - 更强烈
-        const noise = this.ctx.createBufferSource();
-        const noiseBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.3, this.ctx.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < output.length; i++) {
-            // 增加噪音强度和变化
-            output[i] = (Math.random() * 2 - 1) * (1 - i / output.length);
+        // 3. 高频层：闪耀的铃声（2000-3000Hz，象征成功的闪耀）
+        const chimeOsc = this.ctx.createOscillator();
+        const chimeGain = this.ctx.createGain();
+        chimeOsc.frequency.setValueAtTime(2400, t);
+        chimeOsc.frequency.exponentialRampToValueAtTime(3000, t + 0.15);
+        chimeOsc.type = 'sine';
+        chimeGain.gain.setValueAtTime(0.35 * this.sfxVolume, t);
+        chimeGain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+        chimeOsc.connect(chimeGain).connect(this.ctx.destination);
+        chimeOsc.start(t);
+        chimeOsc.stop(t + 0.4);
+        
+        // 4. 魔法粒子效果：高频噪音（象征魔法粒子的闪烁）
+        const particleBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.4, this.ctx.sampleRate);
+        const particleData = particleBuffer.getChannelData(0);
+        for (let i = 0; i < particleData.length; i++) {
+            // 创建闪烁的粒子效果
+            const progress = i / particleData.length;
+            const sparkle = Math.sin(progress * Math.PI * 8) * (1 - progress); // 衰减的闪烁
+            particleData[i] = (Math.random() * 2 - 1) * sparkle * 0.6;
         }
-        noise.buffer = noiseBuffer;
         
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'bandpass'; // 改为带通滤波器，保留更多频率
-        filter.frequency.setValueAtTime(3000, t);
-        filter.Q.setValueAtTime(2, t); // 增加共振
+        const particleSource = this.ctx.createBufferSource();
+        particleSource.buffer = particleBuffer;
         
-        const noiseGain = this.ctx.createGain();
-        noiseGain.gain.setValueAtTime(0.5 * this.sfxVolume, t); // 增加音量
-        noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+        const particleFilter = this.ctx.createBiquadFilter();
+        particleFilter.type = 'highpass';
+        particleFilter.frequency.setValueAtTime(4000, t);
         
-        noise.connect(filter).connect(noiseGain).connect(this.ctx.destination);
-        noise.start(t);
-        noise.stop(t + 0.3);
+        const particleGain = this.ctx.createGain();
+        particleGain.gain.setValueAtTime(0.25 * this.sfxVolume, t);
+        particleGain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
         
-        // 4. 新增：金属撞击声 - 模拟礼花筒金属部分
-        const metalOsc = this.ctx.createOscillator();
-        const metalGain = this.ctx.createGain();
-        metalOsc.frequency.setValueAtTime(800, t);
-        metalOsc.frequency.exponentialRampToValueAtTime(200, t + 0.1);
-        metalOsc.type = 'triangle';
-        metalGain.gain.setValueAtTime(0.3 * this.sfxVolume, t);
-        metalGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
-        metalOsc.connect(metalGain).connect(this.ctx.destination);
-        metalOsc.start(t);
-        metalOsc.stop(t + 0.1);
+        particleSource.connect(particleFilter).connect(particleGain).connect(this.ctx.destination);
+        particleSource.start(t);
+        particleSource.stop(t + 0.4);
         
-        // 5. 新增：回响效果
-        const echoDelay = this.ctx.createDelay(0.2);
-        const echoGain = this.ctx.createGain();
-        echoDelay.delayTime.setValueAtTime(0.08, t);
-        echoGain.gain.setValueAtTime(0.2 * this.sfxVolume, t);
+        // 5. 上升的魔法音阶（象征任务完成的上升感）
+        const magicScale = [
+            { freq: 523.25, time: 0.05, duration: 0.1 },   // C5
+            { freq: 659.25, time: 0.15, duration: 0.1 },   // E5
+            { freq: 783.99, time: 0.25, duration: 0.15 }   // G5
+        ];
         
-        // 将低频部分连接到回响
-        bassOsc.connect(echoDelay).connect(echoGain).connect(this.ctx.destination);
+        magicScale.forEach(note => {
+            const noteOsc = this.ctx.createOscillator();
+            const noteGain = this.ctx.createGain();
+            noteOsc.frequency.setValueAtTime(note.freq, t + note.time);
+            noteOsc.type = 'sine';
+            noteGain.gain.setValueAtTime(0.2 * this.sfxVolume, t + note.time);
+            noteGain.gain.exponentialRampToValueAtTime(0.01, t + note.time + note.duration);
+            noteOsc.connect(noteGain).connect(this.ctx.destination);
+            noteOsc.start(t + note.time);
+            noteOsc.stop(t + note.time + note.duration);
+        });
     },
 
     playFutureSound: function() {

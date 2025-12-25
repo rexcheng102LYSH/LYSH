@@ -3,7 +3,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "v0.7.8.5", 
+        subTitle: "v0.7.8.6", 
         btnPvE: "人機對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -50,7 +50,7 @@ const I18N = {
         effFuture: "🚀 未來",
         effFireworks: "🎇 煙花",
         effChromatic: "🌈 炫彩",
-        effGolden: "💰 流金",
+        effGolden: "流金",
         effDJ: "🎵 DJ",
 
         skills: {
@@ -92,7 +92,7 @@ const I18N = {
     'zh': {
         langName: "简", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "v0.7.8.5", 
+        subTitle: "v0.7.8.6", 
         btnPvE: "人机对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -139,7 +139,7 @@ const I18N = {
         effFuture: "🚀 未来",
         effFireworks: "🎇 烟花",
         effChromatic: "🌈 炫彩",
-        effGolden: "💰 流金",
+        effGolden: "流金",
         effDJ: "🎵 DJ",
 
         skills: {
@@ -181,7 +181,7 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Skill Gomoku <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "v0.7.8.5", 
+        subTitle: "v0.7.8.6", 
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -228,7 +228,7 @@ const I18N = {
         effFuture: "🚀 Future",
         effFireworks: "🎇 Firework",
         effChromatic: "🌈 Chromatic",
-        effGolden: "💰 Golden Rain",
+        effGolden: "Golden Rain",
         effDJ: "🎵 DJ",
 
         skills: {
@@ -310,7 +310,20 @@ function toggleLanguage() {
 function updateStaticText() {
     document.querySelectorAll('[data-i18n]').forEach(el => { 
         const key = el.getAttribute('data-i18n'); 
-        el.innerHTML = t(key); 
+        
+        // 特殊处理流金按钮：保留金币图片，如果图片加载失败则使用金币 emoji
+        if (el.id === 'celGolden') {
+            const goldIcon = el.querySelector('.gold-coin-icon');
+            if (goldIcon) {
+                // 保留图片，只更新文字部分
+                el.innerHTML = `<img src="images/gold.png" alt="金币" class="gold-coin-icon"> ${t(key)}`;
+            } else {
+                // 如果没有图片，使用金币 emoji 作为备用
+                el.innerHTML = `🪙 ${t(key)}`;
+            }
+        } else {
+            el.innerHTML = t(key);
+        }
     });
 }
 
