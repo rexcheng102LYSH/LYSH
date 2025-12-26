@@ -1,4 +1,4 @@
-// ================= 音频引擎 (Audio Engine) =================
+﻿// ================= 音频引擎 (Audio Engine) =================
 // [Alpha 0.7.8.2]
 // - DJ 三阶段系统：挑战、失败、胜利
 // - 实现 playKick (强劲底鼓) 与 playMiss (失误音效)
@@ -880,7 +880,25 @@ const SoundEngine = {
             }
         }
     },
-    
+    // 【新增】播放烟花 BGM（bgm7.mp3）- 在烟花特效出现时立即调用
+    playFireworksBGM: function() {
+        this.stopBGM();
+        
+        // 创建新的 Audio 对象播放 bgm7.mp3
+        if (!this.isMuted) {
+            try {
+                // 添加缓存破坏参数，强制浏览器重新加载最新的文件
+                const timestamp = new Date().getTime();
+                this.fireworksBGM = new Audio(`bgm7.mp3?t=${timestamp}`);
+                this.fireworksBGM.volume = this.musicVolume;
+                this.fireworksBGM.play().catch(e => console.log('[Fireworks] bgm7.mp3 播放等待交互:', e));
+                console.log('[Fireworks] bgm7.mp3 已播放');
+            } catch (error) {
+                console.warn('[Fireworks] bgm7.mp3 加载失败:', error);
+            }
+        }
+    },
+        
     // 【新增】启动隐藏轨道 - 从 bgm5.mp3 开始时就按节拍运行
     startHiddenTrack: function() {
         const dj = this.djGame;
@@ -1188,6 +1206,17 @@ const SoundEngine = {
                 console.log('[Golden] 流金 BGM 已清理');
             } catch (e) {
                 console.warn('[Golden] 流金 BGM 清理异常:', e);
+            }
+        }        
+        // 7.1 [NEW] 清理烟花 BGM（bgm7.mp3）
+        if (this.fireworksBGM) {
+            try {
+                this.fireworksBGM.pause();
+                this.fireworksBGM.currentTime = 0;
+                this.fireworksBGM = null;
+                console.log('[Fireworks] 烟花 BGM 已清理');
+            } catch (e) {
+                console.warn('[Fireworks] 烟花 BGM 清理异常:', e);
             }
         }
         
@@ -1649,3 +1678,4 @@ const SoundEngine = {
         }
     }
 };
+

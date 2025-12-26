@@ -121,7 +121,14 @@ const GameState = {
             chaosDebuff: JSON.parse(JSON.stringify(this.chaosDebuff)),
             shortBattleTurns: this.shortBattleTurns,
             timeRemaining: JSON.parse(JSON.stringify(this.timeRemaining)),
-            bombTarget: this.bombTarget
+            bombTarget: this.bombTarget,
+            activeEffect: this.activeEffect,
+            effectData: JSON.parse(JSON.stringify(this.effectData)),
+            isDoubleMoveActive: this.isDoubleMoveActive,
+            bombActive: this.bombActive,
+            bombOwner: this.bombOwner,
+            bombTime: this.bombTime,
+            selectedCell: this.selectedCell ? { r: this.selectedCell.r, c: this.selectedCell.c } : null
         };
     },
     
@@ -135,6 +142,13 @@ const GameState = {
         this.shortBattleTurns = snapshot.shortBattleTurns;
         this.timeRemaining = snapshot.timeRemaining;
         this.bombTarget = snapshot.bombTarget;
+        this.activeEffect = snapshot.activeEffect || null;
+        this.effectData = snapshot.effectData || {};
+        this.isDoubleMoveActive = snapshot.isDoubleMoveActive || false;
+        this.bombActive = snapshot.bombActive || false;
+        this.bombOwner = snapshot.bombOwner || null;
+        this.bombTime = snapshot.bombTime != null ? snapshot.bombTime : 150;
+        this.selectedCell = snapshot.selectedCell ? { r: snapshot.selectedCell.r, c: snapshot.selectedCell.c } : null;
     }
 };
 

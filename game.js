@@ -1,4 +1,4 @@
-// ================= 核心游戏逻辑 (Core Game Logic) =================
+﻿// ================= 核心游戏逻辑 (Core Game Logic) =================
 // [Alpha 0.7.8.3]
 // - DJ 底鼓提示灯开关系统：可在帧率选择中开启/关闭
 // - 无限制按钮改造：改为底鼓提示灯开关，不改变实际帧数
@@ -639,6 +639,13 @@ function restoreState(state) {
     shortBattleTurns = GameState.shortBattleTurns;
     timeRemaining = GameState.timeRemaining;
     bombTarget = GameState.bombTarget;
+    activeEffect = GameState.activeEffect;
+    effectData = GameState.effectData;
+    isDoubleMoveActive = GameState.isDoubleMoveActive;
+    bombActive = GameState.bombActive;
+    bombOwner = GameState.bombOwner;
+    bombTime = GameState.bombTime;
+    selectedCell = GameState.selectedCell;
     
     SoundEngine.setCritical(false);
     if (typeof VisualFX !== 'undefined') VisualFX.clear();
@@ -949,7 +956,7 @@ function handleSkillInteraction(r, c) {
         GameState.board[s2.r][s2.c] = s1.val; board[s2.r][s2.c] = s1.val; // 同步
         if(c1) { c1.innerHTML=''; placePiece(s1.r, s1.c, s2.val, true); } 
         const c2 = getCell(s2.r, s2.c); 
-        if(c2) { c2.innerHTML=''; placePiece(s2.r, c2.c, s1.val, true); }
+        if(c2) { c2.innerHTML=''; placePiece(s2.r, s2.c, s1.val, true); }
         GameState.activeEffect = null; activeEffect = null; // 同步
         b.classList.remove('casting-move-dest'); 
         const wl1 = checkWin(s1.r, s1.c, s2.val); if(wl1) { highlightWin(wl1, s2.val); return; } 
@@ -986,6 +993,9 @@ function highlightWin(line, winner) {
                 // 【新增】如果是流金模式，立即播放 bgm6.mp3
                 if (winCelebration === 'golden' && typeof SoundEngine !== 'undefined' && SoundEngine.playGoldenBGM) {
                     SoundEngine.playGoldenBGM();
+                }
+                if (winCelebration === 'fireworks' && typeof SoundEngine !== 'undefined' && SoundEngine.playFireworksBGM) {
+                    SoundEngine.playFireworksBGM();
                 }
                 VisualFX.startCelebration(winCelebration);
             }
@@ -1295,13 +1305,9 @@ window.addEventListener('DOMContentLoaded', function() {
         FrameRateController.init();
     }
     
-    // 初始化背景引擎（必須在 FrameRateController 之後）
-    if (typeof BackgroundEngine !== 'undefined') {
-        BackgroundEngine.init();
-    }
-    
     // 初始化特效引擎
     if (typeof VisualFX !== 'undefined') {
         VisualFX.init();
     }
 });
+
