@@ -136,6 +136,16 @@ const DJFX = {
                 dj.autoKickInterval = null;
             }
         }
+
+        // 4. 恢复技能与悔棋按钮显示（避免 DJ 结束后消失）
+        const skillBtn = document.getElementById('skillBtn');
+        if (skillBtn) {
+            skillBtn.style.display = '';
+        }
+        const undoBtn = document.querySelector('[onclick="undoMove()"]');
+        if (undoBtn) {
+            undoBtn.style.display = '';
+        }
         
         console.log('[FX] DJ特效已强制清理');
     },

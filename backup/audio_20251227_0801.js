@@ -210,6 +210,8 @@ const SoundEngine = {
         dj.hitBeats = 0;
         dj.missedBeats = 0;
         dj.challengeBeats = [];
+        // [保护] 音乐开始后的 500ms 内不触发 MISS
+        dj.noMissUntil = this.ctx.currentTime + 0.5;
         
         // 生成7个奇数拍的挑战时间点（1、3、5、7、9、11、13拍，每1200ms间隔）
         for (let i = 0; i < dj.totalBeats; i++) {
@@ -273,6 +275,7 @@ const SoundEngine = {
             dj.challengeBeats.forEach(beat => {
                 if (beat && typeof beat.time === 'number' && 
                     !beat.hit && !beat.missed && 
+                    currentTime >= (dj.noMissUntil || 0) &&
                     currentTime > beat.time + 0.4) {
                     
                     beat.missed = true;
@@ -431,8 +434,12 @@ const SoundEngine = {
         
         try {
             const currentTime = this.ctx.currentTime;
+            if (currentTime < (dj.noMissUntil || 0)) {
+                // 保护期内忽略误触
+                return false;
+            }
             const hitWindow = 0.4; // 后判定窗口：400ms
-            const preHitWindow = 0.35; // 前判定窗口：350ms（减少50ms）
+            const preHitWindow = 0.35; // 前判定窗口：350ms
             
             console.log('[DJ判定] 点击时间:', currentTime.toFixed(3));
             
@@ -510,6 +517,9 @@ const SoundEngine = {
     // [NEW] 安全的 MISS 处理函数
     handleDJMiss: function(dj) {
         try {
+            if (this.ctx && typeof this.ctx.currentTime === 'number' && this.ctx.currentTime < (dj.noMissUntil || 0)) {
+                return;
+            }
             // 安全播放 MISS 音效
             try {
                 this.playMiss();

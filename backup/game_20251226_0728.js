@@ -1,4 +1,4 @@
-﻿// ================= 核心游戏逻辑 (Core Game Logic) =================
+// ================= 核心游戏逻辑 (Core Game Logic) =================
 // [Alpha 0.7.8.3]
 // - DJ 底鼓提示灯开关系统：可在帧率选择中开启/关闭
 // - 无限制按钮改造：改为底鼓提示灯开关，不改变实际帧数
@@ -994,9 +994,6 @@ function highlightWin(line, winner) {
                 if (winCelebration === 'golden' && typeof SoundEngine !== 'undefined' && SoundEngine.playGoldenBGM) {
                     SoundEngine.playGoldenBGM();
                 }
-                if (winCelebration === 'fireworks' && typeof SoundEngine !== 'undefined' && SoundEngine.playFireworksBGM) {
-                    SoundEngine.playFireworksBGM();
-                }
                 VisualFX.startCelebration(winCelebration);
             }
         }
@@ -1310,4 +1307,3 @@ window.addEventListener('DOMContentLoaded', function() {
         VisualFX.init();
     }
 });
-
