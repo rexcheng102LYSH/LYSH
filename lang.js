@@ -3,7 +3,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "Alpha0.7.8.8", 
+        subTitle: "Alpha0.7.8.9", 
         btnPvE: "人機對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -17,7 +17,7 @@ const I18N = {
         sideFirst: "先手 (執黑)", sideSecond: "後手 (執白)",
         draftTitle: "{icon} {name} (選技能)", 
         btnUndo: "悔棋", btnExit: "退出", 
-        skillReady: "點擊釋放", skillUsed: "(已用)", skillName: "技能", skillNoTarget: "(缺目標)",
+        skillReady: "點擊釋放", skillUsed: "(已用)", skillName: "技能", skillNoTarget: "(缺目標)", statusTitle: "狀態",
         confirmExit: "確定要退出嗎？棋局將丟失。", 
         pveTag: "電腦: ", 
         names: { 1: "先手方", 2: "後手方" }, 
@@ -32,11 +32,15 @@ const I18N = {
         trackBgm4: "冬弦",
         
         lblSeason: "背景特效",
-        seasonSpring: "春雨", seasonSummer: "夏陽", seasonAutumn: "秋葉", seasonWinter: "冬雪",
+        // [恢复Alpha0.7.8.9] 文本缩短，避免 UI 溢出
+        seasonSpring: "春", seasonSummer: "夏", seasonAutumn: "秋", seasonWinter: "冬",
         
         lblFPSLimit: "畫面幀率",
-        fps60: "60 FPS（推薦）",
+        fps60: "60 FPS",
         fpsUnlimited: "無限制",
+        lblStatusScroll: "狀態欄",
+        statusAuto: "自動",
+        statusManual: "手動",
 
         btnClose: "關閉",
         errNoSkinInGame: "對局進行中無法更換皮膚！",
@@ -93,7 +97,7 @@ const I18N = {
     'zh': {
         langName: "简", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "Alpha0.7.8.8", 
+        subTitle: "Alpha0.7.8.9", 
         btnPvE: "人机对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -107,7 +111,7 @@ const I18N = {
         sideFirst: "先手 (执黑)", sideSecond: "后手 (执白)",
         draftTitle: "{icon} {name} (选技能)", 
         btnUndo: "悔棋", btnExit: "退出", 
-        skillReady: "点击释放", skillUsed: "(已用)", skillName: "技能", skillNoTarget: "(缺目标)",
+        skillReady: "点击释放", skillUsed: "(已用)", skillName: "技能", skillNoTarget: "(缺目标)", statusTitle: "状态",
         confirmExit: "确定要退出吗？棋局将丢失。", 
         pveTag: "电脑: ", 
         names: { 1: "先手方", 2: "后手方" }, 
@@ -122,11 +126,15 @@ const I18N = {
         trackBgm4: "冬弦",
         
         lblSeason: "背景特效",
-        seasonSpring: "春雨", seasonSummer: "夏阳", seasonAutumn: "秋叶", seasonWinter: "冬雪",
+        // [恢复Alpha0.7.8.9] 文本缩短，避免 UI 溢出
+        seasonSpring: "春", seasonSummer: "夏", seasonAutumn: "秋", seasonWinter: "冬",
         
         lblFPSLimit: "画面帧率",
-        fps60: "60 FPS（推荐）",
+        fps60: "60 FPS",
         fpsUnlimited: "无限制",
+        lblStatusScroll: "状态栏",
+        statusAuto: "自动",
+        statusManual: "手动",
 
         btnClose: "关闭",
         errNoSkinInGame: "对局进行中无法更换皮肤！",
@@ -183,7 +191,7 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Skill Gomoku <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "Alpha0.7.8.8", 
+        subTitle: "Alpha0.7.8.9", 
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -197,7 +205,7 @@ const I18N = {
         sideFirst: "First (Black)", sideSecond: "Second (White)",
         draftTitle: "{icon} {name} (Draft)", 
         btnUndo: "Undo", btnExit: "Exit", 
-        skillReady: "Cast", skillUsed: "(Used)", skillName: "Skill", skillNoTarget: "(No Target)",
+        skillReady: "Cast", skillUsed: "(Used)", skillName: "Skill", skillNoTarget: "(No Target)", statusTitle: "STATUS",
         confirmExit: "Quit game? Progress lost.", 
         pveTag: "CPU: ", 
         names: { 1: "First Player", 2: "Second Player" }, 
@@ -212,11 +220,15 @@ const I18N = {
         trackBgm4: "Winter Strings",
         
         lblSeason: "Background FX",
-        seasonSpring: "Spring Rain", seasonSummer: "Summer Sun", seasonAutumn: "Autumn Leaves", seasonWinter: "Winter Snow",
+        // [恢复Alpha0.7.8.9] Shorter labels to avoid overflow
+        seasonSpring: "Spring", seasonSummer: "Summer", seasonAutumn: "Autumn", seasonWinter: "Winter",
         
         lblFPSLimit: "Frame Rate",
-        fps60: "60 FPS (Recommended)",
+        fps60: "60 FPS",
         fpsUnlimited: "Unlimited",
+        lblStatusScroll: "Status Bar",
+        statusAuto: "Auto",
+        statusManual: "Manual",
 
         btnClose: "Close",
         errNoSkinInGame: "Cannot change skin during game!",

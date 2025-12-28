@@ -206,7 +206,7 @@ const FireworksFX = {
             ctx.fill();
         }
         
-        // 绘制 victory 文本特效（与 DJ 的 PERFECT 同款样式）
+        // 绘制 victory 文本特效（独立样式）
         if (this.state.victoryText) {
             const victory = this.state.victoryText;
             victory.x = w / 2;
@@ -292,7 +292,6 @@ const FireworksFX = {
 if (window.VisualFX && typeof window.VisualFX.register === 'function') {
     window.VisualFX.register('fireworks', FireworksFX);
 }
-
 
 
 

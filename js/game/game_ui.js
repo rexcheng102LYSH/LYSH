@@ -58,6 +58,7 @@ function openSettings() {
     updateTrackUI();
     updateSeasonUI();
     updateFPSUI();
+    updateStatusScrollUI();
 }
 function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
 
@@ -224,6 +225,32 @@ function updateFPSUI() {
     }
 }
 
+function changeStatusScrollMode(mode) {
+    GameState.statusScrollMode = mode;
+    statusScrollMode = GameState.statusScrollMode; // 同步
+    if (mode === 'manual') {
+        GameState.statusScrollOpen = false;
+        statusScrollOpen = GameState.statusScrollOpen;
+        GameState.statusScrollAutoOpened = false;
+        statusScrollAutoOpened = GameState.statusScrollAutoOpened;
+        GameState.statusScrollLastCount = 0;
+        statusScrollLastCount = GameState.statusScrollLastCount;
+    }
+    updateStatusScrollUI();
+    updateSkillScroll();
+}
+
+function updateStatusScrollUI() {
+    document.querySelectorAll('.status-scroll-opt').forEach(el => el.classList.remove('active'));
+    if (statusScrollMode === 'manual') {
+        const el = document.getElementById('statusScrollManual');
+        if (el) el.classList.add('active');
+    } else {
+        const el = document.getElementById('statusScrollAuto');
+        if (el) el.classList.add('active');
+    }
+}
+
 
 function updateScoreBoard() { document.getElementById('scoreBoard').innerText = `P1 (${p1Score}) : (${p2Score}) P2`; }
 
@@ -284,43 +311,7 @@ function updateDynamicUI() {
     updateTimerVisual(MAPLE, t1, GameState.timeRemaining[MAPLE]);
     updateTimerVisual(SUN, t2, GameState.timeRemaining[SUN]);
     
-    const cc = document.getElementById('chaosCounter');
-    const sbc = document.getElementById('shortBattleCounter');
-    
-    const chaosIcon = (typeof SKILL_ICONS !== 'undefined') ? SKILL_ICONS.chaos : '';
-    const sbIcon = (typeof SKILL_ICONS !== 'undefined') ? SKILL_ICONS.short_battle : '';
-
-    if (GameState.chaosDebuff[GameState.currentPlayer] > 0) {
-        cc.style.display = 'flex'; 
-        cc.innerHTML = `<span class="inline-icon">${chaosIcon}</span> ${t('chaosLabel', 'toast')} ${GameState.chaosDebuff[GameState.currentPlayer]}`;
-    } else {
-        cc.style.display = 'none';
-    }
-    
-    if (GameState.shortBattleTurns > 0) {
-        sbc.style.display = 'flex';
-        sbc.innerHTML = `<span class="inline-icon">${sbIcon}</span> ${t('shortBattleLabel', 'toast')} ${GameState.shortBattleTurns}`;
-    } else {
-        sbc.style.display = 'none';
-    }
-
-    if (GameState.territoryZones.length > 0) {
-        let zc = document.getElementById('zoneCounter');
-        if (!zc) {
-            zc = document.createElement('div');
-            zc.id = 'zoneCounter';
-            zc.className = 'counter-badge zone';
-            document.querySelector('.board-wrapper').appendChild(zc);
-        }
-        zc.style.display = 'flex';
-        const zoneIcon = (typeof SKILL_ICONS !== 'undefined') ? SKILL_ICONS.zone : '';
-        const maxTurns = Math.max(...GameState.territoryZones.map(z => z.turns));
-        const label = t('zoneLabel', 'toast') || 'Zone:';
-        zc.innerHTML = `<span class="inline-icon">${zoneIcon}</span> ${label} ${maxTurns}`;
-    } else {
-        const zc = document.getElementById('zoneCounter');
-        if (zc) zc.style.display = 'none';
-    }
+    updateSkillScroll();
     
     const ms = playerSkills[currentPlayer];
     const u = skillUsed[currentPlayer];
@@ -360,6 +351,170 @@ function updateDynamicUI() {
     }
     
     if (btn.innerHTML !== btnContent) btn.innerHTML = btnContent;
+}
+
+function updateSkillScroll() {
+    const scroll = document.getElementById('skillScroll');
+    const list = document.getElementById('skillStatusList');
+    if (!scroll || !list) return;
+
+    const items = [];
+    const icons = (typeof SKILL_ICONS !== 'undefined') ? SKILL_ICONS : {};
+
+    [MAPLE, SUN].forEach((player) => {
+        const turns = GameState.chaosDebuff[player] || 0;
+        if (turns > 0) {
+            items.push({
+                key: `chaos-${player}`,
+                icon: icons.chaos || '',
+                label: t('chaosLabel', 'toast'),
+                value: turns,
+                target: getIcon(player)
+            });
+        }
+    });
+
+    if (GameState.shortBattleTurns > 0) {
+        items.push({
+            key: 'short-battle',
+            icon: icons.short_battle || '',
+            label: t('shortBattleLabel', 'toast'),
+            value: GameState.shortBattleTurns
+        });
+    }
+
+    if (GameState.territoryZones.length > 0) {
+        const maxTurns = Math.max(...GameState.territoryZones.map(z => z.turns));
+        items.push({
+            key: 'zone',
+            icon: icons.zone || '',
+            label: t('zoneLabel', 'toast'),
+            value: maxTurns
+        });
+    }
+
+    const isManual = (statusScrollMode === 'manual');
+    const itemsByKey = new Map(items.map(item => [item.key, item]));
+    const prevOrder = Array.isArray(GameState.statusScrollOrder) ? GameState.statusScrollOrder : [];
+    const nextOrder = prevOrder.filter(key => itemsByKey.has(key));
+    itemsByKey.forEach((_, key) => {
+        if (!nextOrder.includes(key)) nextOrder.push(key);
+    });
+    const orderedItems = nextOrder.map(key => itemsByKey.get(key)).filter(Boolean);
+    const count = orderedItems.length;
+
+    if (isManual && !GameState.statusScrollAutoOpened && count > 0) {
+        GameState.statusScrollOpen = true;
+        statusScrollOpen = GameState.statusScrollOpen;
+        GameState.statusScrollAutoOpened = true;
+        statusScrollAutoOpened = GameState.statusScrollAutoOpened;
+    }
+
+    const targetCount = 4;
+    const visibleSlots = isManual ? (GameState.statusScrollOpen ? targetCount : 0) : count;
+    scroll.style.setProperty('--scroll-count', visibleSlots);
+
+    const signature = orderedItems.map(item => `${item.key}:${item.value}:${item.target || ''}`).join('|');
+    const rebuildSlots = () => {
+        list.innerHTML = '';
+        for (let i = 0; i < targetCount; i++) {
+            const row = document.createElement('div');
+            row.className = 'scroll-item slot';
+            row.dataset.slot = `${i}`;
+
+            const left = document.createElement('div');
+            left.className = 'scroll-left';
+            left.innerHTML = `<span class="scroll-icon slot-icon"></span><span class="slot-label">---</span>`;
+
+            const value = document.createElement('span');
+            value.className = 'scroll-count slot-count';
+            value.innerText = ' ';
+
+            row.appendChild(left);
+            row.appendChild(value);
+            list.appendChild(row);
+        }
+    };
+
+    let needsRebuild = (list.children.length !== targetCount);
+    if (!needsRebuild && list.children.length > 0) {
+        const probe = list.children[0];
+        if (!probe.querySelector('.slot-icon') || !probe.querySelector('.slot-label') || !probe.querySelector('.slot-count')) {
+            needsRebuild = true;
+        }
+    }
+    if (needsRebuild) rebuildSlots();
+
+    let slots = Array.from(list.children);
+    let invalidSlots = false;
+    for (const row of slots) {
+        if (!row.querySelector('.scroll-left') || !row.querySelector('.slot-icon') || !row.querySelector('.slot-label') || !row.querySelector('.slot-count')) {
+            invalidSlots = true;
+            break;
+        }
+    }
+    if (invalidSlots) {
+        rebuildSlots();
+        slots = Array.from(list.children);
+    }
+    slots.forEach((row, idx) => {
+        const item = orderedItems[idx];
+        const left = row.querySelector('.scroll-left');
+        const iconEl = row.querySelector('.slot-icon');
+        const labelEl = row.querySelector('.slot-label');
+        const countEl = row.querySelector('.slot-count');
+        const targetEl = left ? left.querySelector('.scroll-target') : null;
+
+        row.classList.remove('filled');
+        row.classList.add('empty');
+        if (idx >= visibleSlots) row.classList.add('slot-hidden');
+        else row.classList.remove('slot-hidden');
+        if (targetEl) targetEl.remove();
+
+        if (item) {
+            row.classList.add('filled');
+            row.classList.remove('empty');
+            iconEl.innerHTML = item.icon;
+            labelEl.innerText = item.label;
+            countEl.innerText = item.value;
+            if (item.target) {
+                const target = document.createElement('span');
+                target.className = 'scroll-target';
+                target.innerHTML = item.target;
+                left.appendChild(target);
+            }
+        } else {
+            iconEl.innerHTML = '';
+            labelEl.innerText = '---';
+            countEl.innerText = ' ';
+        }
+    });
+
+    if (!isManual && statusScrollLastCount !== count) {
+        scroll.classList.add('scroll-shake');
+        setTimeout(() => scroll.classList.remove('scroll-shake'), 420);
+    }
+    if (isManual) {
+        scroll.onclick = () => {
+            GameState.statusScrollOpen = !GameState.statusScrollOpen;
+            statusScrollOpen = GameState.statusScrollOpen;
+            scroll.classList.add('scroll-shake');
+            setTimeout(() => scroll.classList.remove('scroll-shake'), 420);
+            updateSkillScroll();
+        };
+        if (GameState.statusScrollOpen) scroll.classList.add('open');
+        else scroll.classList.remove('open');
+    } else {
+        scroll.onclick = null;
+        if (count > 0) scroll.classList.add('open');
+        else scroll.classList.remove('open');
+    }
+
+    GameState.statusScrollLastCount = count;
+    statusScrollLastCount = GameState.statusScrollLastCount;
+    GameState.statusScrollLastKey = signature;
+    statusScrollLastKey = GameState.statusScrollLastKey;
+    GameState.statusScrollOrder = nextOrder;
 }
 
 function formatTime(s) { if(s<0) s=0; const m=Math.floor(s/60).toString().padStart(2,'0'); const sec=(s%60).toString().padStart(2,'0'); return `${m}:${sec}`; }

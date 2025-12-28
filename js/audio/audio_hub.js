@@ -139,11 +139,10 @@ window.SoundEngine = {
 
     playBombLoop: function() {
         if (!this.isPlaying || this.currentTrack !== 'bomb') return;
-        let stepTime = 700;
-        if (this.isCritical) {
-            stepTime = 350;
+        let stepTime = 1000;
+        if (!this.isCritical) {
             this.playNote(800, 0.05, 'square', 0.05 * this.musicVolume, 0.01, 0.05);
-            if (this.bombStep % 2 === 0) {
+            if (this.bombStep % 4 === 0) {
                 this.playStringPad(49.00, 2.5, 0.15 * this.musicVolume);
                 this.playStringPad(73.42, 2.5, 0.10 * this.musicVolume);
             }

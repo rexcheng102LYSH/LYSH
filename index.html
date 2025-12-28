@@ -3,8 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>技能五子棋 - Alpha0.7.8.8</title>
-    <link rel="stylesheet" href="style.css?v=Alpha0.7.8.8">
+    <title>技能五子棋 - Alpha0.7.8.9</title>
+    <script>
+        // [恢复Alpha0.7.8.9] 全局致命错误捕获：弹窗提示 + 显示错误来源
+        (function() {
+            let errorShown = false;
+            const showFatal = (title, detail) => {
+                if (errorShown) return;
+                errorShown = true;
+                try {
+                    alert(title + "\n\n" + detail);
+                } catch (e) {}
+                const render = () => {
+                    if (document.getElementById('fatalErrorOverlay')) return;
+                    const overlay = document.createElement('div');
+                    overlay.id = 'fatalErrorOverlay';
+                    overlay.style.cssText = [
+                        'position:fixed',
+                        'inset:0',
+                        'background:rgba(0,0,0,0.75)',
+                        'color:#fff',
+                        'z-index:99999',
+                        'display:flex',
+                        'align-items:center',
+                        'justify-content:center',
+                        'font-family:sans-serif',
+                        'padding:24px',
+                        'box-sizing:border-box',
+                        'text-align:left'
+                    ].join(';');
+                    const card = document.createElement('div');
+                    card.style.cssText = [
+                        'max-width:720px',
+                        'width:100%',
+                        'background:rgba(30,30,30,0.95)',
+                        'border:1px solid rgba(255,255,255,0.2)',
+                        'border-radius:16px',
+                        'padding:20px',
+                        'box-shadow:0 20px 60px rgba(0,0,0,0.45)'
+                    ].join(';');
+                    card.innerHTML = '<div style="font-size:20px;font-weight:700;margin-bottom:12px;">出现致命错误</div>' +
+                        '<pre style="white-space:pre-wrap;font-size:14px;line-height:1.5;margin:0;">' +
+                        (title + "\n" + detail) + '</pre>';
+                    overlay.appendChild(card);
+                    document.body.appendChild(overlay);
+                };
+                if (document.body) render();
+                else window.addEventListener('DOMContentLoaded', render, { once: true });
+            };
+            window.addEventListener('error', (event) => {
+                const src = event.filename || 'unknown';
+                const line = event.lineno || 0;
+                const col = event.colno || 0;
+                const msg = event.message || 'Unknown error';
+                showFatal('JS Error', `${msg}\n${src}:${line}:${col}`);
+            });
+            window.addEventListener('unhandledrejection', (event) => {
+                const reason = event.reason ? (event.reason.stack || event.reason.message || String(event.reason)) : 'Unknown rejection';
+                showFatal('Promise Rejection', reason);
+            });
+        })();
+    </script>
+    <link rel="stylesheet" href="style.css?v=Alpha0.7.8.9">
 </head>
 <body onclick="SoundEngine.init()">
 
@@ -27,8 +87,8 @@
         <div class="glass-panel menu-panel">
             <h1 data-i18n="gameTitle">技能五子棋 <span style="font-size:0.5em">Alpha</span></h1>
             <h2 style="margin-top:-5px; font-size:1.2rem; color:#666;">
-                <span data-i18n="subTitle">Alpha0.7.8.8</span> 
-                <span class="version-tag">Alpha0.7.8.8</span>
+                <span data-i18n="subTitle">Alpha0.7.8.9</span> 
+                <span class="version-tag">Alpha0.7.8.9</span>
             </h2>
             
             <button class="btn primary" onclick="showDifficultyScreen()" data-i18n="btnPvE">人机对战 (PvE)</button>
@@ -96,12 +156,19 @@
         <div id="diffTag" class="version-tag" style="background: rgba(0,0,0,0.5); margin-bottom: 10px; display:none;"></div>
         <div id="scoreBoard" class="score-board">P1 (0) : (0) P2</div>
 
-        <div class="board-wrapper">
-            <div id="board" class="board"></div>
-            <!-- [Old] fxCanvas removed from here -->
-            
-            <div id="chaosCounter" class="counter-badge chaos"></div>
-            <div id="shortBattleCounter" class="counter-badge short-battle"></div>
+        <div class="board-area">
+            <!-- [恢复Alpha0.7.8.9] 技能状态卷轴容器 -->
+            <div id="skillScroll" class="skill-scroll">
+                <div class="scroll-cap"></div>
+                <div class="scroll-body">
+                    <div id="skillStatusList" class="scroll-list"></div>
+                </div>
+            </div>
+
+            <div class="board-wrapper">
+                <div id="board" class="board"></div>
+                <!-- [Old] fxCanvas removed from here -->
+            </div>
         </div>
 
         <div class="bottom-controls">
@@ -161,11 +228,20 @@
                 </div>
             </div>
 
-            <div class="setting-item">
-                <label data-i18n="lblFPSLimit">畫面幀率</label>
-                <div class="capsule-selector">
-                    <button class="capsule-opt fps-opt active" id="fps60" onclick="changeFPSLimit('60')" data-i18n="fps60">60 FPS（推薦）</button>
-                    <button class="capsule-opt fps-opt" id="fpsUnlimited" onclick="changeFPSLimit('unlimited')" data-i18n="fpsUnlimited">無限制</button>
+            <div class="setting-item setting-row">
+                <div class="setting-group">
+                    <label data-i18n="lblFPSLimit">畫面幀率</label>
+                    <div class="capsule-selector fps-selector">
+                        <button class="capsule-opt fps-opt active" id="fps60" onclick="changeFPSLimit('60')" data-i18n="fps60">60 FPS</button>
+                        <button class="capsule-opt fps-opt" id="fpsUnlimited" onclick="changeFPSLimit('unlimited')" data-i18n="fpsUnlimited">無限制</button>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <label data-i18n="lblStatusScroll">状态栏</label>
+                    <div class="capsule-selector status-scroll-selector">
+                        <button class="capsule-opt status-scroll-opt active" id="statusScrollAuto" onclick="changeStatusScrollMode('auto')" data-i18n="statusAuto">自动</button>
+                        <button class="capsule-opt status-scroll-opt" id="statusScrollManual" onclick="changeStatusScrollMode('manual')" data-i18n="statusManual">手动</button>
+                    </div>
                 </div>
             </div>
 
@@ -223,37 +299,37 @@
     <div id="toast"></div>
     <div id="explosionOverlay"></div>
 
-    <script src="assets.js?v=Alpha0.7.8.8"></script>
-    <script src="js/audio/audio_host.js?v=Alpha0.7.8.8"></script>
-    <script src="js/audio/audio_sfx.js?v=Alpha0.7.8.8"></script>
-    <script src="js/audio/audio_assets.js?v=Alpha0.7.8.8"></script>
-    <script src="js/audio/audio_hub.js?v=Alpha0.7.8.8"></script>
-    <script src="lang.js?v=Alpha0.7.8.8"></script> 
-    <script src="background.js?v=Alpha0.7.8.8"></script>
-    <script src="js/fx/fx_host.js?v=Alpha0.7.8.8"></script>
-    <script src="js/fx/lines.js?v=Alpha0.7.8.8"></script>
-    <script src="js/fx/winning/fireworks.js?v=Alpha0.7.8.8"></script>
-    <script src="js/fx/winning/golden.js?v=Alpha0.7.8.8"></script>
-    <script src="js/fx/winning/dj.js?v=Alpha0.7.8.8"></script>
-    <script src="gamestate.js?v=Alpha0.7.8.8"></script>
-    <script src="js/skills/registry.js?v=Alpha0.7.8.8"></script>
-    <script src="js/skills/double.js?v=Alpha0.7.8.8"></script>
-    <script src="js/skills/voodoo.js?v=Alpha0.7.8.8"></script>
-    <script src="js/skills/move_self.js?v=Alpha0.7.8.8"></script>
-    <script src="js/skills/move_enemy.js?v=Alpha0.7.8.8"></script>
-    <script src="js/skills/zone.js?v=Alpha0.7.8.8"></script>
-    <script src="js/skills/bomb.js?v=Alpha0.7.8.8"></script>
-    <script src="js/skills/god_hand.js?v=Alpha0.7.8.8"></script>
-    <script src="js/skills/chaos.js?v=Alpha0.7.8.8"></script>
-    <script src="js/skills/short_battle.js?v=Alpha0.7.8.8"></script>
-    <script src="js/skills/swap.js?v=Alpha0.7.8.8"></script>
-    <script src="js/game/game_host.js?v=Alpha0.7.8.8"></script>
-    <script src="js/game/game_core.js?v=Alpha0.7.8.8"></script>
-    <script src="js/game/game_ui.js?v=Alpha0.7.8.8"></script>
-    <script src="js/game/game_render.js?v=Alpha0.7.8.8"></script>
-    <script src="js/game/game_skills.js?v=Alpha0.7.8.8"></script>
-    <script src="js/game/game_ai.js?v=Alpha0.7.8.8"></script>
-    <script src="ai.js?v=Alpha0.7.8.8"></script>
+    <script src="assets.js?v=Alpha0.7.8.9"></script>
+    <script src="js/audio/audio_host.js?v=Alpha0.7.8.9"></script>
+    <script src="js/audio/audio_sfx.js?v=Alpha0.7.8.9"></script>
+    <script src="js/audio/audio_assets.js?v=Alpha0.7.8.9"></script>
+    <script src="js/audio/audio_hub.js?v=Alpha0.7.8.9"></script>
+    <script src="lang.js?v=Alpha0.7.8.9"></script> 
+    <script src="background.js?v=Alpha0.7.8.9"></script>
+    <script src="js/fx/fx_host.js?v=Alpha0.7.8.9"></script>
+    <script src="js/fx/lines.js?v=Alpha0.7.8.9"></script>
+    <script src="js/fx/winning/fireworks.js?v=Alpha0.7.8.9"></script>
+    <script src="js/fx/winning/golden.js?v=Alpha0.7.8.9"></script>
+    <script src="js/fx/winning/dj.js?v=Alpha0.7.8.9"></script>
+    <script src="gamestate.js?v=Alpha0.7.8.9"></script>
+    <script src="js/skills/registry.js?v=Alpha0.7.8.9"></script>
+    <script src="js/skills/double.js?v=Alpha0.7.8.9"></script>
+    <script src="js/skills/voodoo.js?v=Alpha0.7.8.9"></script>
+    <script src="js/skills/move_self.js?v=Alpha0.7.8.9"></script>
+    <script src="js/skills/move_enemy.js?v=Alpha0.7.8.9"></script>
+    <script src="js/skills/zone.js?v=Alpha0.7.8.9"></script>
+    <script src="js/skills/bomb.js?v=Alpha0.7.8.9"></script>
+    <script src="js/skills/god_hand.js?v=Alpha0.7.8.9"></script>
+    <script src="js/skills/chaos.js?v=Alpha0.7.8.9"></script>
+    <script src="js/skills/short_battle.js?v=Alpha0.7.8.9"></script>
+    <script src="js/skills/swap.js?v=Alpha0.7.8.9"></script>
+    <script src="js/game/game_host.js?v=Alpha0.7.8.9"></script>
+    <script src="js/game/game_core.js?v=Alpha0.7.8.9"></script>
+    <script src="js/game/game_ui.js?v=Alpha0.7.8.9"></script>
+    <script src="js/game/game_render.js?v=Alpha0.7.8.9"></script>
+    <script src="js/game/game_skills.js?v=Alpha0.7.8.9"></script>
+    <script src="js/game/game_ai.js?v=Alpha0.7.8.9"></script>
+    <script src="ai.js?v=Alpha0.7.8.9"></script>
 
 </body>
 </html>

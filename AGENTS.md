@@ -1,4 +1,5 @@
 # Project Lysh - AI Interaction Rules (AGENTS.md)
+NOTE FOR AI: Also read `AGENTS_CONTEXT.md` for the file map and logic overview.
 
 你好 Codex，我是项目负责人。这里是 Project Lysh（技能版五子棋）的核心开发规则。
 作为长期 Web 项目，请在生成或修改代码前，严格遵守以下规则。

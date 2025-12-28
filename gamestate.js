@@ -71,6 +71,12 @@ const GameState = {
     winCelebration: 'default',
     currentSeason: 'spring',
     fpsLimit: '60',  // '60' | 'unlimited' - 默認 60 幀保護低配設備
+    statusScrollMode: 'auto', // 'auto' | 'manual'
+    statusScrollOpen: false,
+    statusScrollAutoOpened: false,
+    statusScrollLastCount: 0,
+    statusScrollLastKey: '',
+    statusScrollRenderTimer: null,
     
     // === 狀態管理方法 ===
     
@@ -190,3 +196,9 @@ let winCelebration = GameState.winCelebration;
 let currentSeason = GameState.currentSeason;
 let draftTurn = GameState.draftTurn;
 let fpsLimit = GameState.fpsLimit;
+let statusScrollMode = GameState.statusScrollMode;
+let statusScrollOpen = GameState.statusScrollOpen;
+let statusScrollAutoOpened = GameState.statusScrollAutoOpened;
+let statusScrollLastCount = GameState.statusScrollLastCount;
+let statusScrollLastKey = GameState.statusScrollLastKey;
+let statusScrollRenderTimer = GameState.statusScrollRenderTimer;

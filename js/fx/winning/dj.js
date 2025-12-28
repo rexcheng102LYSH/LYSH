@@ -466,21 +466,7 @@ const DJFX = {
             miss.scale += (1.5 - miss.scale) * 0.1;
             miss.life -= 0.02;
             miss.alpha = miss.life;
-            
-            ctx.save();
-            ctx.translate(miss.x, miss.y);
-            ctx.scale(miss.scale, miss.scale);
-            ctx.globalAlpha = miss.alpha;
-            
-            ctx.fillStyle = '#FF1744';
-            ctx.font = 'bold 64px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = '#FF1744';
-            ctx.fillText('MISS', 0, 0);
-            
-            ctx.restore();
+            this.drawHoloText(ctx, 'MISS', miss.x, miss.y, miss.scale, miss.alpha, '#ff1744', '#ff6b6b', now);
             
             if (miss.life <= 0) dj.missText = null;
         }
@@ -510,21 +496,57 @@ const DJFX = {
                 miss.scale += (miss.targetScale - miss.scale) * 0.1;
             }
             
-            ctx.save();
-            ctx.translate(miss.x, miss.y);
-            ctx.scale(miss.scale, miss.scale);
-            ctx.globalAlpha = miss.alpha;
-            
-            ctx.fillStyle = '#FF1744';
-            ctx.font = 'bold 72px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.shadowBlur = 30;
-            ctx.shadowColor = '#FF1744';
-            ctx.fillText('MISS', 0, 0);
-            
-            ctx.restore();
+            this.drawHoloText(ctx, 'MISS', miss.x, miss.y, miss.scale, miss.alpha, '#ff1744', '#ff6b6b', now);
         }
+    },
+
+    // 赛博全息文字渲染（用于 PERFECT / MISS）
+    drawHoloText: function(ctx, text, x, y, scale, alpha, mainColor, accentColor, now) {
+        const t = (now || performance.now()) * 0.001;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale, scale);
+        ctx.globalAlpha = alpha;
+        ctx.font = '700 72px "Segoe UI", "Arial Black", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const metrics = ctx.measureText(text);
+        const w = metrics.width + 26;
+        const h = 72;
+
+        // 1) 稳定主体：高对比霓虹填充
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = mainColor;
+        ctx.fillStyle = mainColor;
+        ctx.fillText(text, 0, 0);
+
+        // 2) 边缘材质：金属质感描边 + 外侧微光
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = 4.5;
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.strokeText(text, 0, 0);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = mainColor;
+        ctx.strokeText(text, 0, 0);
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = accentColor;
+        ctx.globalAlpha = alpha * 0.7;
+        ctx.strokeText(text, 0, 0);
+
+        // 3) 内发光层：只做亮度闪烁，不做位移
+        const flicker = 0.22 + (Math.sin(t * 5.4) + 1) * 0.08;
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = accentColor;
+        ctx.globalAlpha = alpha * flicker;
+        ctx.fillStyle = accentColor;
+        ctx.fillText(text, 0, 0);
+
+        ctx.globalCompositeOperation = 'source-over';
+
+        ctx.restore();
     },
     
     // 渲染胜利阶段
@@ -694,20 +716,7 @@ const DJFX = {
             }
             // 【永久显示】不再衰减life
             
-            ctx.save();
-            ctx.translate(perfect.x, perfect.y);
-            ctx.scale(perfect.scale, perfect.scale);
-            ctx.globalAlpha = perfect.alpha;
-            
-            ctx.fillStyle = '#FFD700';
-            ctx.font = 'bold 72px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.shadowBlur = 30;
-            ctx.shadowColor = '#FFD700';
-            ctx.fillText('PERFECT!', 0, 0);
-            
-            ctx.restore();
+            this.drawHoloText(ctx, 'PERFECT', perfect.x, perfect.y, perfect.scale, perfect.alpha, '#00e676', '#7cff6b', now);
         }
     },
     
