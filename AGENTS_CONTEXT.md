@@ -1,4 +1,4 @@
-# Project Lysh - File Map and Logic Overview (Alpha0.7.8.8)
+# Project Lysh - File Map and Logic Overview (Alpha 0.7.8.9)
 
 Purpose
 - This file gives a fast, accurate map of how the project is structured and how the core logic flows.

@@ -1,7 +1,7 @@
 # Project Lysh - AI Interaction Rules (AGENTS.md)
 NOTE FOR AI: Also read `AGENTS_CONTEXT.md` for the file map and logic overview.
 
-你好 Codex，我是项目负责人。这里是 Project Lysh（技能版五子棋）的核心开发规则。
+你好AI，我是项目负责人。这里是 Project Lysh（技能版五子棋）的核心开发规则。
 作为长期 Web 项目，请在生成或修改代码前，严格遵守以下规则。
 
 ## 1. 项目目标 (Project Goals)
@@ -43,8 +43,11 @@ NOTE FOR AI: Also read `AGENTS_CONTEXT.md` for the file map and logic overview.
 
 ## 8. 禁区 (Forbidden Zones)
 - **严禁偷懒**：这是最大的禁区，进行大规模任务时，比如在模块化扩展时要确保准确的搬运所有代码，不要遗漏任何一个起作用的老旧代码。
-- **严禁擅自升级**：不要改动游戏版本号，除非我指示。
+- **严禁擅自升级**：不要改动游戏版本号！不要擅自增加游戏版本号！除非我指示。
 - **严禁乱改**：进行任何代码改动前先告知并询问我的意见。
-
+- **【强制】UTF-8 编码 (Enforce UTF-8)**：
+    - **规则**：生成的任何文本内容、代码文件必须严格强制为 `UTF-8` 编码。
+    - **防乱码机制**：严禁依赖操作系统默认编码（如 Windows 的 GBK/CP1252），严禁在不确定的编码环境下写入 Emoji，这会导致文件被 `NUL` 字节损坏。
+    - **Emoji 处理**：涉及 Emoji 或中文时，直接在代码块中输出原始字符，禁止尝试通过脚本进行复杂的 Unicode 转换。
 ---
-Codex，请确认你已理解上述规则，并在后续协助中严格执行。
+AI，请确认你已理解上述规则，并在后续协助中严格执行。

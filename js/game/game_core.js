@@ -227,7 +227,18 @@ function enterTurnSelection(mode, diff) {
     document.querySelector('.turn-card.sun .icon').innerHTML = getIcon(SUN);
 }
 function goBackFromTurn() { SoundEngine.playPlace(); if (gameMode === 'pve') { showScreen('diff'); } else { goToMenu(); } }
-function handleTurnChoice(c) { SoundEngine.playPlace(); if (gameMode === 'pve') { humanSide = (c === 1) ? MAPLE : SUN; enterDraftPhase(); } else { if (c === 1) { playerSides[MAPLE] = chooser; playerSides[SUN] = (chooser === 'p1' ? 'p2' : 'p1'); } else { playerSides[SUN] = chooser; playerSides[MAPLE] = (chooser === 'p1' ? 'p2' : 'p1'); } enterDraftPhase(); } }
+function handleTurnChoice(c) {
+    SoundEngine.playPlace();
+    if (gameMode === 'pve') {
+        GameState.humanSide = (c === 1) ? MAPLE : SUN; // 修复：同步 GameState，避免 PVE 永远先手
+        humanSide = GameState.humanSide; // 同步旧全局变量
+        enterDraftPhase();
+    } else {
+        if (c === 1) { playerSides[MAPLE] = chooser; playerSides[SUN] = (chooser === 'p1' ? 'p2' : 'p1'); }
+        else { playerSides[SUN] = chooser; playerSides[MAPLE] = (chooser === 'p1' ? 'p2' : 'p1'); }
+        enterDraftPhase();
+    }
+}
 
 function enterDraftPhase() { 
     document.getElementById('winnerModal').style.display = 'none'; 
