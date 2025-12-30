@@ -5,21 +5,22 @@
     --glass-shadow: 0 12px 40px rgba(31, 38, 135, 0.15);
     --glass-blur: blur(16px);
     
-    /* --- [Corrected Board Palette] 修正後的配色 --- */
-    /* 調整回更接近傳統的暖黃色，但保留質感 */
-    --board-wood-base: #eab676; 
-    --board-texture-grain: rgba(160, 82, 45, 0.06);
+    /* --- [Art Revolution] 榧木与刻线系统 (保持 Phase 2 的完美质感) --- */
+    --wood-base: #e6b36e;
+    --wood-highlight: #f7d59c;
+    --wood-shadow: #c49250;
+    --wood-grain: rgba(90, 60, 30, 0.07);
+    --wood-side: #b58040;
+    --board-border-color: #3e2b20; 
     
-    /* 你的核心要求：完整的黑框顏色 */
-    --board-border-color: #2b1e1e; 
-    
-    /* 線條顏色 */
-    --line-ink: rgba(43, 30, 30, 0.9); 
+    /* 线条系统 */
+    --line-ink: rgba(30, 20, 15, 0.85); 
+    --line-highlight: rgba(255, 255, 255, 0.35);
     
     /* --- 尺寸系統 --- */
     --board-size: 500px;
-    --board-padding: 14px; /* 稍微收緊內邊距，讓玻璃層更緊湊 */
-    --board-outer: calc(var(--board-size) + var(--board-padding) + var(--board-padding));
+    --board-padding: 18px; 
+    --board-outer: calc(var(--board-size) + var(--board-padding) * 2);
     --scroll-width: 190px;
     --scroll-gap: 18px;
     --board-center-offset: -6px;
@@ -44,14 +45,18 @@ body {
     height: 100vh; margin: 0; overflow: hidden; 
     user-select: none; -webkit-user-select: none; 
     touch-action: manipulation; 
-    background: #000; 
+    
+    /* [Revert to Phase 2] 回退到明亮的背景 */
+    background: #000; /* 底色兜底 */
 }
 
 #bgCanvas {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     z-index: -1;
-    /* 背景保持乾淨，不搶棋盤風頭 */
-    background: linear-gradient(to bottom, #fcfcfc 0%, #eef2f3 100%);
+    /* [Revert to Phase 2] 明亮渐变，去除压抑感 */
+    background: linear-gradient(to bottom, #f0f2f5 0%, #dbe3e8 100%);
+    opacity: 1; /* 恢复可见度 */
+    mix-blend-mode: normal; /* 恢复正常混合 */
 }
 
 .fx-canvas-fullscreen {
@@ -59,6 +64,7 @@ body {
     pointer-events: none; z-index: 9999;
 }
 
+/* --- UI Controls - 回退到 Phase 2 的清爽风格 --- */
 .top-right-controls {
     position: fixed; top: 20px; right: 20px;
     display: flex; gap: 12px; z-index: 1000;
@@ -71,7 +77,7 @@ body {
     font-size: 1.2rem; cursor: pointer;
     display: flex; justify-content: center; align-items: center;
     transition: transform 0.2s, background 0.2s;
-    color: #333;
+    color: #333; /* 恢复深色图标 */
 }
 .icon-btn:hover { transform: scale(1.1); background: #fff; }
 .icon-btn:active { transform: scale(0.95); }
@@ -90,6 +96,7 @@ body {
 }
 .screen.active { display: flex; animation: fadeZoomIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
+/* [Revert to Phase 2] 恢复经典的玻璃面板 */
 .glass-panel {
     background: var(--glass-surface);
     backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
@@ -104,6 +111,7 @@ h1 { font-size: 2.5rem; margin-bottom: 5px; color: var(--ui-text-main); text-sha
 h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size: 1.1rem; }
 .version-tag { font-size: 0.65rem; background: #2d3436; color: #fff; padding: 4px 8px; border-radius: 12px; margin-left: 8px; vertical-align: middle; }
 
+/* [Revert to Phase 2] 恢复经典的按钮样式 */
 .btn { 
     padding: 16px 0; width: 85%; max-width: 320px; margin: 12px auto; display: block;
     font-size: 1.1rem; border: 1px solid rgba(255,255,255,0.6); border-radius: 50px; 
@@ -123,82 +131,96 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     margin: 0 auto;
     margin-left: calc(50% - (var(--board-outer) / 2) + var(--board-center-offset));
     display: block;
+    perspective: 1000px; 
 }
+
+/* [Keep Item 2] 保留空气感光束，但适配亮色背景 */
+.board-area::before {
+    content: ''; position: absolute;
+    top: -20%; left: -20%; width: 140%; height: 140%;
+    /* 调整：在亮背景下，使用深一点的白色叠加，或者极淡的暖光 */
+    background: radial-gradient(circle at 50% 30%, rgba(255,255,255,0.6) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+    /* 调整：使用 soft-light 或 overlay 在亮背景下更自然 */
+    mix-blend-mode: soft-light;
+    animation: breathLight 8s ease-in-out infinite;
+}
+@keyframes breathLight { 0%,100% { opacity: 0.6; } 50% { opacity: 0.9; } }
+
 .board-area .skill-scroll {
     position: absolute; top: 14px; right: calc(100% + var(--scroll-gap)); width: var(--scroll-width); margin-top: 0;
 }
 
-/* --- [Ultimate Wrapper - The Transparent Layer] --- */
-/* 修正：讓這個透明層成為棋盤的一部分，而不是分離的 */
+/* --- [Ultimate Wrapper] --- */
 .board-wrapper {
     grid-column: 2;
     padding: var(--board-padding);
-    
-    /* 模仿舊版：使用更高不透明度的玻璃，讓它看起來像是一個整體底座 */
-    background: rgba(255, 255, 255, 0.45); 
-    
-    /* 修正圓角，使其與棋盤的硬朗線條更協調，但保留一點柔和 */
-    border-radius: 10px; 
-    
-    /* 邊框改為白色半透明，模擬玻璃邊緣 */
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    
-    /* 投影 */
+    /* [Revert to Phase 2] 恢复明亮的玻璃底座 */
+    background: rgba(255, 255, 255, 0.2); 
+    border-radius: 8px; 
     box-shadow: 
-        0 20px 50px rgba(0, 0, 0, 0.15), 
-        inset 0 0 0 1px rgba(255, 255, 255, 0.4);
-        
-    backdrop-filter: blur(12px);
+        0 30px 60px rgba(0, 0, 0, 0.1),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(8px);
     margin: 10px 0;
     position: relative;
     z-index: 1;
-    
-    /* 關鍵：確保內部元素不會因為 padding 溢出 */
     box-sizing: content-box; 
+    transform: translateY(-5px);
+    transition: transform 0.3s ease;
 }
 
-/* --- [Ultimate Board - The Core] --- */
+/* --- [Ultimate Board] --- */
 .board { 
     position: relative; 
-    /* 基礎木色 */
-    background-color: var(--board-wood-base);
-    
-    /* 紋理：保留細膩質感 */
+    background-color: var(--wood-base);
     background-image: 
-        /* 輕微的徑向光照，突出中心 */
-        radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.05) 100%),
-        /* 細膩木紋 */
-        repeating-linear-gradient(45deg, var(--board-texture-grain) 0px, var(--board-texture-grain) 1px, transparent 1px, transparent 3px);
+        radial-gradient(ellipse at 30% 20%, var(--wood-highlight) 0%, transparent 70%),
+        repeating-linear-gradient(45deg, var(--wood-grain) 0px, var(--wood-grain) 1px, transparent 1px, transparent 4px),
+        linear-gradient(to bottom right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.05) 100%);
 
     padding: 10px; 
     display: grid; 
     grid-template-columns: repeat(15, 1fr); 
     grid-template-rows: repeat(15, 1fr); 
     gap: 0; 
-    
-    /* --- [CRITICAL FIX] 完整的黑框邊界 --- */
-    /* 這是你要求的“黑框邊界應該是完整的” */
     border: 3px solid var(--board-border-color); 
-    
-    /* 防止邊框撐破佈局：非常重要 */
     box-sizing: border-box; 
+    border-radius: 3px; 
     
-    /* 圓角極小，接近直角但不過於銳利 */
-    border-radius: 2px; 
-    
-    /* 陰影：增加厚度感，但去掉了之前那個導致分離感的底部大陰影 */
+    /* 保持 Phase 1/2 的完美厚度 */
     box-shadow: 
-        inset 0 0 10px rgba(0,0,0,0.1), /* 內陰影 */
-        0 0 0 1px rgba(255,255,255,0.2); /* 外圍微弱高光 */
+        inset 1px 1px 0 rgba(255,255,255,0.4),
+        inset -1px -1px 0 rgba(0,0,0,0.1),
+        1px 1px 0 var(--wood-side),
+        2px 2px 0 var(--wood-side),
+        3px 3px 0 var(--wood-side),
+        4px 4px 0 var(--wood-side),
+        5px 5px 0 var(--wood-side),
+        6px 6px 0 var(--wood-side),
+        7px 7px 5px rgba(0,0,0,0.3),
+        15px 25px 40px rgba(0,0,0,0.25);
         
     touch-action: none; 
     width: var(--board-size); 
     height: var(--board-size); 
+    background-blend-mode: overlay, normal, multiply;
+    transition: box-shadow 0.3s ease;
 }
 
-@media (max-width: 600px) { .board { padding: 4px; } }
+@media (max-width: 600px) { 
+    .board { 
+        padding: 4px; 
+        box-shadow: 
+            inset 1px 1px 0 rgba(255,255,255,0.3),
+            1px 1px 0 var(--wood-side),
+            2px 2px 0 var(--wood-side),
+            3px 3px 0 var(--wood-side),
+            5px 5px 15px rgba(0,0,0,0.25);
+    } 
+}
 
-/* --- [Cells & Grid Lines] --- */
+/* --- [Cells & Grid Lines] - 保持刻线工艺 --- */
 .cell { 
     position: relative; 
     display: flex; 
@@ -206,56 +228,62 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     align-items: center; 
 }
 
-/* 線條：深色，確保與黑框連接自然 */
 .cell::before { 
     content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 1px; 
     background: var(--line-ink); 
+    box-shadow: 0 1px 0 var(--line-highlight);
     z-index: 0; 
 }
 .cell::after { 
     content: ''; position: absolute; left: 50%; top: 0; height: 100%; width: 1px; 
     background: var(--line-ink); 
+    box-shadow: 1px 0 0 var(--line-highlight);
     z-index: 0; 
 }
-/* --- 剪断棋盘边缘多余的线 --- */
+
 .cell:nth-child(15n+1)::before { left: 50%; width: 50%; }
 .cell:nth-child(15n)::before { width: 50%; }
 .cell:nth-child(-n+15)::after { top: 50%; height: 50%; }
 .cell:nth-child(n+211)::after { height: 50%; }
 
-/* 星位優化 */
+/* 镶嵌星位 */
 .cell[data-star="true"] .dot { 
-    width: 16%; height: 16%; 
-    background: var(--line-ink); 
+    width: 20%; height: 20%; 
+    background: radial-gradient(circle at 30% 30%, #5d4037 0%, #271c19 100%);
     border-radius: 50%; 
-    position: absolute; 
-    z-index: 0; 
+    position: absolute; z-index: 0; 
+    box-shadow: 0 1px 0 rgba(255,255,255,0.4), inset 0 1px 2px rgba(0,0,0,0.5); 
 }
 
-/* --- [Pieces] --- */
+/* --- [Pieces & Drop Animation] --- */
 .piece { 
     width: 90%; height: 90%; 
     z-index: 2; pointer-events: none; border-radius: 50%; 
     display: flex; justify-content: center; align-items: center; 
-    animation: drop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-    will-change: transform;
+    /* [Keep Item 4] 保持物理落子动画 */
+    animation: drop 0.3s cubic-bezier(0.19, 1, 0.22, 1); 
+    will-change: transform, opacity, box-shadow;
 }
 .piece-svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3)); }
 .piece-img { width: 100%; height: 100%; object-fit: contain; display: block; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3)); }
 .piece.skin-nature .piece-img { width: 105%; height: 105%; margin: -2.5%; transform: none; }
 
-/* 擬物化棋子 */
 .piece.skin-classic { 
     box-shadow: 
-        inset 0 -3px 5px rgba(0,0,0,0.4), 
-        inset 0 2px 6px rgba(255,255,255,0.4), 
-        0 4px 8px rgba(0,0,0,0.3); 
+        inset 0 -4px 6px rgba(0,0,0,0.6), 
+        inset 0 3px 8px rgba(255,255,255,0.5), 
+        0 4px 8px rgba(0,0,0,0.4), /* 接触阴影 */
+        2px 8px 16px rgba(0,0,0,0.15); /* 环境阴影 */
 }
-.piece.skin-classic.p1 { background: radial-gradient(circle at 35% 30%, #555 0%, #111 40%, #000 100%); }
-.piece.skin-classic.p2 { background: radial-gradient(circle at 35% 30%, #fff 0%, #eee 40%, #ccc 100%); }
+.piece.skin-classic.p1 { 
+    background: radial-gradient(circle at 35% 30%, #666 0%, #1a1a1a 40%, #000 100%); 
+}
+.piece.skin-classic.p2 { 
+    background: radial-gradient(circle at 35% 30%, #fff 0%, #f0f0f0 40%, #ddd 100%); 
+}
 .piece.skin-nature { background: transparent !important; box-shadow: none !important; }
 
-/* --- [Interactions] 保持不變 --- */
+/* --- [Interactions] --- */
 .cell.territory-zone { background-color: rgba(211, 47, 47, 0.15) !important; box-shadow: inset 0 0 15px rgba(211, 47, 47, 0.1); } 
 .cell.territory-preview { background-color: rgba(211, 47, 47, 0.1); }
 .cell.corroded { background: var(--corrode-color) !important; z-index: 1; box-shadow: inset 0 0 10px #000; border-radius: 4px; }
@@ -268,6 +296,7 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 /* --- [UI Elements] --- */
 .top-bar { display: flex; gap: 15px; align-items: center; justify-content: center; width: 100%; margin-bottom: 10px; flex-wrap: wrap; position: relative; z-index: 50; }
 .timer-pill { 
+    /* [Revert to Phase 2] 明亮胶囊风格 */
     background: rgba(255,255,255,0.9); padding: 6px 14px; border-radius: 20px; font-family: 'Monaco', monospace; 
     font-weight: bold; border: 2px solid transparent; transition: all 0.3s; 
     box-shadow: 0 4px 10px rgba(0,0,0,0.05); color: #555; display: flex; align-items: center; 
@@ -281,9 +310,11 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 .bomb-attached-icon svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 4px rgba(255,0,0,0.3)); }
 .bomb-status-normal { animation: bombIdle 1.5s infinite ease-in-out; }
 .bomb-status-critical { animation: bombExplode 0.3s infinite alternate; }
+
 .status-pill { display: flex; align-items: center; gap: 5px; padding: 6px 12px; background: rgba(255,255,255,0.9); border-radius: 20px; font-weight: bold; }
 .status-pill .icon-wrapper { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
 .status-pill .icon-wrapper svg { width: 100%; height: 100%; }
+
 .counter-badge { 
     padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; color: white; 
     display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 100; align-items: center; gap: 6px;
@@ -294,6 +325,8 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 .counter-badge.zone { background: var(--zone-glow); left: 50%; transform: translateX(-50%); }
 .inline-icon { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; vertical-align: text-bottom; }
 .inline-icon svg { width: 100%; height: 100%; fill: currentColor; stroke: currentColor; }
+
+/* 技能卷轴 - [Revert to Phase 2] 明亮风格 */
 .skill-scroll {
     --scroll-count: 0;
     width: 190px;
@@ -319,6 +352,7 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     transform-origin: 50% 0%;
 }
 .skill-scroll.scroll-shake { animation: scrollSway 0.45s ease-in-out; }
+
 .scroll-cap {
     height: 18px;
     background: linear-gradient(180deg, rgba(205,170,120,0.95), rgba(140,98,48,0.95)), repeating-linear-gradient(45deg, rgba(255,255,255,0.18) 0px, rgba(255,255,255,0.18) 2px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 8px);
@@ -380,8 +414,10 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 }
 
 .score-board { display: none; background: #2d3436; color: white; padding: 5px 15px; border-radius: 12px; font-family: monospace; font-size: 1rem; position: relative; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.2); letter-spacing: 1px; }
+
 .bottom-controls { margin-top: 15px; display: flex; gap: 12px; width: 95%; max-width: 500px; justify-content: center; }
 .bottom-controls .btn { padding: 12px 0; font-size: 1rem; width: 30%; border-radius: 20px; }
+
 .skill-btn { width: 35%; background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: white; border: 2px solid #ffd700; border-radius: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(108, 92, 231, 0.4); transition: transform 0.1s; position: relative; overflow: hidden; }
 .skill-btn:active { transform: scale(0.95); }
 .skill-btn:disabled { filter: grayscale(1); opacity: 0.6; box-shadow: none; }
@@ -462,7 +498,12 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .turn-card .icon svg { width: 100%; height: 100%; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15)); }
 
 @keyframes fadeZoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-@keyframes drop { from{transform:scale(1.5);opacity:0;} to{transform:scale(1);opacity:1;} }
+/* [Keep Item 4] 保持物理落子动画：从高空(大阴影)到落地(实阴影) */
+@keyframes drop { 
+    0% { transform: scale(1.6) translateY(-30px); opacity: 0; box-shadow: 0 30px 30px rgba(0,0,0,0.1); } 
+    60% { transform: scale(0.95) translateY(2px); opacity: 1; }
+    100% { transform: scale(1) translateY(0); } 
+}
 @keyframes flashWhite { 0%{opacity:1;} 100%{opacity:0;} }
 @keyframes shake { 0%{transform:translateX(0);} 25%{transform:translateX(-2px);} 75%{transform:translateX(2px);} }
 @keyframes bombPulse { from { box-shadow: 0 0 5px rgba(211, 47, 47, 0.5); transform: scale(1); } to { box-shadow: 0 0 15px rgba(211, 47, 47, 0.8); transform: scale(1.05); } }
