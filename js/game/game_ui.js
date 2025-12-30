@@ -31,7 +31,9 @@ const screens = {
     draft: document.getElementById('skillSelectScreen'), 
     game: document.getElementById('gameScreen'), 
     settings: document.getElementById('settingsModal'),
-    skin: document.getElementById('skinModal')
+    skin: document.getElementById('skinModal'),
+    pieceSelector: document.getElementById('pieceSelectorModal'),
+    boardSelector: document.getElementById('boardSelectorModal')
 };
 
 function showScreen(n) { 
@@ -71,7 +73,10 @@ function openSkinMenu() {
     document.getElementById('skinModal').style.display = 'flex';
     updateSkinUI();
     updateWinEffectUI();
-    updateWinCelebrationUI(); 
+    updateWinCelebrationUI();
+    // [Alpha 0.7.9.0] 初始化入口按钮预览
+    updatePieceEntryPreview();
+    updateBoardEntryPreview();
 }
 function closeSkinMenu() { document.getElementById('skinModal').style.display = 'none'; }
 
@@ -101,9 +106,10 @@ function changeWinCelebration(type) {
 }
 
 function updateSkinUI() {
-    document.querySelectorAll('.skin-option').forEach(el => el.classList.remove('active'));
-    if (currentSkin === 'classic') document.getElementById('skinClassic').classList.add('active');
-    else document.getElementById('skinNature').classList.add('active');
+    // [Alpha 0.7.9.0] 旧的 skin-option 已被新的入口按钮系统替代
+    // 更新入口按钮预览
+    updatePieceEntryPreview();
+    updateBoardEntryPreview();
 }
 
 function updateWinEffectUI() {
@@ -519,6 +525,98 @@ function updateSkillScroll() {
 
 function formatTime(s) { if(s<0) s=0; const m=Math.floor(s/60).toString().padStart(2,'0'); const sec=(s%60).toString().padStart(2,'0'); return `${m}:${sec}`; }
 function showToast(m){ const t=document.getElementById('toast'); t.innerText=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0,3000); }
+
+// ================= [Alpha 0.7.9.0] 棋子/棋盘选择器系统 =================
+
+function openPieceSelector() {
+    document.getElementById('skinModal').style.display = 'none';
+    document.getElementById('pieceSelectorModal').style.display = 'flex';
+    updatePieceSelectorUI();
+}
+
+function closePieceSelector() {
+    document.getElementById('pieceSelectorModal').style.display = 'none';
+    document.getElementById('skinModal').style.display = 'flex';
+}
+
+function selectPieceSkin(skin) {
+    SoundEngine.playPlace();
+    GameState.currentSkin = skin;
+    currentSkin = GameState.currentSkin;
+    updatePieceSelectorUI();
+    updatePieceEntryPreview();
+    // 同步更新选边界面的棋子图标
+    if (screens.turn.classList.contains('active')) {
+        document.querySelector('.turn-card.maple .icon').innerHTML = getIcon(MAPLE);
+        document.querySelector('.turn-card.sun .icon').innerHTML = getIcon(SUN);
+    }
+}
+
+function updatePieceSelectorUI() {
+    document.querySelectorAll('#pieceSelectorModal .skin-grid-item').forEach(el => el.classList.remove('active'));
+    if (currentSkin === 'classic') {
+        const el = document.getElementById('pieceGridClassic');
+        if (el) el.classList.add('active');
+    } else if (currentSkin === 'nature') {
+        const el = document.getElementById('pieceGridNature');
+        if (el) el.classList.add('active');
+    }
+}
+
+function updatePieceEntryPreview() {
+    const preview = document.getElementById('pieceEntryPreview');
+    if (!preview) return;
+    
+    if (currentSkin === 'classic') {
+        preview.innerHTML = `
+            <div class="piece-half piece-black-classic" style="width:32px;height:32px;"></div>
+            <div class="piece-half piece-white-classic" style="width:32px;height:32px;"></div>
+        `;
+    } else if (currentSkin === 'nature') {
+        preview.innerHTML = `
+            <div class="piece-half piece-maple" style="width:32px;height:32px;"></div>
+            <div class="piece-half piece-sun" style="width:32px;height:32px;"></div>
+        `;
+    }
+}
+
+function openBoardSelector() {
+    document.getElementById('skinModal').style.display = 'none';
+    document.getElementById('boardSelectorModal').style.display = 'flex';
+    updateBoardSelectorUI();
+}
+
+function closeBoardSelector() {
+    document.getElementById('boardSelectorModal').style.display = 'none';
+    document.getElementById('skinModal').style.display = 'flex';
+}
+
+function selectBoardSkin(skin) {
+    SoundEngine.playPlace();
+    GameState.currentBoardSkin = skin;
+    currentBoardSkin = GameState.currentBoardSkin;
+    updateBoardSelectorUI();
+    updateBoardEntryPreview();
+}
+
+function updateBoardSelectorUI() {
+    document.querySelectorAll('#boardSelectorModal .skin-grid-item').forEach(el => el.classList.remove('active'));
+    if (currentBoardSkin === 'classic_wood') {
+        const el = document.getElementById('boardGridClassic');
+        if (el) el.classList.add('active');
+    }
+}
+
+function updateBoardEntryPreview() {
+    const preview = document.getElementById('boardEntryPreview');
+    if (!preview) return;
+    
+    // 清空并重建迷你棋盘预览
+    preview.className = 'skin-entry-preview board-entry-preview';
+    if (currentBoardSkin === 'classic_wood') {
+        preview.innerHTML = '<div class="board-mini-preview classic-wood-preview" style="width:100%;height:100%;border-radius:8px;"></div>';
+    }
+}
 
 if (window.GameHost && typeof window.GameHost.register === 'function') {
     window.GameHost.register('ui', { init: function() {} });

@@ -64,9 +64,14 @@ const GameState = {
     selectedCell: null,
     draftTurn: SUN,
     
+    // === [Alpha 0.7.9.0] 落子锁定系统 ===
+    lastMove: null,  // { r, c, player } 记录最后一颗落子的位置和玩家
+    moveCount: 0,    // 落子计数，用于判断是否显示锁定标记（从第2颗开始显示）
+    
     // === 用戶偏好設置 ===
     userMusicPref: 'origin',
     currentSkin: 'classic',
+    currentBoardSkin: 'classic_wood',  // [Alpha 0.7.9.0] 棋盘皮肤
     winEffect: 'default',
     winCelebration: 'default',
     currentSeason: 'spring',
@@ -99,6 +104,10 @@ const GameState = {
         this.bombActive = false;
         this.bombOwner = null;
         this.bombTime = 150;
+        
+        // [Alpha 0.7.9.0] 重置落子锁定状态
+        this.lastMove = null;
+        this.moveCount = 0;
         
         // 清理計時器
         if (this.gameTicker) clearInterval(this.gameTicker);
@@ -134,7 +143,10 @@ const GameState = {
             bombActive: this.bombActive,
             bombOwner: this.bombOwner,
             bombTime: this.bombTime,
-            selectedCell: this.selectedCell ? { r: this.selectedCell.r, c: this.selectedCell.c } : null
+            selectedCell: this.selectedCell ? { r: this.selectedCell.r, c: this.selectedCell.c } : null,
+            // [Alpha 0.7.9.0] 落子锁定状态
+            lastMove: this.lastMove ? { r: this.lastMove.r, c: this.lastMove.c, player: this.lastMove.player } : null,
+            moveCount: this.moveCount
         };
     },
     
@@ -155,6 +167,9 @@ const GameState = {
         this.bombOwner = snapshot.bombOwner || null;
         this.bombTime = snapshot.bombTime != null ? snapshot.bombTime : 150;
         this.selectedCell = snapshot.selectedCell ? { r: snapshot.selectedCell.r, c: snapshot.selectedCell.c } : null;
+        // [Alpha 0.7.9.0] 恢复落子锁定状态
+        this.lastMove = snapshot.lastMove ? { r: snapshot.lastMove.r, c: snapshot.lastMove.c, player: snapshot.lastMove.player } : null;
+        this.moveCount = snapshot.moveCount != null ? snapshot.moveCount : 0;
     }
 };
 
@@ -191,6 +206,7 @@ let selectedCell = GameState.selectedCell;
 let bombTarget = GameState.bombTarget;
 let userMusicPref = GameState.userMusicPref;
 let currentSkin = GameState.currentSkin;
+let currentBoardSkin = GameState.currentBoardSkin;  // [Alpha 0.7.9.0] 棋盘皮肤
 let winEffect = GameState.winEffect;
 let winCelebration = GameState.winCelebration;
 let currentSeason = GameState.currentSeason;
@@ -202,3 +218,7 @@ let statusScrollAutoOpened = GameState.statusScrollAutoOpened;
 let statusScrollLastCount = GameState.statusScrollLastCount;
 let statusScrollLastKey = GameState.statusScrollLastKey;
 let statusScrollRenderTimer = GameState.statusScrollRenderTimer;
+
+// [Alpha 0.7.9.0] 落子锁定系统
+let lastMove = GameState.lastMove;
+let moveCount = GameState.moveCount;

@@ -3,7 +3,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "Alpha0.7.9.0", 
+        subTitle: "Alpha0.7.9.1", 
         btnPvE: "人機對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -44,6 +44,15 @@ const I18N = {
 
         btnClose: "關閉",
         errNoSkinInGame: "對局進行中無法更換皮膚！",
+        skinTitle: "外觀定制",
+
+        // [Alpha 0.7.9.0] 皮肤/棋盘选择器
+        lblPieceSkin: "棋子樣式",
+        lblBoardSkin: "棋盤樣式",
+        skinBlackWhite: "黑白",
+        skinNature: "自然",
+        boardClassicWood: "經典木質",
+        skinComingSoon: "敬請期待",
 
         // [New] 特效菜单翻译
         lblWinEffect: "連珠特效",
@@ -77,7 +86,7 @@ const I18N = {
             moveDest: "選擇新位置", moveDone: "移動完成，請落子", 
             zonePick: "選擇領地中心", zoneDone: "領地生成，請落子",
             bombStart: "炸彈已啟動", 
-            errInvalid: "無效操作", errZone: "禁區無法落子", undoPvP: "競技模式無悔棋！",
+            errInvalid: "無效操作", errZone: "禁區無法落子", errAITurn: "AI 思考中，請稍候", undoPvP: "競技模式無悔棋！",
             godPick1: "上帝之手：選擇第1顆棋子", godDest1: "選擇第1次落點", godPick2: "上帝之手：選擇第2顆棋子", godDest2: "選擇第2次落點",
             chaosTrigger: "混亂觸發！落點偏移", 
             chaosLucky: "混亂觸發，但落點未偏移",
@@ -97,7 +106,7 @@ const I18N = {
     'zh': {
         langName: "简", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "Alpha0.7.9.0", 
+        subTitle: "Alpha0.7.9.1", 
         btnPvE: "人机对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -138,6 +147,15 @@ const I18N = {
 
         btnClose: "关闭",
         errNoSkinInGame: "对局进行中无法更换皮肤！",
+        skinTitle: "外观定制",
+
+        // [Alpha 0.7.9.0] 皮肤/棋盘选择器
+        lblPieceSkin: "棋子样式",
+        lblBoardSkin: "棋盘样式",
+        skinBlackWhite: "黑白",
+        skinNature: "自然",
+        boardClassicWood: "经典木质",
+        skinComingSoon: "敬请期待",
 
         // [New] 特效菜单翻译
         lblWinEffect: "连珠特效",
@@ -171,7 +189,7 @@ const I18N = {
             moveDest: "选择新位置", moveDone: "移动完成，请落子", 
             zonePick: "选择领地中心", zoneDone: "领地生成，请落子",
             bombStart: "炸弹爆炸！对方-2.5分钟", 
-            errInvalid: "无效操作", errZone: "禁区无法落子", undoPvP: "竞技模式无悔棋！",
+            errInvalid: "无效操作", errZone: "禁区无法落子", errAITurn: "AI 思考中，请稍候", undoPvP: "竞技模式无悔棋！",
             godPick1: "上帝之手：选第1子", godDest1: "选第1落点", godPick2: "上帝之手：选第2子", godDest2: "选第2落点",
             chaosTrigger: "混乱触发！落点偏移", 
             chaosLucky: "混乱触发，但落点未偏移",
@@ -191,7 +209,7 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Skill Gomoku <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "Alpha0.7.9.0", 
+        subTitle: "Alpha0.7.9.1", 
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -232,6 +250,15 @@ const I18N = {
 
         btnClose: "Close",
         errNoSkinInGame: "Cannot change skin during game!",
+        skinTitle: "Appearance",
+
+        // [Alpha 0.7.9.0] Piece/Board Selector
+        lblPieceSkin: "Piece Style",
+        lblBoardSkin: "Board Style",
+        skinBlackWhite: "Classic",
+        skinNature: "Nature",
+        boardClassicWood: "Classic Wood",
+        skinComingSoon: "Coming Soon",
 
         // [New] Effect Menu Translations
         lblWinEffect: "Line Effect",
@@ -265,7 +292,7 @@ const I18N = {
             moveDest: "Pick dest", moveDone: "Done. Move now!", 
             zonePick: "Pick center", zoneDone: "Done. Move now!",
             bombStart: "Bomb! -2.5 Mins", 
-            errInvalid: "Invalid", errZone: "Restricted Zone", undoPvP: "No undo in PvP!",
+            errInvalid: "Invalid", errZone: "Restricted Zone", errAITurn: "AI is thinking...", undoPvP: "No undo in PvP!",
             godPick1: "God: Pick 1st", godDest1: "Dest 1", godPick2: "God: Pick 2nd", godDest2: "Dest 2",
             chaosTrigger: "Chaos! Missed!", 
             chaosLucky: "Chaos! No shift!",

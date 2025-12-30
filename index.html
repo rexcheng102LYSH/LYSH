@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>技能五子棋 - Alpha0.7.9.0</title>
+    <title>技能五子棋 - Alpha0.7.9.1</title>
     <script>
         // [恢复Alpha0.7.8.9] 全局致命错误捕获：弹窗提示 + 显示错误来源
         (function() {
@@ -64,7 +64,7 @@
             });
         })();
     </script>
-    <link rel="stylesheet" href="style.css?v=Alpha0.7.9.0">
+    <link rel="stylesheet" href="style.css?v=Alpha0.7.9.1">
 </head>
 <body onclick="SoundEngine.init()">
 
@@ -87,8 +87,8 @@
         <div class="glass-panel menu-panel">
             <h1 data-i18n="gameTitle">技能五子棋 <span style="font-size:0.5em">Alpha</span></h1>
             <h2 style="margin-top:-5px; font-size:1.2rem; color:#666;">
-                <span data-i18n="subTitle">Alpha0.7.9.0</span> 
-                <span class="version-tag">Alpha0.7.9.0</span>
+                <span data-i18n="subTitle">Alpha0.7.9.1</span> 
+                <span class="version-tag">Alpha0.7.9.1</span>
             </h2>
             
             <button class="btn primary" onclick="showDifficultyScreen()" data-i18n="btnPvE">人机对战 (PvE)</button>
@@ -251,35 +251,32 @@
 
     <div id="skinModal" class="modal">
         <div class="modal-content">
-            <h2 style="margin-top:0; margin-bottom:20px;">外观定制</h2>
+            <h2 style="margin-top:0; margin-bottom:20px;" data-i18n="skinTitle">外观定制</h2>
             
-            <div class="skin-section-title">棋子样式</div>
-            <div class="skin-selector">
-                <div class="skin-option active" id="skinClassic" onclick="changeSkin('classic')">
-                    <div class="skin-preview">
-                        <div class="classic-demo"></div>
+            <!-- [Alpha 0.7.9.0] 棋子样式 + 棋盘样式 入口按钮 -->
+            <div class="skin-entry-row">
+                <!-- 棋子样式入口 -->
+                <div class="skin-entry-group">
+                    <div class="skin-section-title" data-i18n="lblPieceSkin">棋子样式</div>
+                    <div class="skin-entry-btn" id="pieceEntryBtn" onclick="openPieceSelector()">
+                        <div class="skin-entry-preview" id="pieceEntryPreview"></div>
                     </div>
-                    <span>经典</span>
                 </div>
-                <div class="skin-option" id="skinNature" onclick="changeSkin('nature')">
-                    <div class="skin-preview">
-                        <div class="nature-demo sun" style="
-                            width: 100%; height: 100%; 
-                            background-color: transparent;
-                            background-image: url('images/sun.png');
-                            background-size: contain; background-repeat: no-repeat; background-position: center;
-                        "></div>
-                    </div> 
-                    <span>自然</span>
+                <!-- 棋盘样式入口 -->
+                <div class="skin-entry-group">
+                    <div class="skin-section-title" data-i18n="lblBoardSkin">棋盘样式</div>
+                    <div class="skin-entry-btn" id="boardEntryBtn" onclick="openBoardSelector()">
+                        <div class="skin-entry-preview board-entry-preview" id="boardEntryPreview"></div>
+                    </div>
                 </div>
             </div>
 
             <div class="skin-section-title" style="margin-top: 20px;" data-i18n="lblWinEffect">连珠特效</div>
             <div class="capsule-selector win-effect-selector" style="flex-wrap: wrap; justify-content: center;">
                 <button class="capsule-opt effect-opt active" id="winDefault" onclick="changeWinEffect('default')" data-i18n="effDefault">默认</button>
-                <button class="capsule-opt effect-opt" id="winLightning" onclick="changeWinEffect('lightning')" data-i18n="effLightning">⚡ 闪电</button>
-                <button class="capsule-opt effect-opt" id="winGold" onclick="changeWinEffect('gold')" data-i18n="effGold">👑 金黄</button>
-                <button class="capsule-opt effect-opt" id="winFuture" onclick="changeWinEffect('future')" data-i18n="effFuture">🚀 未来</button>
+                <button class="capsule-opt effect-opt" id="winLightning" onclick="changeWinEffect('lightning')" data-i18n="effLightning">闪电</button>
+                <button class="capsule-opt effect-opt" id="winGold" onclick="changeWinEffect('gold')" data-i18n="effGold">金黄</button>
+                <button class="capsule-opt effect-opt" id="winFuture" onclick="changeWinEffect('future')" data-i18n="effFuture">未来</button>
             </div>
 
             <div class="skin-section-title" style="margin-top: 20px;" data-i18n="lblWinCelebration">胜利特效</div>
@@ -296,40 +293,110 @@
         </div>
     </div>
 
+    <!-- [Alpha 0.7.9.0] 棋子选择器模态框 -->
+    <div id="pieceSelectorModal" class="modal">
+        <div class="modal-content selector-modal-content">
+            <h2 style="margin-top:0; margin-bottom:20px;" data-i18n="lblPieceSkin">棋子样式</h2>
+            <div class="skin-grid">
+                <div class="skin-grid-item" id="pieceGridClassic" onclick="selectPieceSkin('classic')">
+                    <div class="piece-dual-preview">
+                        <div class="piece-half piece-black-classic"></div>
+                        <div class="piece-divider"></div>
+                        <div class="piece-half piece-white-classic"></div>
+                    </div>
+                    <div class="skin-grid-label" data-i18n="skinBlackWhite">黑白</div>
+                </div>
+                <div class="skin-grid-item" id="pieceGridNature" onclick="selectPieceSkin('nature')">
+                    <div class="piece-dual-preview">
+                        <div class="piece-half piece-maple"></div>
+                        <div class="piece-divider"></div>
+                        <div class="piece-half piece-sun"></div>
+                    </div>
+                    <div class="skin-grid-label" data-i18n="skinNature">自然</div>
+                </div>
+                <div class="skin-grid-item disabled">
+                    <div class="piece-dual-preview coming-soon">
+                        <span>?</span>
+                    </div>
+                    <div class="skin-grid-label" data-i18n="skinComingSoon">敬请期待</div>
+                </div>
+                <div class="skin-grid-item disabled">
+                    <div class="piece-dual-preview coming-soon">
+                        <span>?</span>
+                    </div>
+                    <div class="skin-grid-label" data-i18n="skinComingSoon">敬请期待</div>
+                </div>
+            </div>
+            <button class="btn secondary" onclick="closePieceSelector()" style="margin-top:20px;" data-i18n="btnBack">返回</button>
+        </div>
+    </div>
+
+    <!-- [Alpha 0.7.9.0] 棋盘选择器模态框 -->
+    <div id="boardSelectorModal" class="modal">
+        <div class="modal-content selector-modal-content">
+            <h2 style="margin-top:0; margin-bottom:20px;" data-i18n="lblBoardSkin">棋盘样式</h2>
+            <div class="skin-grid">
+                <div class="skin-grid-item" id="boardGridClassic" onclick="selectBoardSkin('classic_wood')">
+                    <div class="board-mini-preview classic-wood-preview"></div>
+                    <div class="skin-grid-label" data-i18n="boardClassicWood">经典木质</div>
+                </div>
+                <div class="skin-grid-item disabled">
+                    <div class="board-mini-preview coming-soon">
+                        <span>?</span>
+                    </div>
+                    <div class="skin-grid-label" data-i18n="skinComingSoon">敬请期待</div>
+                </div>
+                <div class="skin-grid-item disabled">
+                    <div class="board-mini-preview coming-soon">
+                        <span>?</span>
+                    </div>
+                    <div class="skin-grid-label" data-i18n="skinComingSoon">敬请期待</div>
+                </div>
+                <div class="skin-grid-item disabled">
+                    <div class="board-mini-preview coming-soon">
+                        <span>?</span>
+                    </div>
+                    <div class="skin-grid-label" data-i18n="skinComingSoon">敬请期待</div>
+                </div>
+            </div>
+            <button class="btn secondary" onclick="closeBoardSelector()" style="margin-top:20px;" data-i18n="btnBack">返回</button>
+        </div>
+    </div>
+
     <div id="toast"></div>
     <div id="explosionOverlay"></div>
 
-    <script src="assets.js?v=Alpha0.7.8.9"></script>
-    <script src="js/audio/audio_host.js?v=Alpha0.7.8.9"></script>
-    <script src="js/audio/audio_sfx.js?v=Alpha0.7.8.9"></script>
-    <script src="js/audio/audio_assets.js?v=Alpha0.7.8.9"></script>
-    <script src="js/audio/audio_hub.js?v=Alpha0.7.8.9"></script>
-    <script src="lang.js?v=Alpha0.7.8.9"></script> 
-    <script src="background.js?v=Alpha0.7.8.9"></script>
-    <script src="js/fx/fx_host.js?v=Alpha0.7.8.9"></script>
-    <script src="js/fx/lines.js?v=Alpha0.7.8.9"></script>
-    <script src="js/fx/winning/fireworks.js?v=Alpha0.7.8.9"></script>
-    <script src="js/fx/winning/golden.js?v=Alpha0.7.8.9"></script>
-    <script src="js/fx/winning/dj.js?v=Alpha0.7.8.9"></script>
-    <script src="gamestate.js?v=Alpha0.7.8.9"></script>
-    <script src="js/skills/registry.js?v=Alpha0.7.8.9"></script>
-    <script src="js/skills/double.js?v=Alpha0.7.8.9"></script>
-    <script src="js/skills/voodoo.js?v=Alpha0.7.8.9"></script>
-    <script src="js/skills/move_self.js?v=Alpha0.7.8.9"></script>
-    <script src="js/skills/move_enemy.js?v=Alpha0.7.8.9"></script>
-    <script src="js/skills/zone.js?v=Alpha0.7.8.9"></script>
-    <script src="js/skills/bomb.js?v=Alpha0.7.8.9"></script>
-    <script src="js/skills/god_hand.js?v=Alpha0.7.8.9"></script>
-    <script src="js/skills/chaos.js?v=Alpha0.7.8.9"></script>
-    <script src="js/skills/short_battle.js?v=Alpha0.7.8.9"></script>
-    <script src="js/skills/swap.js?v=Alpha0.7.8.9"></script>
-    <script src="js/game/game_host.js?v=Alpha0.7.8.9"></script>
-    <script src="js/game/game_core.js?v=Alpha0.7.8.9"></script>
-    <script src="js/game/game_ui.js?v=Alpha0.7.8.9"></script>
-    <script src="js/game/game_render.js?v=Alpha0.7.8.9"></script>
-    <script src="js/game/game_skills.js?v=Alpha0.7.8.9"></script>
-    <script src="js/game/game_ai.js?v=Alpha0.7.8.9"></script>
-    <script src="ai.js?v=Alpha0.7.8.9"></script>
+    <script src="assets.js?v=Alpha0.7.9.1"></script>
+    <script src="js/audio/audio_host.js?v=Alpha0.7.9.1"></script>
+    <script src="js/audio/audio_sfx.js?v=Alpha0.7.9.1"></script>
+    <script src="js/audio/audio_assets.js?v=Alpha0.7.9.1"></script>
+    <script src="js/audio/audio_hub.js?v=Alpha0.7.9.1"></script>
+    <script src="lang.js?v=Alpha0.7.9.1"></script> 
+    <script src="background.js?v=Alpha0.7.9.1"></script>
+    <script src="js/fx/fx_host.js?v=Alpha0.7.9.1"></script>
+    <script src="js/fx/lines.js?v=Alpha0.7.9.1"></script>
+    <script src="js/fx/winning/fireworks.js?v=Alpha0.7.9.1"></script>
+    <script src="js/fx/winning/golden.js?v=Alpha0.7.9.1"></script>
+    <script src="js/fx/winning/dj.js?v=Alpha0.7.9.1"></script>
+    <script src="gamestate.js?v=Alpha0.7.9.1"></script>
+    <script src="js/skills/registry.js?v=Alpha0.7.9.1"></script>
+    <script src="js/skills/double.js?v=Alpha0.7.9.1"></script>
+    <script src="js/skills/voodoo.js?v=Alpha0.7.9.1"></script>
+    <script src="js/skills/move_self.js?v=Alpha0.7.9.1"></script>
+    <script src="js/skills/move_enemy.js?v=Alpha0.7.9.1"></script>
+    <script src="js/skills/zone.js?v=Alpha0.7.9.1"></script>
+    <script src="js/skills/bomb.js?v=Alpha0.7.9.1"></script>
+    <script src="js/skills/god_hand.js?v=Alpha0.7.9.1"></script>
+    <script src="js/skills/chaos.js?v=Alpha0.7.9.1"></script>
+    <script src="js/skills/short_battle.js?v=Alpha0.7.9.1"></script>
+    <script src="js/skills/swap.js?v=Alpha0.7.9.1"></script>
+    <script src="js/game/game_host.js?v=Alpha0.7.9.1"></script>
+    <script src="js/game/game_core.js?v=Alpha0.7.9.1"></script>
+    <script src="js/game/game_ui.js?v=Alpha0.7.9.1"></script>
+    <script src="js/game/game_render.js?v=Alpha0.7.9.1"></script>
+    <script src="js/game/game_skills.js?v=Alpha0.7.9.1"></script>
+    <script src="js/game/game_ai.js?v=Alpha0.7.9.1"></script>
+    <script src="ai.js?v=Alpha0.7.9.1"></script>
 
 </body>
 </html>

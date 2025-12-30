@@ -360,6 +360,10 @@ function restoreState(state) {
     bombTime = GameState.bombTime;
     selectedCell = GameState.selectedCell;
     
+    // [Alpha 0.7.9.0] 同步落子锁定状态
+    lastMove = GameState.lastMove;
+    moveCount = GameState.moveCount;
+    
     SoundEngine.setCritical(false);
     if (typeof VisualFX !== 'undefined') VisualFX.clear();
     
@@ -381,12 +385,27 @@ function restoreState(state) {
         } 
     } 
     updateTerritoriesUI(); 
-    updateDynamicUI(); 
+    updateDynamicUI();
+    
+    // [Alpha 0.7.9.0] 悔棋后更新落子锁定标记
+    if (typeof updateLastMoveMarker === 'function') {
+        updateLastMoveMarker();
+    }
 }
 
 
 function handleCellClick(r, c, bypassConfirm = false) {
     if (!gameActive) return;
+    
+    // [Alpha 0.7.9.0] 修复 PvE 模式下玩家可以在 AI 回合落子的 bug
+    // 注意：bypassConfirm = true 表示是 AI 调用，不需要检查
+    if (!bypassConfirm && GameState.gameMode === 'pve' && GameState.currentPlayer !== GameState.humanSide) {
+        // AI 回合，玩家无法操作
+        SoundEngine.playError();
+        showToast(t('errAITurn', 'toast'));
+        return;
+    }
+    
     if (activeEffect) { handleSkillInteraction(r, c); return; }
     if (board[r][c] !== EMPTY) { SoundEngine.playError(); return; }
     if (isZoneRestricted(r, c, currentPlayer)) { showToast(t('errZone', 'toast')); SoundEngine.playError(); return; }
@@ -456,6 +475,11 @@ function switchTurn() {
     // [Critical Fix] 切換當前玩家 - 必須同時更新 GameState 和舊變量
     GameState.currentPlayer = GameState.currentPlayer === MAPLE ? SUN : MAPLE;
     currentPlayer = GameState.currentPlayer; // 同步到舊變量
+    
+    // [Alpha 0.7.9.0] 更新落子锁定标记
+    if (typeof updateLastMoveMarker === 'function') {
+        updateLastMoveMarker();
+    }
     
     // 音樂切換
     if (GameState.bombTarget !== null && GameState.currentPlayer === GameState.bombTarget) { 

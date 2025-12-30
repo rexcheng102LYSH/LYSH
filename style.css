@@ -5,30 +5,28 @@
     --glass-shadow: 0 12px 40px rgba(31, 38, 135, 0.15);
     --glass-blur: blur(16px);
     
-    /* --- [Art Revolution] 最终章：乌木·金银双绝 --- */
-    
-    /* 1. 棋盘基底：深沉乌木 (Dark Ebony) */
-    --wood-base: #261813;       /* 极深的褐黑色 */
-    --wood-highlight: #3e2b24;  /* 微弱的暖色高光 */
-    --wood-shadow: #1a0f0c;     /* 阴影 */
-    --wood-grain: rgba(255, 255, 255, 0.03); /* 极淡的白色噪点模拟木纹 */
-    --wood-side: #1a0f0c;       /* 侧面 */
+    /* --- [Art Revolution] 榧木与刻线系统 --- */
+    --wood-base: #e6b36e;
+    --wood-highlight: #f7d59c;
+    --wood-shadow: #c49250;
+    --wood-grain: rgba(90, 60, 30, 0.07);
+    --wood-side: #b58040;
     --board-border-color: #3e2b20; 
     
-    /* 2. 线条系统：因为底色黑，线条改为“银丝” */
-    --line-ink: rgba(255, 255, 255, 0.15); /* 淡淡的银线 */
-    --line-highlight: rgba(0, 0, 0, 0.3);  /* 刻痕阴影 */
+    /* 线条系统 */
+    --line-ink: rgba(30, 20, 15, 0.85); 
+    --line-highlight: rgba(255, 255, 255, 0.35);
     
     /* --- 尺寸系統 --- */
     --board-size: 500px;
-    --board-padding: 12px; 
+    --board-padding: 18px; 
     --board-outer: calc(var(--board-size) + var(--board-padding) * 2);
     --scroll-width: 190px;
     --scroll-gap: 18px;
     --board-center-offset: -6px;
 
     /* 其他功能色 */
-    --board-wood: #261813; 
+    --board-wood: #e8c384; 
     --corrode-color: #2d3436;
     --maple-color: #d32f2f;
     --sun-color: #fbc02d;
@@ -163,31 +161,37 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     transition: transform 0.3s ease;
 }
 
-/* --- [Ultimate Board Container] --- */
+/* --- [Ultimate Board] --- */
 .board { 
     position: relative; 
     background-color: var(--wood-base);
     background-image: 
-        /* 聚光灯效果：让中间亮一点，否则黑棋看不见 */
-        radial-gradient(ellipse at 50% 40%, var(--wood-highlight) 0%, transparent 80%),
-        /* 细腻木纹 */
-        repeating-linear-gradient(45deg, var(--wood-grain) 0px, var(--wood-grain) 1px, transparent 1px, transparent 3px),
-        linear-gradient(to bottom right, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.5) 100%);
+        radial-gradient(ellipse at 30% 20%, var(--wood-highlight) 0%, transparent 70%),
+        repeating-linear-gradient(45deg, var(--wood-grain) 0px, var(--wood-grain) 1px, transparent 1px, transparent 4px),
+        linear-gradient(to bottom right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.05) 100%);
 
-    padding: 12px; 
+    /* [CRITICAL] 严格保持 10px Padding */
+    padding: 10px; 
     
     display: grid; 
     grid-template-columns: repeat(15, 1fr); 
     grid-template-rows: repeat(15, 1fr); 
     gap: 0; 
-    border: none; 
+    border: 3px solid var(--board-border-color); 
     box-sizing: border-box; 
     border-radius: 4px; 
     
-    /* 物理阴影：深色厚度 */
     box-shadow: 
-        0 4px 0 #0f0806,              
-        0 20px 50px rgba(0,0,0,0.5);  
+        inset 1px 1px 0 rgba(255,255,255,0.4),
+        inset -1px -1px 0 rgba(0,0,0,0.1),
+        1px 1px 0 var(--wood-side),
+        2px 2px 0 var(--wood-side),
+        3px 3px 0 var(--wood-side),
+        4px 4px 0 var(--wood-side),
+        5px 5px 0 var(--wood-side),
+        6px 6px 0 var(--wood-side),
+        7px 7px 5px rgba(0,0,0,0.3),
+        15px 25px 40px rgba(0,0,0,0.25);
         
     touch-action: none; 
     width: var(--board-size); 
@@ -197,89 +201,23 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     z-index: 1; 
 }
 
-/* --- [LAYER 1] 外框：金包银 (Gold & Silver Frame) --- */
-/* 技术实现：
-   1. 背景色设为【银色】，作为内圈 (Inner Silver)。
-   2. 利用 box-shadow inset 设为【金色】，作为外圈 (Outer Gold)。
-   3. 因为 Mask 露出了 12px，我们将 box-shadow 设为 6px，正好各占一半。
-*/
+/* --- [CLEANUP] 移除所有花纹 (Borderless Effect) --- */
 .board::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 5;
-    pointer-events: none;
-    border-radius: 4px;
-    
-    /* [Part 1: 内银 (Inner Silver)] */
-    /* 使用亮银色渐变作为基底 */
-    background: linear-gradient(135deg, #f5f6f7 0%, #d5d7d9 50%, #b0b3b8 100%);
-    
-    /* [Part 2: 外金 (Outer Gold)] */
-    /* 使用 inset 阴影覆盖外围 6px */
-    /* 金色色值：#C5A059 (香槟金) -> #8A6E3C (暗金) */
-    box-shadow: 
-        inset 0 0 0 6px #C5A059,  /* 实心金边 */
-        inset 0 0 10px 6px rgba(139, 110, 60, 0.6); /* 金色光泽感 */
-
-    /* 遮罩：只保留 12px 边框 */
-    -webkit-mask: 
-        linear-gradient(#fff 0 0) top    / 100% 12px no-repeat,
-        linear-gradient(#fff 0 0) bottom / 100% 12px no-repeat,
-        linear-gradient(#fff 0 0) left   / 12px 100% no-repeat,
-        linear-gradient(#fff 0 0) right  / 12px 100% no-repeat;
-        
-    mask: 
-        linear-gradient(#fff 0 0) top    / 100% 12px no-repeat,
-        linear-gradient(#fff 0 0) bottom / 100% 12px no-repeat,
-        linear-gradient(#fff 0 0) left   / 12px 100% no-repeat,
-        linear-gradient(#fff 0 0) right  / 12px 100% no-repeat;
-}
-
-/* --- [LAYER 2] 分界线 (The Divider Groove) --- */
-/* 这条线正好位于 6px 处，分割金银 */
-.board::after {
-    content: '';
-    position: absolute;
-    z-index: 6; 
-    
-    /* 定位：从边缘向内缩 6px，正好在金银交界处 */
-    top: 6px; left: 6px; right: 6px; bottom: 6px;
-    pointer-events: none;
-    
-    /* 1. 物理凹槽：深色细线 */
-    border: 1px solid rgba(0, 0, 0, 0.6); 
-    border-radius: 1px;
-    
-    /* 2. 立体高光：让银色部分看起来微微凸起 */
-    box-shadow: 
-        0 0 0 1px rgba(255, 255, 255, 0.4), /* 外侧(金侧)亮边 */
-        inset 0 0 2px rgba(0, 0, 0, 0.3);   /* 内侧(银侧)阴影 */
+    display: none; /* 彻底隐藏花纹层，回归纯净木纹 */
 }
 
 @media (max-width: 600px) { 
     .board { 
-        padding: 6px; 
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        padding: 4px; 
+        box-shadow: 
+            inset 1px 1px 0 rgba(255,255,255,0.3),
+            1px 1px 0 var(--wood-side),
+            2px 2px 0 var(--wood-side),
+            3px 3px 0 var(--wood-side),
+            5px 5px 15px rgba(0,0,0,0.25);
     } 
-    /* 移动端：外金3px，内银3px */
-    .board::before {
-        box-shadow: inset 0 0 0 3px #C5A059; /* 缩小金边宽度 */
-        -webkit-mask: 
-            linear-gradient(#fff 0 0) top    / 100% 6px no-repeat,
-            linear-gradient(#fff 0 0) bottom / 100% 6px no-repeat,
-            linear-gradient(#fff 0 0) left   / 6px 100% no-repeat,
-            linear-gradient(#fff 0 0) right  / 6px 100% no-repeat;
-        mask: 
-            linear-gradient(#fff 0 0) top    / 100% 6px no-repeat,
-            linear-gradient(#fff 0 0) bottom / 100% 6px no-repeat,
-            linear-gradient(#fff 0 0) left   / 6px 100% no-repeat,
-            linear-gradient(#fff 0 0) right  / 6px 100% no-repeat;
-    }
-    .board::after {
-        top: 3px; left: 3px; right: 3px; bottom: 3px;
-        border-width: 0.5px; 
-    }
+    /* 移动端保留简约 */
+    .board::before { display: none; }
 }
 
 /* --- [Cells & Grid Lines] --- */
@@ -294,14 +232,13 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 .cell::before { 
     content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 1px; 
     background: var(--line-ink); 
-    /* 移除阴影，因为在深色底上阴影看不清，反而让线变糊 */
-    /* box-shadow: 0 1px 0 var(--line-highlight); */
+    box-shadow: 0 1px 0 var(--line-highlight);
     z-index: 0; 
 }
 .cell::after { 
     content: ''; position: absolute; left: 50%; top: 0; height: 100%; width: 1px; 
     background: var(--line-ink); 
-    /* box-shadow: 1px 0 0 var(--line-highlight); */
+    box-shadow: 1px 0 0 var(--line-highlight);
     z-index: 0; 
 }
 
@@ -312,19 +249,27 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 
 /* --- [CRITICAL FIX] 星位层级修复 --- */
 .cell[data-star="true"] .dot { 
-    width: 20%; height: 20%; /* 稍微调小一点点，显精致 */
-    /* 金色星位点，在黑底上最显眼 */
-    background: radial-gradient(circle at 35% 35%, #D4AF37 0%, #8A6E3C 100%);
+    width: 22%; height: 22%; 
+    background: radial-gradient(circle at 35% 35%, #4e342e 0%, #271c19 100%);
     border-radius: 50%; 
     position: absolute; 
+    
+    /* [层级逻辑] Lines(0) < Star(1) < Pieces(20) */
     z-index: 1; 
-    box-shadow: 0 0 4px rgba(212, 175, 55, 0.4);
+    
+    box-shadow: 
+        0 1px 1px rgba(255, 255, 255, 0.3), 
+        inset 0 2px 5px rgba(0, 0, 0, 0.8), 
+        0 2px 4px rgba(0,0,0,0.2);
 }
 
 /* --- [Pieces & Drop Animation] --- */
 .piece { 
     width: 90%; height: 90%; 
+    
+    /* [CRITICAL FIX] 棋子层级提升至最高，确保覆盖星位 */
     z-index: 20; 
+    
     pointer-events: none; border-radius: 50%; 
     display: flex; justify-content: center; align-items: center; 
     animation: drop 0.3s cubic-bezier(0.19, 1, 0.22, 1); 
@@ -342,9 +287,7 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
         2px 8px 16px rgba(0,0,0,0.15); 
 }
 .piece.skin-classic.p1 { 
-    /* 黑棋：加强光泽，否则在黑底上看不仅 */
-    background: radial-gradient(circle at 35% 30%, #555 0%, #111 50%, #000 100%); 
-    border: 1px solid rgba(255,255,255,0.1); /* 微弱白边防混淆 */
+    background: radial-gradient(circle at 35% 30%, #666 0%, #1a1a1a 40%, #000 100%); 
 }
 .piece.skin-classic.p2 { 
     background: radial-gradient(circle at 35% 30%, #fff 0%, #f0f0f0 40%, #ddd 100%); 
@@ -360,6 +303,89 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 .cell.win-highlight { position: relative; z-index: 10; } 
 .cell.win-highlight::before { content: ''; position: absolute; top: 10%; left: 10%; width: 80%; height: 80%; border-radius: 50%; background: #00e676; opacity: 0.8; filter: blur(6px); z-index: -1; animation: flash 0.8s infinite alternate; }
 .cell.selected-move::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 2px solid var(--select-color); border-radius: 50%; box-sizing: border-box; z-index: 5; animation: breathe 1.5s infinite; box-shadow: 0 0 10px var(--select-color); }
+
+/* [Alpha 0.7.9.0] 落子锁定标记 - 系统化 HUD 瞄准风格 */
+.last-move-marker {
+    position: absolute;
+    top: -10%;
+    left: -10%;
+    width: 120%;
+    height: 120%;
+    pointer-events: none;
+    z-index: 8;
+    animation: markerBreath 2s ease-in-out infinite, markerFadeOut 2s ease-in forwards;
+}
+
+/* 4个L形角落 */
+.last-move-marker::before,
+.last-move-marker::after {
+    content: '';
+    position: absolute;
+    width: 25%;
+    height: 25%;
+    box-sizing: border-box;
+}
+
+/* 左上角 L */
+.last-move-marker::before {
+    top: 0;
+    left: 0;
+    border-top: 2px solid #00e676;
+    border-left: 2px solid #00e676;
+}
+
+/* 右下角 L */
+.last-move-marker::after {
+    bottom: 0;
+    right: 0;
+    border-bottom: 2px solid #00e676;
+    border-right: 2px solid #00e676;
+}
+
+/* 右上角和左下角 */
+.last-move-corner {
+    position: absolute;
+    width: 25%;
+    height: 25%;
+    box-sizing: border-box;
+    pointer-events: none;
+}
+
+/* 右上角 L */
+.last-move-corner.top-right {
+    top: 0;
+    right: 0;
+    border-top: 2px solid #00e676;
+    border-right: 2px solid #00e676;
+}
+
+/* 左下角 L */
+.last-move-corner.bottom-left {
+    bottom: 0;
+    left: 0;
+    border-bottom: 2px solid #00e676;
+    border-left: 2px solid #00e676;
+}
+
+/* 系统化呼吸动画 - 一开一合 */
+@keyframes markerBreath {
+    0%, 100% { 
+        transform: scale(1);
+    }
+    50% { 
+        transform: scale(0.85);
+    }
+}
+
+/* 2秒后淡出消失 */
+@keyframes markerFadeOut {
+    0%, 70% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
 
 /* --- [UI Elements] --- */
 .top-bar { display: flex; gap: 15px; align-items: center; justify-content: center; width: 100%; margin-bottom: 10px; flex-wrap: wrap; position: relative; z-index: 50; }
@@ -552,6 +578,61 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .skin-preview svg { width: 100%; height: 100%; }
 .skin-preview .classic-demo { width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #666 0%, #111 100%); box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
 .skin-preview .nature-demo { width: 100%; height: 100%; }
+
+/* [Alpha 0.7.9.0] 皮肤/棋盘选择器入口按钮 */
+.skin-entry-row { display: flex; gap: 20px; justify-content: center; align-items: flex-start; margin: 25px 0; width: 100%; }
+.skin-entry-group { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; }
+.skin-section-title { font-size: 0.95rem; font-weight: 600; color: #2d3436; text-align: center; }
+.skin-entry-btn { width: 100px; height: 100px; border: 2px solid #e0e0e0; border-radius: 16px; background: #fafafa; cursor: pointer; transition: all 0.2s; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+.skin-entry-btn:hover { border-color: #2d3436; background: #fff; transform: scale(1.05); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
+.skin-entry-preview { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; gap: 6px; padding: 10px; box-sizing: border-box; }
+.board-entry-preview { padding: 8px; }
+
+/* [Alpha 0.7.9.0] 棋子/棋盘选择器模态框 */
+.selector-modal-content { max-width: 360px; }
+.skin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; width: 100%; }
+.skin-grid-item { border: 2px solid #e0e0e0; border-radius: 16px; padding: 12px; cursor: pointer; background: #fafafa; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.skin-grid-item:hover:not(.disabled) { border-color: #2d3436; background: #fff; transform: scale(1.03); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
+.skin-grid-item.active { border-color: #6c5ce7; background: #fff; box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2); }
+.skin-grid-item.disabled { opacity: 0.5; cursor: not-allowed; }
+.skin-grid-label { font-size: 0.85rem; font-weight: 600; color: #2d3436; }
+
+/* 双棋子预览（黑白分隔） */
+.piece-dual-preview { width: 100%; height: 60px; display: flex; justify-content: center; align-items: center; gap: 0; position: relative; }
+.piece-half { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; }
+.piece-divider { width: 1px; height: 36px; background: #333; margin: 0 8px; }
+.piece-black-classic { background: radial-gradient(circle at 30% 30%, #555 0%, #111 100%); box-shadow: 0 3px 6px rgba(0,0,0,0.3); }
+.piece-white-classic { background: radial-gradient(circle at 30% 30%, #fff 0%, #ccc 100%); box-shadow: 0 3px 6px rgba(0,0,0,0.2); border: 1px solid #ddd; }
+.piece-maple { background: url('images/maple.png') center/contain no-repeat, radial-gradient(circle at 30% 30%, #8B4513 0%, #5D3A1A 100%); box-shadow: 0 3px 6px rgba(0,0,0,0.3); }
+.piece-sun { background: url('images/sun.png') center/contain no-repeat, radial-gradient(circle at 30% 30%, #FFD700 0%, #FFA500 100%); box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
+
+/* 迷你棋盘预览 */
+.board-mini-preview { width: 100%; height: 60px; border-radius: 8px; position: relative; overflow: hidden; }
+.classic-wood-preview { 
+    background: 
+        linear-gradient(90deg, transparent 0%, rgba(139, 90, 43, 0.08) 50%, transparent 100%),
+        linear-gradient(0deg, transparent 0%, rgba(101, 67, 33, 0.05) 50%, transparent 100%),
+        linear-gradient(135deg, #DEB887 0%, #D2A679 25%, #C4956A 50%, #DEB887 75%, #E8C89E 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.15);
+    border: 2px solid #8B5A2B;
+}
+.classic-wood-preview::before { 
+    content: ''; position: absolute; inset: 4px; 
+    background: 
+        repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(0,0,0,0.1) 8px, rgba(0,0,0,0.1) 9px),
+        repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(0,0,0,0.1) 8px, rgba(0,0,0,0.1) 9px);
+}
+.classic-wood-preview::after { 
+    content: ''; position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; 
+    background: radial-gradient(circle, #5D3A1A 0%, #3D2A1A 100%); 
+    border-radius: 50%; transform: translate(-50%, -50%); 
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* 敬请期待样式 */
+.coming-soon { background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); justify-content: center; align-items: center; }
+.coming-soon span { font-size: 1.5rem; color: #999; font-weight: bold; }
+.board-mini-preview.coming-soon { display: flex; }
 
 .turn-choice-container { display: flex; gap: 20px; justify-content: center; margin-top: 20px; }
 .turn-card { background: rgba(255,255,255,0.9); padding: 20px; border-radius: 20px; border: 3px solid transparent; cursor: pointer; text-align: center; width: 120px; box-shadow: 0 8px 20px rgba(0,0,0,0.05); transition: transform 0.2s; }

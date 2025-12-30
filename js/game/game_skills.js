@@ -63,6 +63,14 @@ function activateSkill() {
         return; 
     }
     
+    // [Alpha 0.7.9.0] 修复 PvE 模式下玩家可以在 AI 回合使用技能的 bug
+    if (GameState.gameMode === 'pve' && GameState.currentPlayer !== GameState.humanSide) {
+        // AI 回合，玩家无法使用技能
+        SoundEngine.playError();
+        showToast(t('errAITurn', 'toast'));
+        return;
+    }
+    
     if(GameState.selectedCell) { 
         const old = getCell(GameState.selectedCell.r, GameState.selectedCell.c); 
         if(old) old.classList.remove('selected-move'); 
