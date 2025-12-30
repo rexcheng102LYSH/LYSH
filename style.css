@@ -5,19 +5,19 @@
     --glass-shadow: 0 12px 40px rgba(31, 38, 135, 0.15);
     --glass-blur: blur(16px);
     
-    /* --- [Art Revolution] 材质重构：皇家琥珀棋盘 --- */
-    /* [改] 将棋盘基底色改为之前的“琥珀棕” (#B86D29) */
-    --wood-base: #B86D29;       /* 琥珀主色 */
-    --wood-highlight: #d68c45;  /* 琥珀高光 (比主色亮) */
-    --wood-shadow: #8a4d1b;     /* 琥珀阴影 */
-    --wood-grain: rgba(60, 30, 10, 0.12); /* 纹理加深一点以适应深色底 */
-    --wood-side: #5d3326;       /* 侧面厚度颜色 */
+    /* --- [Art Revolution] 最终章：乌木·金银双绝 --- */
+    
+    /* 1. 棋盘基底：深沉乌木 (Dark Ebony) */
+    --wood-base: #261813;       /* 极深的褐黑色 */
+    --wood-highlight: #3e2b24;  /* 微弱的暖色高光 */
+    --wood-shadow: #1a0f0c;     /* 阴影 */
+    --wood-grain: rgba(255, 255, 255, 0.03); /* 极淡的白色噪点模拟木纹 */
+    --wood-side: #1a0f0c;       /* 侧面 */
     --board-border-color: #3e2b20; 
     
-    /* 线条系统 */
-    /* 由于棋盘变深了，我们需要稍微加深线条颜色，并增强高光对比度 */
-    --line-ink: rgba(20, 10, 5, 0.9); 
-    --line-highlight: rgba(255, 255, 255, 0.25);
+    /* 2. 线条系统：因为底色黑，线条改为“银丝” */
+    --line-ink: rgba(255, 255, 255, 0.15); /* 淡淡的银线 */
+    --line-highlight: rgba(0, 0, 0, 0.3);  /* 刻痕阴影 */
     
     /* --- 尺寸系統 --- */
     --board-size: 500px;
@@ -28,7 +28,7 @@
     --board-center-offset: -6px;
 
     /* 其他功能色 */
-    --board-wood: #B86D29; 
+    --board-wood: #261813; 
     --corrode-color: #2d3436;
     --maple-color: #d32f2f;
     --sun-color: #fbc02d;
@@ -166,13 +166,13 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 /* --- [Ultimate Board Container] --- */
 .board { 
     position: relative; 
-    background-color: var(--wood-base); /* 使用新的琥珀色 */
+    background-color: var(--wood-base);
     background-image: 
-        /* 高光调整：因为底色深，高光要更亮一点 */
-        radial-gradient(ellipse at 30% 20%, var(--wood-highlight) 0%, transparent 65%),
-        /* 木纹：*/
-        repeating-linear-gradient(45deg, var(--wood-grain) 0px, var(--wood-grain) 1px, transparent 1px, transparent 4px),
-        linear-gradient(to bottom right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.1) 100%);
+        /* 聚光灯效果：让中间亮一点，否则黑棋看不见 */
+        radial-gradient(ellipse at 50% 40%, var(--wood-highlight) 0%, transparent 80%),
+        /* 细腻木纹 */
+        repeating-linear-gradient(45deg, var(--wood-grain) 0px, var(--wood-grain) 1px, transparent 1px, transparent 3px),
+        linear-gradient(to bottom right, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.5) 100%);
 
     padding: 12px; 
     
@@ -184,9 +184,10 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     box-sizing: border-box; 
     border-radius: 4px; 
     
+    /* 物理阴影：深色厚度 */
     box-shadow: 
-        0 4px 0 #2a1b15,  /* 侧面厚度 (更深的黑色) */            
-        0 20px 50px rgba(0,0,0,0.35);  
+        0 4px 0 #0f0806,              
+        0 20px 50px rgba(0,0,0,0.5);  
         
     touch-action: none; 
     width: var(--board-size); 
@@ -196,8 +197,12 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     z-index: 1; 
 }
 
-/* --- [LAYER 1] 沉稳乌木框 (Ebony Frame) --- */
-/* [改] 颜色换回之前的深色乌木，作为外框 */
+/* --- [LAYER 1] 外框：金包银 (Gold & Silver Frame) --- */
+/* 技术实现：
+   1. 背景色设为【银色】，作为内圈 (Inner Silver)。
+   2. 利用 box-shadow inset 设为【金色】，作为外圈 (Outer Gold)。
+   3. 因为 Mask 露出了 12px，我们将 box-shadow 设为 6px，正好各占一半。
+*/
 .board::before {
     content: '';
     position: absolute;
@@ -206,25 +211,18 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     pointer-events: none;
     border-radius: 4px;
     
-    /* 1. 材质：[改] 乌木黑/深紫檀 (Dark Ebony) */
-    background-color: #2F1B15; 
+    /* [Part 1: 内银 (Inner Silver)] */
+    /* 使用亮银色渐变作为基底 */
+    background: linear-gradient(135deg, #f5f6f7 0%, #d5d7d9 50%, #b0b3b8 100%);
     
-    /* 2. 纹理：保持镜面高光，但在深色上更显质感 */
-    background-image: 
-        linear-gradient(135deg, 
-            rgba(255,255,255,0.2) 0%,   
-            rgba(255,255,255,0.05) 20%, 
-            transparent 50%, 
-            rgba(0,0,0,0.4) 80%,       
-            rgba(0,0,0,0.6) 100%
-        );
-        
-    /* 3. 边框立体修饰 */
+    /* [Part 2: 外金 (Outer Gold)] */
+    /* 使用 inset 阴影覆盖外围 6px */
+    /* 金色色值：#C5A059 (香槟金) -> #8A6E3C (暗金) */
     box-shadow: 
-        inset 0 1px 1px rgba(255,255,255,0.3), /* 顶部倒角高光 (减弱，因为木头黑) */
-        inset 0 -1px 1px rgba(0,0,0,0.6);      /* 底部阴影倒角 */
+        inset 0 0 0 6px #C5A059,  /* 实心金边 */
+        inset 0 0 10px 6px rgba(139, 110, 60, 0.6); /* 金色光泽感 */
 
-    /* 4. 稳健遮罩 */
+    /* 遮罩：只保留 12px 边框 */
     -webkit-mask: 
         linear-gradient(#fff 0 0) top    / 100% 12px no-repeat,
         linear-gradient(#fff 0 0) bottom / 100% 12px no-repeat,
@@ -238,25 +236,25 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
         linear-gradient(#fff 0 0) right  / 12px 100% no-repeat;
 }
 
-/* --- [LAYER 2] 回字形·金线浮雕 (The "Hui" Groove) --- */
-/* 保持不变：金线在黑木上会非常醒目 */
+/* --- [LAYER 2] 分界线 (The Divider Groove) --- */
+/* 这条线正好位于 6px 处，分割金银 */
 .board::after {
     content: '';
     position: absolute;
     z-index: 6; 
     
+    /* 定位：从边缘向内缩 6px，正好在金银交界处 */
     top: 6px; left: 6px; right: 6px; bottom: 6px;
     pointer-events: none;
     
-    /* 深色底上的凹槽 */
-    border: 1px solid rgba(0, 0, 0, 0.8); 
+    /* 1. 物理凹槽：深色细线 */
+    border: 1px solid rgba(0, 0, 0, 0.6); 
     border-radius: 1px;
     
-    /* 金色镶嵌感 */
+    /* 2. 立体高光：让银色部分看起来微微凸起 */
     box-shadow: 
-        0 0 0 1px rgba(200, 160, 80, 0.3), /* 淡金外衬 */
-        inset 0 0 2px rgba(0,0,0,0.9),     /* 内部深邃 */
-        0 0 4px rgba(255, 200, 50, 0.1);   /* 微光 */
+        0 0 0 1px rgba(255, 255, 255, 0.4), /* 外侧(金侧)亮边 */
+        inset 0 0 2px rgba(0, 0, 0, 0.3);   /* 内侧(银侧)阴影 */
 }
 
 @media (max-width: 600px) { 
@@ -264,9 +262,9 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
         padding: 6px; 
         box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     } 
-    /* 移动端适配 */
+    /* 移动端：外金3px，内银3px */
     .board::before {
-        background-color: #2F1B15;
+        box-shadow: inset 0 0 0 3px #C5A059; /* 缩小金边宽度 */
         -webkit-mask: 
             linear-gradient(#fff 0 0) top    / 100% 6px no-repeat,
             linear-gradient(#fff 0 0) bottom / 100% 6px no-repeat,
@@ -281,7 +279,6 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     .board::after {
         top: 3px; left: 3px; right: 3px; bottom: 3px;
         border-width: 0.5px; 
-        box-shadow: inset 0 0 1px rgba(0,0,0,0.6);
     }
 }
 
@@ -297,13 +294,14 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 .cell::before { 
     content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 1px; 
     background: var(--line-ink); 
-    box-shadow: 0 1px 0 var(--line-highlight);
+    /* 移除阴影，因为在深色底上阴影看不清，反而让线变糊 */
+    /* box-shadow: 0 1px 0 var(--line-highlight); */
     z-index: 0; 
 }
 .cell::after { 
     content: ''; position: absolute; left: 50%; top: 0; height: 100%; width: 1px; 
     background: var(--line-ink); 
-    box-shadow: 1px 0 0 var(--line-highlight);
+    /* box-shadow: 1px 0 0 var(--line-highlight); */
     z-index: 0; 
 }
 
@@ -313,26 +311,20 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 .cell:nth-child(n+211)::after { height: 50%; }
 
 /* --- [CRITICAL FIX] 星位层级修复 --- */
-/* 因为底色变深，星位点需要稍微加深一点边框，让它更明显 */
 .cell[data-star="true"] .dot { 
-    width: 22%; height: 22%; 
-    background: radial-gradient(circle at 35% 35%, #4e2e1e 0%, #20100a 100%);
+    width: 20%; height: 20%; /* 稍微调小一点点，显精致 */
+    /* 金色星位点，在黑底上最显眼 */
+    background: radial-gradient(circle at 35% 35%, #D4AF37 0%, #8A6E3C 100%);
     border-radius: 50%; 
     position: absolute; 
     z-index: 1; 
-    
-    box-shadow: 
-        0 1px 0 rgba(255, 255, 255, 0.2), /* 底部微高光 */
-        inset 0 1px 3px rgba(0, 0, 0, 0.6); 
+    box-shadow: 0 0 4px rgba(212, 175, 55, 0.4);
 }
 
 /* --- [Pieces & Drop Animation] --- */
 .piece { 
     width: 90%; height: 90%; 
-    
-    /* [CRITICAL FIX] 棋子层级提升至最高，确保覆盖星位 */
     z-index: 20; 
-    
     pointer-events: none; border-radius: 50%; 
     display: flex; justify-content: center; align-items: center; 
     animation: drop 0.3s cubic-bezier(0.19, 1, 0.22, 1); 
@@ -350,7 +342,9 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
         2px 8px 16px rgba(0,0,0,0.15); 
 }
 .piece.skin-classic.p1 { 
-    background: radial-gradient(circle at 35% 30%, #666 0%, #1a1a1a 40%, #000 100%); 
+    /* 黑棋：加强光泽，否则在黑底上看不仅 */
+    background: radial-gradient(circle at 35% 30%, #555 0%, #111 50%, #000 100%); 
+    border: 1px solid rgba(255,255,255,0.1); /* 微弱白边防混淆 */
 }
 .piece.skin-classic.p2 { 
     background: radial-gradient(circle at 35% 30%, #fff 0%, #f0f0f0 40%, #ddd 100%); 
