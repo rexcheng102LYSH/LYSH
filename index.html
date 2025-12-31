@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>技能五子棋 - Alpha0.7.9.1</title>
+    <title>技能五子棋 - Alpha0.7.9.2</title>
     <script>
         // [恢复Alpha0.7.8.9] 全局致命错误捕获：弹窗提示 + 显示错误来源
         (function() {
@@ -64,7 +64,7 @@
             });
         })();
     </script>
-    <link rel="stylesheet" href="style.css?v=Alpha0.7.9.1">
+    <link rel="stylesheet" href="style.css?v=Alpha0.7.9.2">
 </head>
 <body onclick="SoundEngine.init()">
 
@@ -87,8 +87,8 @@
         <div class="glass-panel menu-panel">
             <h1 data-i18n="gameTitle">技能五子棋 <span style="font-size:0.5em">Alpha</span></h1>
             <h2 style="margin-top:-5px; font-size:1.2rem; color:#666;">
-                <span data-i18n="subTitle">Alpha0.7.9.1</span> 
-                <span class="version-tag">Alpha0.7.9.1</span>
+                <span data-i18n="subTitle">Alpha0.7.9.2</span> 
+                <span class="version-tag">Alpha0.7.9.2</span>
             </h2>
             
             <button class="btn primary" onclick="showDifficultyScreen()" data-i18n="btnPvE">人机对战 (PvE)</button>
@@ -340,11 +340,14 @@
                     <div class="board-mini-preview classic-wood-preview"></div>
                     <div class="skin-grid-label" data-i18n="boardClassicWood">经典木质</div>
                 </div>
-                <div class="skin-grid-item disabled">
-                    <div class="board-mini-preview coming-soon">
-                        <span>?</span>
+                <div class="skin-grid-item" id="boardGridModern" onclick="selectBoardSkin('modern')">
+                    <div class="board-mini-preview modern-preview">
+                        <span class="corner-decor tl"></span>
+                        <span class="corner-decor tr"></span>
+                        <span class="corner-decor bl"></span>
+                        <span class="corner-decor br"></span>
                     </div>
-                    <div class="skin-grid-label" data-i18n="skinComingSoon">敬请期待</div>
+                    <div class="skin-grid-label" data-i18n="boardModern">现代简约</div>
                 </div>
                 <div class="skin-grid-item disabled">
                     <div class="board-mini-preview coming-soon">
@@ -366,37 +369,37 @@
     <div id="toast"></div>
     <div id="explosionOverlay"></div>
 
-    <script src="assets.js?v=Alpha0.7.9.1"></script>
-    <script src="js/audio/audio_host.js?v=Alpha0.7.9.1"></script>
-    <script src="js/audio/audio_sfx.js?v=Alpha0.7.9.1"></script>
-    <script src="js/audio/audio_assets.js?v=Alpha0.7.9.1"></script>
-    <script src="js/audio/audio_hub.js?v=Alpha0.7.9.1"></script>
-    <script src="lang.js?v=Alpha0.7.9.1"></script> 
-    <script src="background.js?v=Alpha0.7.9.1"></script>
-    <script src="js/fx/fx_host.js?v=Alpha0.7.9.1"></script>
-    <script src="js/fx/lines.js?v=Alpha0.7.9.1"></script>
-    <script src="js/fx/winning/fireworks.js?v=Alpha0.7.9.1"></script>
-    <script src="js/fx/winning/golden.js?v=Alpha0.7.9.1"></script>
-    <script src="js/fx/winning/dj.js?v=Alpha0.7.9.1"></script>
-    <script src="gamestate.js?v=Alpha0.7.9.1"></script>
-    <script src="js/skills/registry.js?v=Alpha0.7.9.1"></script>
-    <script src="js/skills/double.js?v=Alpha0.7.9.1"></script>
-    <script src="js/skills/voodoo.js?v=Alpha0.7.9.1"></script>
-    <script src="js/skills/move_self.js?v=Alpha0.7.9.1"></script>
-    <script src="js/skills/move_enemy.js?v=Alpha0.7.9.1"></script>
-    <script src="js/skills/zone.js?v=Alpha0.7.9.1"></script>
-    <script src="js/skills/bomb.js?v=Alpha0.7.9.1"></script>
-    <script src="js/skills/god_hand.js?v=Alpha0.7.9.1"></script>
-    <script src="js/skills/chaos.js?v=Alpha0.7.9.1"></script>
-    <script src="js/skills/short_battle.js?v=Alpha0.7.9.1"></script>
-    <script src="js/skills/swap.js?v=Alpha0.7.9.1"></script>
-    <script src="js/game/game_host.js?v=Alpha0.7.9.1"></script>
-    <script src="js/game/game_core.js?v=Alpha0.7.9.1"></script>
-    <script src="js/game/game_ui.js?v=Alpha0.7.9.1"></script>
-    <script src="js/game/game_render.js?v=Alpha0.7.9.1"></script>
-    <script src="js/game/game_skills.js?v=Alpha0.7.9.1"></script>
-    <script src="js/game/game_ai.js?v=Alpha0.7.9.1"></script>
-    <script src="ai.js?v=Alpha0.7.9.1"></script>
+    <script src="assets.js?v=Alpha0.7.9.2"></script>
+    <script src="js/audio/audio_host.js?v=Alpha0.7.9.2"></script>
+    <script src="js/audio/audio_sfx.js?v=Alpha0.7.9.2"></script>
+    <script src="js/audio/audio_assets.js?v=Alpha0.7.9.2"></script>
+    <script src="js/audio/audio_hub.js?v=Alpha0.7.9.2"></script>
+    <script src="lang.js?v=Alpha0.7.9.2"></script> 
+    <script src="background.js?v=Alpha0.7.9.2"></script>
+    <script src="js/fx/fx_host.js?v=Alpha0.7.9.2"></script>
+    <script src="js/fx/lines.js?v=Alpha0.7.9.2"></script>
+    <script src="js/fx/winning/fireworks.js?v=Alpha0.7.9.2"></script>
+    <script src="js/fx/winning/golden.js?v=Alpha0.7.9.2"></script>
+    <script src="js/fx/winning/dj.js?v=Alpha0.7.9.2"></script>
+    <script src="gamestate.js?v=Alpha0.7.9.2"></script>
+    <script src="js/skills/registry.js?v=Alpha0.7.9.2"></script>
+    <script src="js/skills/double.js?v=Alpha0.7.9.2"></script>
+    <script src="js/skills/voodoo.js?v=Alpha0.7.9.2"></script>
+    <script src="js/skills/move_self.js?v=Alpha0.7.9.2"></script>
+    <script src="js/skills/move_enemy.js?v=Alpha0.7.9.2"></script>
+    <script src="js/skills/zone.js?v=Alpha0.7.9.2"></script>
+    <script src="js/skills/bomb.js?v=Alpha0.7.9.2"></script>
+    <script src="js/skills/god_hand.js?v=Alpha0.7.9.2"></script>
+    <script src="js/skills/chaos.js?v=Alpha0.7.9.2"></script>
+    <script src="js/skills/short_battle.js?v=Alpha0.7.9.2"></script>
+    <script src="js/skills/swap.js?v=Alpha0.7.9.2"></script>
+    <script src="js/game/game_host.js?v=Alpha0.7.9.2"></script>
+    <script src="js/game/game_core.js?v=Alpha0.7.9.2"></script>
+    <script src="js/game/game_ui.js?v=Alpha0.7.9.2"></script>
+    <script src="js/game/game_render.js?v=Alpha0.7.9.2"></script>
+    <script src="js/game/game_skills.js?v=Alpha0.7.9.2"></script>
+    <script src="js/game/game_ai.js?v=Alpha0.7.9.2"></script>
+    <script src="ai.js?v=Alpha0.7.9.2"></script>
 
 </body>
 </html>

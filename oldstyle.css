@@ -5,7 +5,8 @@
     --glass-shadow: 0 12px 40px rgba(31, 38, 135, 0.15);
     --glass-blur: blur(16px);
     
-    /* --- [Art Revolution] 榧木与刻线系统 --- */
+    /* --- [Art Revolution] 材质系统变量 --- */
+    /* 注意：.board 已使用更具体的颜色值以实现金线效果，保留这些变量以防其他组件引用 */
     --wood-base: #e6b36e;
     --wood-highlight: #f7d59c;
     --wood-shadow: #c49250;
@@ -161,62 +162,113 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     transition: transform 0.3s ease;
 }
 
-/* --- [Ultimate Board] --- */
+/* ========================================= */
+/* [ART REVOLUTION V2.0] 棋盘视觉重构       */
+/* Fixed: 4-Corner Symmetry & Deep Texture   */
+/* ========================================= */
+
 .board { 
     position: relative; 
-    background-color: var(--wood-base);
+    /* 核心：内盘面（榧木色） - 更加温润、细腻 */
+    background-color: #eecfa1;
     background-image: 
-        radial-gradient(ellipse at 30% 20%, var(--wood-highlight) 0%, transparent 70%),
-        repeating-linear-gradient(45deg, var(--wood-grain) 0px, var(--wood-grain) 1px, transparent 1px, transparent 4px),
-        linear-gradient(to bottom right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.05) 100%);
+        /* 细腻的木纹噪点 - 使用SVG Filter生成分形噪点 */
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E"),
+        /* 温暖的径向光照，模拟顶光 */
+        radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.25) 0%, rgba(0, 0, 0, 0.05) 100%);
 
-    /* [CRITICAL] 严格保持 10px Padding */
-    padding: 10px; 
+    /* [CRITICAL] 严格保持 12px Padding 以容纳边框装饰，同时维持棋格比例 */
+    padding: 12px; 
     
     display: grid; 
     grid-template-columns: repeat(15, 1fr); 
     grid-template-rows: repeat(15, 1fr); 
     gap: 0; 
-    border: 3px solid var(--board-border-color); 
-    box-sizing: border-box; 
-    border-radius: 4px; 
     
+    /* 边框系统：模拟紫檀木外框 */
+    border: 6px solid #5d4037; /* 深棕色基底 */
+    border-radius: 6px; 
+    
+    /* 光影与材质系统：这是灵魂所在 */
     box-shadow: 
-        inset 1px 1px 0 rgba(255,255,255,0.4),
-        inset -1px -1px 0 rgba(0,0,0,0.1),
-        1px 1px 0 var(--wood-side),
-        2px 2px 0 var(--wood-side),
-        3px 3px 0 var(--wood-side),
-        4px 4px 0 var(--wood-side),
-        5px 5px 0 var(--wood-side),
-        6px 6px 0 var(--wood-side),
-        7px 7px 5px rgba(0,0,0,0.3),
-        15px 25px 40px rgba(0,0,0,0.25);
+        /* 1. 金线镶嵌 (Gold Inlay) - 极细的一圈亮金色 */
+        0 0 0 1px #c5a059,
+        
+        /* 2. 外框立体感 - 模拟木材倒角 */
+        0 0 0 4px #3e2723,  /* 更深的一层紫檀 */
+        0 0 0 5px rgba(255,255,255,0.1), /* 边缘高光 */
+        
+        /* 3. 内阴影 - 让棋盘中心看起来是下陷镶嵌进去的 */
+        inset 2px 2px 6px rgba(0,0,0,0.4),
+        inset -1px -1px 2px rgba(255,255,255,0.2),
+        
+        /* 4. 环境投影 - 棋盘投在桌面的影子 */
+        0 20px 50px rgba(0,0,0,0.4),
+        0 5px 15px rgba(0,0,0,0.2);
         
     touch-action: none; 
     width: var(--board-size); 
     height: var(--board-size); 
-    background-blend-mode: overlay, normal, multiply;
+    
+    /* 混合模式确保纹理自然融合 */
+    background-blend-mode: soft-light, normal;
     transition: box-shadow 0.3s ease;
     z-index: 1; 
+    box-sizing: border-box; 
 }
 
-/* --- [CLEANUP] 移除所有花纹 (Borderless Effect) --- */
+/* --- [ART REVOLUTION V2.0] 纹样系统 (完美对称版) --- */
+/* 使用 ::before 制作四角的回纹装饰，精致点缀 */
 .board::before {
-    display: none; /* 彻底隐藏花纹层，回归纯净木纹 */
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0; left: 0; right: 0;
+    pointer-events: none;
+    z-index: -1; /* 在网格线之下，背景之上 */
+    
+    /* 装饰纹样颜色 - 稍微加深一点点以适应木纹 */
+    --ornament-color: rgba(62, 39, 35, 0.12); 
+    
+    /* 四角对称回纹 (Four-Corner Symmetry) */
+    background-image: 
+        /* 1. 左上角 (Top-Left) - 向右下指 */
+        linear-gradient(135deg, var(--ornament-color) 25%, transparent 25%),
+        
+        /* 2. 右上角 (Top-Right) - 向左下指 */
+        linear-gradient(225deg, var(--ornament-color) 25%, transparent 25%),
+        
+        /* 3. 右下角 (Bottom-Right) - 向左上指 */
+        linear-gradient(315deg, var(--ornament-color) 25%, transparent 25%),
+        
+        /* 4. 左下角 (Bottom-Left) - 向右上指 */
+        linear-gradient(45deg, var(--ornament-color) 25%, transparent 25%);
+        
+    /* 精确控制四个角的位置 */
+    background-position: 
+        6px 6px,                        /* TL */
+        calc(100% - 6px) 6px,           /* TR */
+        calc(100% - 6px) calc(100% - 6px), /* BR */
+        6px calc(100% - 6px);           /* BL */
+        
+    background-size: 28px 28px;
+    background-repeat: no-repeat;
+    
+    /* 增加一层微妙的整体光泽，模拟打磨过的木蜡油质感 */
+    box-shadow: inset 0 0 80px rgba(255, 193, 7, 0.05);
 }
 
 @media (max-width: 600px) { 
     .board { 
-        padding: 4px; 
+        padding: 6px; 
+        border-width: 3px;
         box-shadow: 
-            inset 1px 1px 0 rgba(255,255,255,0.3),
-            1px 1px 0 var(--wood-side),
-            2px 2px 0 var(--wood-side),
-            3px 3px 0 var(--wood-side),
-            5px 5px 15px rgba(0,0,0,0.25);
+            /* 移动端保留金线，但简化阴影层级以提升性能 */
+            0 0 0 1px #c5a059,
+            0 0 0 2px #3e2723,
+            inset 1px 1px 4px rgba(0,0,0,0.3),
+            0 10px 30px rgba(0,0,0,0.3);
     } 
-    /* 移动端保留简约 */
+    /* 移动端隐藏纹样以保持整洁 */
     .board::before { display: none; }
 }
 
@@ -228,13 +280,20 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     align-items: center; 
 }
 
-/* 棋盘线层级：0 */
+/* [Grid Line System V2.0]
+   Fix: 使用 calc(50% + 1px) 替代 50%
+   原理：强制线条多延伸 1 像素，消除浏览器计算亚像素时产生的缝隙
+*/
+
+/* 横线 (Horizontal) */
 .cell::before { 
     content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 1px; 
     background: var(--line-ink); 
     box-shadow: 0 1px 0 var(--line-highlight);
     z-index: 0; 
 }
+
+/* 竖线 (Vertical) */
 .cell::after { 
     content: ''; position: absolute; left: 50%; top: 0; height: 100%; width: 1px; 
     background: var(--line-ink); 
@@ -242,10 +301,23 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     z-index: 0; 
 }
 
-.cell:nth-child(15n+1)::before { left: 50%; width: 50%; }
-.cell:nth-child(15n)::before { width: 50%; }
-.cell:nth-child(-n+15)::after { top: 50%; height: 50%; }
-.cell:nth-child(n+211)::after { height: 50%; }
+/* 边缘处理：第一列和最后一列的横线修正 */
+.cell:nth-child(15n+1)::before { 
+    left: 50%; 
+    width: calc(50% + 1px); /* Fix pixel gap */
+}
+.cell:nth-child(15n)::before { 
+    width: calc(50% + 1px); /* Fix pixel gap */
+}
+
+/* 边缘处理：第一行和最后一行的竖线修正 */
+.cell:nth-child(-n+15)::after { 
+    top: 50%; 
+    height: calc(50% + 1px); /* Fix pixel gap */
+}
+.cell:nth-child(n+211)::after { 
+    height: calc(50% + 1px); /* Fix pixel gap */
+}
 
 /* --- [CRITICAL FIX] 星位层级修复 --- */
 .cell[data-star="true"] .dot { 
@@ -254,7 +326,10 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     border-radius: 50%; 
     position: absolute; 
     
-    /* [层级逻辑] Lines(0) < Star(1) < Pieces(20) */
+    /* [层级逻辑修复] 
+       Lines (0) < Star (1) < Pieces (20)
+       星位必须高于线条，但必须低于棋子
+    */
     z-index: 1; 
     
     box-shadow: 
@@ -303,89 +378,6 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 .cell.win-highlight { position: relative; z-index: 10; } 
 .cell.win-highlight::before { content: ''; position: absolute; top: 10%; left: 10%; width: 80%; height: 80%; border-radius: 50%; background: #00e676; opacity: 0.8; filter: blur(6px); z-index: -1; animation: flash 0.8s infinite alternate; }
 .cell.selected-move::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 2px solid var(--select-color); border-radius: 50%; box-sizing: border-box; z-index: 5; animation: breathe 1.5s infinite; box-shadow: 0 0 10px var(--select-color); }
-
-/* [Alpha 0.7.9.0] 落子锁定标记 - 系统化 HUD 瞄准风格 */
-.last-move-marker {
-    position: absolute;
-    top: -10%;
-    left: -10%;
-    width: 120%;
-    height: 120%;
-    pointer-events: none;
-    z-index: 8;
-    animation: markerBreath 2s ease-in-out infinite, markerFadeOut 2s ease-in forwards;
-}
-
-/* 4个L形角落 */
-.last-move-marker::before,
-.last-move-marker::after {
-    content: '';
-    position: absolute;
-    width: 25%;
-    height: 25%;
-    box-sizing: border-box;
-}
-
-/* 左上角 L */
-.last-move-marker::before {
-    top: 0;
-    left: 0;
-    border-top: 2px solid #00e676;
-    border-left: 2px solid #00e676;
-}
-
-/* 右下角 L */
-.last-move-marker::after {
-    bottom: 0;
-    right: 0;
-    border-bottom: 2px solid #00e676;
-    border-right: 2px solid #00e676;
-}
-
-/* 右上角和左下角 */
-.last-move-corner {
-    position: absolute;
-    width: 25%;
-    height: 25%;
-    box-sizing: border-box;
-    pointer-events: none;
-}
-
-/* 右上角 L */
-.last-move-corner.top-right {
-    top: 0;
-    right: 0;
-    border-top: 2px solid #00e676;
-    border-right: 2px solid #00e676;
-}
-
-/* 左下角 L */
-.last-move-corner.bottom-left {
-    bottom: 0;
-    left: 0;
-    border-bottom: 2px solid #00e676;
-    border-left: 2px solid #00e676;
-}
-
-/* 系统化呼吸动画 - 一开一合 */
-@keyframes markerBreath {
-    0%, 100% { 
-        transform: scale(1);
-    }
-    50% { 
-        transform: scale(0.85);
-    }
-}
-
-/* 2秒后淡出消失 */
-@keyframes markerFadeOut {
-    0%, 70% {
-        opacity: 1;
-    }
-    100% {
-        opacity: 0;
-    }
-}
 
 /* --- [UI Elements] --- */
 .top-bar { display: flex; gap: 15px; align-items: center; justify-content: center; width: 100%; margin-bottom: 10px; flex-wrap: wrap; position: relative; z-index: 50; }
@@ -549,7 +541,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 #seasonAutumn.active, #trackBgm3.active { color: #d35400; text-shadow: 0 3px 4px rgba(211, 84, 0, 0.25); }
 #seasonWinter.active, #trackBgm4.active { color: #0984e3; text-shadow: 0 0 6px rgba(130, 204, 221, 0.6); }
 
-.skin-section-title { font-size: 0.9rem; color: #888; margin-bottom: 10px; text-align: left; width: 100%; font-weight: 600; }
+.skill-section-title { font-size: 0.9rem; color: #888; margin-bottom: 10px; text-align: left; width: 100%; font-weight: 600; }
 #winLightning.active { color: #03a9f4; text-shadow: 0 0 8px rgba(3, 169, 244, 0.5); }
 #winGold.active { color: #ffb300; text-shadow: 0 0 8px rgba(255, 179, 0, 0.5); }
 #winFuture.active { color: #d500f9; text-shadow: 0 0 8px rgba(213, 0, 249, 0.5); }
@@ -578,110 +570,6 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .skin-preview svg { width: 100%; height: 100%; }
 .skin-preview .classic-demo { width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #666 0%, #111 100%); box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
 .skin-preview .nature-demo { width: 100%; height: 100%; }
-
-/* [Alpha 0.7.9.0] 皮肤/棋盘选择器入口按钮 */
-.skin-entry-row { display: flex; gap: 20px; justify-content: center; align-items: flex-start; margin: 25px 0; width: 100%; }
-.skin-entry-group { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; }
-.skin-section-title { font-size: 0.95rem; font-weight: 600; color: #2d3436; text-align: center; }
-.skin-entry-btn { width: 100px; height: 100px; border: 2px solid #e0e0e0; border-radius: 16px; background: #fafafa; cursor: pointer; transition: all 0.2s; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-.skin-entry-btn:hover { border-color: #2d3436; background: #fff; transform: scale(1.05); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
-.skin-entry-preview { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; gap: 6px; padding: 10px; box-sizing: border-box; }
-.board-entry-preview { padding: 8px; }
-
-/* [Alpha 0.7.9.0] 棋子/棋盘选择器模态框 */
-.selector-modal-content { max-width: 360px; }
-.skin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; width: 100%; }
-.skin-grid-item { border: 2px solid #e0e0e0; border-radius: 16px; padding: 12px; cursor: pointer; background: #fafafa; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.skin-grid-item:hover:not(.disabled) { border-color: #2d3436; background: #fff; transform: scale(1.03); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
-.skin-grid-item.active { border-color: #6c5ce7; background: #fff; box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2); }
-.skin-grid-item.disabled { opacity: 0.5; cursor: not-allowed; }
-.skin-grid-label { font-size: 0.85rem; font-weight: 600; color: #2d3436; }
-
-/* 双棋子预览（黑白分隔） */
-.piece-dual-preview { width: 100%; height: 60px; display: flex; justify-content: center; align-items: center; gap: 0; position: relative; }
-.piece-half { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; }
-.piece-divider { width: 1px; height: 36px; background: #333; margin: 0 8px; }
-.piece-black-classic { background: radial-gradient(circle at 30% 30%, #555 0%, #111 100%); box-shadow: 0 3px 6px rgba(0,0,0,0.3); }
-.piece-white-classic { background: radial-gradient(circle at 30% 30%, #fff 0%, #ccc 100%); box-shadow: 0 3px 6px rgba(0,0,0,0.2); border: 1px solid #ddd; }
-.piece-maple { background: url('images/maple.png') center/contain no-repeat, radial-gradient(circle at 30% 30%, #8B4513 0%, #5D3A1A 100%); box-shadow: 0 3px 6px rgba(0,0,0,0.3); }
-.piece-sun { background: url('images/sun.png') center/contain no-repeat, radial-gradient(circle at 30% 30%, #FFD700 0%, #FFA500 100%); box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
-
-/* 迷你棋盘预览 */
-.board-mini-preview { width: 100%; height: 60px; border-radius: 8px; position: relative; overflow: hidden; }
-
-/* 经典木质预览 - 强调立体木边效果 */
-.classic-wood-preview { 
-    background: 
-        linear-gradient(90deg, transparent 0%, rgba(139, 90, 43, 0.15) 50%, transparent 100%),
-        linear-gradient(0deg, transparent 0%, rgba(101, 67, 33, 0.1) 50%, transparent 100%),
-        linear-gradient(135deg, #e6b36e 0%, #d4a05a 25%, #c49250 50%, #e6b36e 75%, #f0c070 100%);
-    border: 3px solid #3e2b20;
-    box-shadow: 
-        inset 1px 1px 0 rgba(255,255,255,0.4),
-        inset -1px -1px 0 rgba(0,0,0,0.1),
-        2px 2px 0 #b58040,
-        3px 3px 0 #a07035,
-        4px 4px 0 #906030,
-        5px 5px 4px rgba(0,0,0,0.3);
-}
-.classic-wood-preview::before { 
-    content: ''; position: absolute; inset: 6px; 
-    background: 
-        repeating-linear-gradient(0deg, transparent, transparent 6px, rgba(0,0,0,0.12) 6px, rgba(0,0,0,0.12) 7px),
-        repeating-linear-gradient(90deg, transparent, transparent 6px, rgba(0,0,0,0.12) 6px, rgba(0,0,0,0.12) 7px);
-}
-.classic-wood-preview::after { 
-    content: ''; position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; 
-    background: radial-gradient(circle, #3e2b20 0%, #2a1a10 100%); 
-    border-radius: 50%; transform: translate(-50%, -50%); 
-    box-shadow: 0 1px 2px rgba(0,0,0,0.4);
-}
-
-/* 现代简约预览 - 强调金线镶嵌和紫檀木框 */
-.modern-preview { 
-    background: 
-        radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.3) 0%, transparent 60%),
-        linear-gradient(135deg, #eecfa1 0%, #e8c595 25%, #e0bb88 50%, #eecfa1 75%, #f5d8a8 100%);
-    border: 4px solid #5d4037;
-    box-shadow: 
-        0 0 0 1px #c5a059,
-        0 0 0 3px #3e2723,
-        inset 2px 2px 4px rgba(0,0,0,0.25),
-        inset -1px -1px 2px rgba(255,255,255,0.3),
-        0 4px 8px rgba(0,0,0,0.25);
-    border-radius: 4px;
-}
-.modern-preview::before { 
-    content: ''; position: absolute; inset: 5px; 
-    background: 
-        repeating-linear-gradient(0deg, transparent, transparent 5px, rgba(30,20,15,0.15) 5px, rgba(30,20,15,0.15) 6px),
-        repeating-linear-gradient(90deg, transparent, transparent 5px, rgba(30,20,15,0.15) 5px, rgba(30,20,15,0.15) 6px);
-}
-.modern-preview::after { 
-    content: ''; position: absolute; top: 50%; left: 50%; width: 5px; height: 5px; 
-    background: radial-gradient(circle, #4e342e 0%, #271c19 100%); 
-    border-radius: 50%; transform: translate(-50%, -50%); 
-    box-shadow: 
-        0 1px 1px rgba(255,255,255,0.2),
-        inset 0 1px 2px rgba(0,0,0,0.5);
-}
-
-/* 现代简约预览 - 四角金色装饰点 */
-.modern-preview .corner-decor {
-    position: absolute; width: 4px; height: 4px;
-    background: linear-gradient(135deg, #d4af37 0%, #c5a059 100%);
-    border-radius: 1px;
-    box-shadow: 0 0 2px rgba(197, 160, 89, 0.6);
-}
-.modern-preview .corner-decor.tl { top: 3px; left: 3px; }
-.modern-preview .corner-decor.tr { top: 3px; right: 3px; }
-.modern-preview .corner-decor.bl { bottom: 3px; left: 3px; }
-.modern-preview .corner-decor.br { bottom: 3px; right: 3px; }
-
-/* 敬请期待样式 */
-.coming-soon { background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); justify-content: center; align-items: center; }
-.coming-soon span { font-size: 1.5rem; color: #999; font-weight: bold; }
-.board-mini-preview.coming-soon { display: flex; }
 
 .turn-choice-container { display: flex; gap: 20px; justify-content: center; margin-top: 20px; }
 .turn-card { background: rgba(255,255,255,0.9); padding: 20px; border-radius: 20px; border: 3px solid transparent; cursor: pointer; text-align: center; width: 120px; box-shadow: 0 8px 20px rgba(0,0,0,0.05); transition: transform 0.2s; }
@@ -715,90 +603,3 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 @keyframes goldCoinSpin { 0% { transform: scaleY(1); } 25% { transform: scaleY(0.3); } 50% { transform: scaleY(-1); } 75% { transform: scaleY(-0.3); } 100% { transform: scaleY(1); } }
 @keyframes goldenSandFlow { 0% { background-position: 0% 0%; } 25% { background-position: 100% 50%; } 50% { background-position: 50% 100%; } 75% { background-position: 0% 50%; } 100% { background-position: 0% 0%; } }
 @keyframes goldenSandShimmer { 0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); } 100% { transform: translateX(100%) translateY(100%) rotate(45deg); } }
-
-
-/* ========================================= */
-/* [Alpha 0.7.9.1] 现代简约棋盘皮肤          */
-/* Board Skin: Modern Minimalist             */
-/* ========================================= */
-
-.board.skin-modern { 
-    /* 核心：内盘面（更浅的榧木色） */
-    background-color: #eecfa1;
-    background-image: 
-        /* 细腻的木纹噪点 - 使用SVG Filter生成分形噪点 */
-        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E"),
-        /* 温暖的径向光照，模拟顶光 */
-        radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.25) 0%, rgba(0, 0, 0, 0.05) 100%);
-
-    /* [CRITICAL] 调整 padding 以匹配当前棋盘尺寸 */
-    padding: 10px; 
-    
-    /* 边框系统：模拟紫檀木外框 */
-    border: 6px solid #5d4037;
-    border-radius: 6px; 
-    
-    /* 光影与材质系统 */
-    box-shadow: 
-        /* 1. 金线镶嵌 (Gold Inlay) */
-        0 0 0 1px #c5a059,
-        /* 2. 外框立体感 - 模拟木材倒角 */
-        0 0 0 4px #3e2723,
-        0 0 0 5px rgba(255,255,255,0.1),
-        /* 3. 内阴影 - 让棋盘中心看起来是下陷镶嵌进去的 */
-        inset 2px 2px 6px rgba(0,0,0,0.4),
-        inset -1px -1px 2px rgba(255,255,255,0.2),
-        /* 4. 环境投影 */
-        0 20px 50px rgba(0,0,0,0.4),
-        0 5px 15px rgba(0,0,0,0.2);
-        
-    /* 混合模式确保纹理自然融合 */
-    background-blend-mode: soft-light, normal;
-}
-
-/* 现代简约棋盘 - 四角回纹装饰 */
-.board.skin-modern::before {
-    content: '';
-    position: absolute;
-    top: 0; bottom: 0; left: 0; right: 0;
-    pointer-events: none;
-    z-index: 0;
-    display: block !important; /* 覆盖默认的 display: none */
-    
-    /* 装饰纹样颜色 */
-    --ornament-color: rgba(62, 39, 35, 0.12); 
-    
-    /* 四角对称回纹 */
-    background-image: 
-        linear-gradient(135deg, var(--ornament-color) 25%, transparent 25%),
-        linear-gradient(225deg, var(--ornament-color) 25%, transparent 25%),
-        linear-gradient(315deg, var(--ornament-color) 25%, transparent 25%),
-        linear-gradient(45deg, var(--ornament-color) 25%, transparent 25%);
-        
-    /* 精确控制四个角的位置 */
-    background-position: 
-        6px 6px,
-        calc(100% - 6px) 6px,
-        calc(100% - 6px) calc(100% - 6px),
-        6px calc(100% - 6px);
-        
-    background-size: 28px 28px;
-    background-repeat: no-repeat;
-    
-    /* 微妙的整体光泽 */
-    box-shadow: inset 0 0 80px rgba(255, 193, 7, 0.05);
-}
-
-/* 现代简约棋盘 - 移动端适配 */
-@media (max-width: 600px) { 
-    .board.skin-modern { 
-        padding: 4px; 
-        border-width: 3px;
-        box-shadow: 
-            0 0 0 1px #c5a059,
-            0 0 0 2px #3e2723,
-            inset 1px 1px 4px rgba(0,0,0,0.3),
-            0 10px 30px rgba(0,0,0,0.3);
-    } 
-    .board.skin-modern::before { display: none !important; }
-}

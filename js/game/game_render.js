@@ -14,6 +14,8 @@ function renderBoard() {
         } 
         b.appendChild(cell); 
     } 
+    // [Alpha 0.7.9.1] 应用棋盘皮肤
+    if (typeof applyBoardSkin === 'function') applyBoardSkin();
     if (typeof VisualFX !== 'undefined') VisualFX.init();
 }
 function getCell(r, c) { return document.getElementById(`c-${r}-${c}`); }

@@ -597,12 +597,32 @@ function selectBoardSkin(skin) {
     currentBoardSkin = GameState.currentBoardSkin;
     updateBoardSelectorUI();
     updateBoardEntryPreview();
+    // [Alpha 0.7.9.1] 实时应用棋盘皮肤到游戏棋盘
+    applyBoardSkin();
+}
+
+// [Alpha 0.7.9.1] 应用棋盘皮肤
+function applyBoardSkin() {
+    const boardEl = document.getElementById('board');
+    if (!boardEl) return;
+    
+    // 移除所有棋盘皮肤类
+    boardEl.classList.remove('skin-modern');
+    
+    // 应用新皮肤
+    if (currentBoardSkin === 'modern') {
+        boardEl.classList.add('skin-modern');
+    }
+    // classic_wood 是默认样式，不需要额外的类
 }
 
 function updateBoardSelectorUI() {
     document.querySelectorAll('#boardSelectorModal .skin-grid-item').forEach(el => el.classList.remove('active'));
     if (currentBoardSkin === 'classic_wood') {
         const el = document.getElementById('boardGridClassic');
+        if (el) el.classList.add('active');
+    } else if (currentBoardSkin === 'modern') {
+        const el = document.getElementById('boardGridModern');
         if (el) el.classList.add('active');
     }
 }
@@ -615,6 +635,8 @@ function updateBoardEntryPreview() {
     preview.className = 'skin-entry-preview board-entry-preview';
     if (currentBoardSkin === 'classic_wood') {
         preview.innerHTML = '<div class="board-mini-preview classic-wood-preview" style="width:100%;height:100%;border-radius:8px;"></div>';
+    } else if (currentBoardSkin === 'modern') {
+        preview.innerHTML = '<div class="board-mini-preview modern-preview" style="width:100%;height:100%;border-radius:8px;"></div>';
     }
 }
 
