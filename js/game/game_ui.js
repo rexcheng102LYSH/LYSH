@@ -654,16 +654,26 @@ function selectBoardSkin(skin) {
 }
 
 // [Alpha 0.7.9.1] 应用棋盘皮肤
+// [Alpha 0.7.9.4] 新增沙滩皮肤支持
 function applyBoardSkin() {
     const boardEl = document.getElementById('board');
+    const wrapperEl = document.querySelector('.board-wrapper');
     if (!boardEl) return;
     
     // 移除所有棋盘皮肤类
-    boardEl.classList.remove('skin-modern');
+    boardEl.classList.remove('skin-modern', 'skin-beach');
+    if (wrapperEl) {
+        wrapperEl.classList.remove('skin-beach');
+    }
     
     // 应用新皮肤
     if (currentBoardSkin === 'modern') {
         boardEl.classList.add('skin-modern');
+    } else if (currentBoardSkin === 'beach') {
+        boardEl.classList.add('skin-beach');
+        if (wrapperEl) {
+            wrapperEl.classList.add('skin-beach');
+        }
     }
     // classic_wood 是默认样式，不需要额外的类
 }
@@ -675,6 +685,9 @@ function updateBoardSelectorUI() {
         if (el) el.classList.add('active');
     } else if (currentBoardSkin === 'modern') {
         const el = document.getElementById('boardGridModern');
+        if (el) el.classList.add('active');
+    } else if (currentBoardSkin === 'beach') {
+        const el = document.getElementById('boardGridBeach');
         if (el) el.classList.add('active');
     }
 }
@@ -689,6 +702,8 @@ function updateBoardEntryPreview() {
         preview.innerHTML = '<div class="board-mini-preview classic-wood-preview" style="width:100%;height:100%;border-radius:8px;"></div>';
     } else if (currentBoardSkin === 'modern') {
         preview.innerHTML = '<div class="board-mini-preview modern-preview" style="width:100%;height:100%;border-radius:8px;"></div>';
+    } else if (currentBoardSkin === 'beach') {
+        preview.innerHTML = '<div class="board-mini-preview beach-preview" style="width:100%;height:100%;border-radius:8px;"></div>';
     }
 }
 

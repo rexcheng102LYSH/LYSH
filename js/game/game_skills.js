@@ -73,7 +73,7 @@ function activateSkill() {
     
     if(GameState.selectedCell) { 
         const old = getCell(GameState.selectedCell.r, GameState.selectedCell.c); 
-        if(old) old.classList.remove('selected-move'); 
+        if(old) hideMoveIndicator(old); 
         GameState.selectedCell = null;
         selectedCell = null; // 同步
     }

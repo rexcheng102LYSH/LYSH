@@ -3,7 +3,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "Alpha0.7.9.3", 
+        subTitle: "Alpha0.7.9.4", 
         btnPvE: "人機對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -57,6 +57,7 @@ const I18N = {
         skinNature: "自然",
         boardClassicWood: "經典木質",
         boardModern: "現代簡約",
+        boardBeach: "熱帶沙灘",
         skinComingSoon: "敬請期待",
 
         // [Alpha 0.7.9.3] 棋子特效调试
@@ -132,7 +133,7 @@ const I18N = {
     'zh': {
         langName: "简", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "Alpha0.7.9.3", 
+        subTitle: "Alpha0.7.9.4", 
         btnPvE: "人机对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -186,6 +187,7 @@ const I18N = {
         skinNature: "自然",
         boardClassicWood: "经典木质",
         boardModern: "现代简约",
+        boardBeach: "热带沙滩",
         skinComingSoon: "敬请期待",
 
         // [Alpha 0.7.9.3] 棋子特效调试
@@ -261,7 +263,7 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Skill Gomoku <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "Alpha0.7.9.3", 
+        subTitle: "Alpha0.7.9.4", 
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -315,6 +317,7 @@ const I18N = {
         skinNature: "Nature",
         boardClassicWood: "Classic Wood",
         boardModern: "Modern",
+        boardBeach: "Tropical Beach",
         skinComingSoon: "Coming Soon",
 
         // [Alpha 0.7.9.3] Piece Effect Debug

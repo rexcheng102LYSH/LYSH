@@ -22,6 +22,29 @@
 // - 强化状态管理：enterTurnSelection 和 initGame 强制清除特效，防止残留
 
 
+// ================= 落子确认指示器辅助函数 =================
+// [修复] 使用子元素而非 ::after，避免覆盖棋盘竖线
+function showMoveIndicator(cell) {
+    if (!cell) return;
+    // 先移除旧的指示器
+    hideMoveIndicator(cell);
+    // 创建新的指示器元素
+    const indicator = document.createElement('div');
+    indicator.className = 'move-indicator';
+    cell.appendChild(indicator);
+    cell.classList.add('selected-move');
+}
+
+function hideMoveIndicator(cell) {
+    if (!cell) return;
+    cell.classList.remove('selected-move');
+    const indicator = cell.querySelector('.move-indicator');
+    if (indicator) {
+        indicator.remove();
+    }
+}
+
+
 // ================= 帧率控制系统 =================
 // 统一的主循环管理器，确保稳定的帧率
 const FrameRateController = {
@@ -411,11 +434,11 @@ function handleCellClick(r, c, bypassConfirm = false) {
     if (isZoneRestricted(r, c, currentPlayer)) { showToast(t('errZone', 'toast')); SoundEngine.playError(); return; }
     if (!bypassConfirm && !isDoubleMoveActive) { 
         if (!selectedCell || selectedCell.r !== r || selectedCell.c !== c) { 
-            if(selectedCell) { const old = getCell(selectedCell.r, selectedCell.c); if(old) old.classList.remove('selected-move'); } 
+            if(selectedCell) { const old = getCell(selectedCell.r, selectedCell.c); if(old) hideMoveIndicator(old); } 
             GameState.selectedCell = {r, c}; selectedCell = {r, c}; // 同步
-            const newCell = getCell(r, c); if(newCell) newCell.classList.add('selected-move'); SoundEngine.playPlace(); return; 
+            const newCell = getCell(r, c); if(newCell) showMoveIndicator(newCell); SoundEngine.playPlace(); return; 
         } else { 
-            const old = getCell(selectedCell.r, selectedCell.c); if(old) old.classList.remove('selected-move'); 
+            const old = getCell(selectedCell.r, selectedCell.c); if(old) hideMoveIndicator(old); 
             GameState.selectedCell = null; selectedCell = null; // 同步
         } 
     }
@@ -443,7 +466,7 @@ function handleCellClick(r, c, bypassConfirm = false) {
         chaosDebuff = GameState.chaosDebuff; // 同步
     }
     placePiece(r, c, currentPlayer, false, wasChaosed);
-    if(selectedCell) { const old = getCell(selectedCell.r, selectedCell.c); if(old) old.classList.remove('selected-move'); GameState.selectedCell = null; selectedCell = null; // 同步
+    if(selectedCell) { const old = getCell(selectedCell.r, selectedCell.c); if(old) hideMoveIndicator(old); GameState.selectedCell = null; selectedCell = null; // 同步
     }
     if (isDoubleMoveActive) { 
         GameState.isDoubleMoveActive = false; isDoubleMoveActive = false; // 同步
@@ -634,7 +657,7 @@ function undoMove() {
     
     if(GameState.selectedCell) { 
         const c = getCell(GameState.selectedCell.r, GameState.selectedCell.c); 
-        if(c) c.classList.remove('selected-move'); 
+        if(c) hideMoveIndicator(c); 
         GameState.selectedCell = null;
         selectedCell = null; // 同步
     }

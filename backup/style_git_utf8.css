@@ -1,11 +1,11 @@
-:root {
-    /* --- 核心變量保持兼容 --- */
+﻿:root {
+    /* --- 鏍稿績璁婇噺淇濇寔鍏煎 --- */
     --glass-surface: rgba(255, 255, 255, 0.85); 
     --glass-border: rgba(255, 255, 255, 0.9);
     --glass-shadow: 0 12px 40px rgba(31, 38, 135, 0.15);
     --glass-blur: blur(16px);
     
-    /* --- [Art Revolution] 榧木与刻线系统 --- */
+    /* --- [Art Revolution] 姒ф湪涓庡埢绾跨郴缁?--- */
     --wood-base: #e6b36e;
     --wood-highlight: #f7d59c;
     --wood-shadow: #c49250;
@@ -13,11 +13,11 @@
     --wood-side: #b58040;
     --board-border-color: #3e2b20; 
     
-    /* 线条系统 */
+    /* 绾挎潯绯荤粺 */
     --line-ink: rgba(30, 20, 15, 0.85); 
     --line-highlight: rgba(255, 255, 255, 0.35);
     
-    /* --- 尺寸系統 --- */
+    /* --- 灏哄绯荤当 --- */
     --board-size: 500px;
     --board-padding: 18px; 
     --board-outer: calc(var(--board-size) + var(--board-padding) * 2);
@@ -25,7 +25,7 @@
     --scroll-gap: 18px;
     --board-center-offset: -6px;
 
-    /* 其他功能色 */
+    /* 鍏朵粬鍔熻兘鑹?*/
     --board-wood: #e8c384; 
     --corrode-color: #2d3436;
     --maple-color: #d32f2f;
@@ -170,7 +170,7 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
         repeating-linear-gradient(45deg, var(--wood-grain) 0px, var(--wood-grain) 1px, transparent 1px, transparent 4px),
         linear-gradient(to bottom right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.05) 100%);
 
-    /* [CRITICAL] 严格保持 10px Padding */
+    /* [CRITICAL] 涓ユ牸淇濇寔 10px Padding */
     padding: 10px; 
     
     display: grid; 
@@ -201,9 +201,9 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     z-index: 1; 
 }
 
-/* --- [CLEANUP] 移除所有花纹 (Borderless Effect) --- */
+/* --- [CLEANUP] 绉婚櫎鎵€鏈夎姳绾?(Borderless Effect) --- */
 .board::before {
-    display: none; /* 彻底隐藏花纹层，回归纯净木纹 */
+    display: none; /* 褰诲簳闅愯棌鑺辩汗灞傦紝鍥炲綊绾噣鏈ㄧ汗 */
 }
 
 @media (max-width: 600px) { 
@@ -216,7 +216,7 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
             3px 3px 0 var(--wood-side),
             5px 5px 15px rgba(0,0,0,0.25);
     } 
-    /* 移动端保留简约 */
+    /* 绉诲姩绔繚鐣欑畝绾?*/
     .board::before { display: none; }
 }
 
@@ -228,7 +228,7 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     align-items: center; 
 }
 
-/* 棋盘线层级：0 */
+/* 妫嬬洏绾垮眰绾э細0 */
 .cell::before { 
     content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 1px; 
     background: var(--line-ink); 
@@ -247,14 +247,14 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 .cell:nth-child(-n+15)::after { top: 50%; height: 50%; }
 .cell:nth-child(n+211)::after { height: 50%; }
 
-/* --- [CRITICAL FIX] 星位层级修复 --- */
+/* --- [CRITICAL FIX] 鏄熶綅灞傜骇淇 --- */
 .cell[data-star="true"] .dot { 
     width: 22%; height: 22%; 
     background: radial-gradient(circle at 35% 35%, #4e342e 0%, #271c19 100%);
     border-radius: 50%; 
     position: absolute; 
     
-    /* [层级逻辑] Lines(0) < Star(1) < Pieces(20) */
+    /* [灞傜骇閫昏緫] Lines(0) < Star(1) < Pieces(20) */
     z-index: 1; 
     
     box-shadow: 
@@ -267,48 +267,305 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 .piece { 
     width: 90%; height: 90%; 
     
-    /* [CRITICAL FIX] 棋子层级提升至最高，确保覆盖星位 */
+    /* [CRITICAL FIX] 妫嬪瓙灞傜骇鎻愬崌鑷虫渶楂橈紝纭繚瑕嗙洊鏄熶綅 */
     z-index: 20; 
     
     pointer-events: none; border-radius: 50%; 
     display: flex; justify-content: center; align-items: center; 
-    /* [Alpha 0.7.9.3] 移除默认动画，完全由 JS 根据设置动态添加动画类 */
-    /* animation: 由 JS 动态添加 drop-fast / drop-slow / drop-fast-bounce / drop-slow-bounce */
+    /* [Alpha 0.7.9.3] 绉婚櫎榛樿鍔ㄧ敾锛屽畬鍏ㄧ敱 JS 鏍规嵁璁剧疆鍔ㄦ€佹坊鍔犲姩鐢荤被 */
+    /* animation: 鐢?JS 鍔ㄦ€佹坊鍔?drop-fast / drop-slow / drop-fast-bounce / drop-slow-bounce */
     will-change: transform, opacity, box-shadow;
 }
+.piece-svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3)); }
+.piece-img { width: 100%; height: 100%; object-fit: contain; display: block; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3)); }
+.piece.skin-nature .piece-img { width: 105%; height: 105%; margin: -2.5%; transform: none; }
 
-/* [Alpha 0.7.9.3] 棋子样式已拆分至 css/pieces.css */
+/* ========================================= */
+/* ========================================= */
+/* [Alpha 0.7.9.4] 娓╂鼎妫嬪瓙缇庢湳 - 浣庡姣斿害鐗?*/
+/* Warm & Soft Piece Art - Low Contrast      */
+/* 榛戝瓙锛氱煶澧ㄧ伆璋?/ 鐧藉瓙锛氳薄鐗欐殩鐧借皟          */
+/* 鏍稿績鐞嗗康锛氭俯娑︺€侀€忔皵銆佷笉娌硅吇               */
+/* ========================================= */
+
+/* 妫嬪瓙鍩虹鏍峰紡 */
+.piece.skin-classic { 
+    border-radius: 50%;
+    position: relative;
+    transform-style: preserve-3d;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+/* ===== 绔嬩綋璐ㄦ劅 - 鐐伆榛戝瓙 ===== */
+/* 
+ * 璁捐鐞嗗康锛氱函姝ｇ殑鐐伆鑹诧紝涓嶅亸缁夸笉鍋忚摑
+ * 涓績杈冩繁锛岃竟缂樻湁鑷劧鐨勭伆鑹茶繃娓? */
+.piece.skin-classic.p1.texture-3d { 
+    background: 
+        /* 鐞冧綋涓讳綋锛氱函姝ｇ偔鐏拌壊锛屾棤鑹插亸 */
+        radial-gradient(
+            circle at 48% 46%,
+            #1a1a1a 0%,
+            #222222 18%,
+            #2c2c2c 35%,
+            #383838 52%,
+            #454545 68%,
+            #525252 82%,
+            #5e5e5e 100%
+        );
+    
+    /* 鏌斿拰鐨勯槾褰?*/
+    box-shadow: 
+        inset 0 -5px 12px -4px rgba(0, 0, 0, 0.4),
+        inset 0 5px 10px -4px rgba(255, 255, 255, 0.05),
+        0 2px 4px rgba(0, 0, 0, 0.22),
+        0 4px 8px -2px rgba(0, 0, 0, 0.15);
+    
+    border: none;
+}
+
+/* 榛戝瓙楂樺厜灞?- 鏌斿拰鐨勫厜鏂?*/
+.piece.skin-classic.p1.texture-3d::before {
+    content: '';
+    position: absolute;
+    top: 12%;
+    left: 15%;
+    width: 38%;
+    height: 28%;
+    background: radial-gradient(
+        ellipse 100% 80% at 50% 50%,
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(255, 255, 255, 0.08) 40%,
+        rgba(255, 255, 255, 0.02) 70%,
+        transparent 100%
+    );
+    border-radius: 50%;
+    transform: rotate(-15deg);
+    pointer-events: none;
+}
+
+/* 榛戝瓙 - 杈圭紭鐨勫井濡欓€忔皵鎰?*/
+.piece.skin-classic.p1.texture-3d::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 50%;
+    /* 杈圭紭鐢ㄧ函鐏拌壊锛屼笉甯﹁壊鍋?*/
+    background: radial-gradient(
+        circle at 50% 50%,
+        transparent 0%,
+        transparent 65%,
+        rgba(128, 128, 128, 0.06) 80%,
+        rgba(150, 150, 150, 0.1) 92%,
+        rgba(170, 170, 170, 0.12) 100%
+    );
+    pointer-events: none;
+}
+
+/* ===== 绔嬩綋璐ㄦ劅 - 璞＄墮鐧藉瓙 ===== */
+/* 
+ * 璁捐鐞嗗康锛氫笉鏄喎鐧斤紝鑰屾槸娓╂殩鐨勮薄鐗欒壊
+ * 甯︿竴鐐圭偣绫抽粍/濂舵补鑹茶皟锛岀湅璧锋潵娓╂鼎鑸掓湇
+ * 闃村奖鐢ㄦ殩鐏拌壊鑰屼笉鏄喎鐏拌壊
+ */
+.piece.skin-classic.p2.texture-3d { 
+    background: 
+        /* 鐞冧綋涓讳綋锛氳薄鐗欑櫧鐨勬煍鍜岃繃娓?*/
+        radial-gradient(
+            circle at 46% 44%,
+            #faf8f5 0%,
+            #f5f3f0 18%,
+            #efece8 35%,
+            #e8e4df 52%,
+            #e0dbd5 68%,
+            #d6d0c9 82%,
+            #ccc5bd 100%
+        );
+    
+    /* 娓╂殩鐨勯槾褰辩郴缁?*/
+    box-shadow: 
+        /* 鍐呴槾褰憋細搴曢儴鐢ㄦ殩鐏拌壊 */
+        inset 0 -5px 12px -4px rgba(180, 170, 155, 0.35),
+        /* 鍐呴槾褰憋細椤堕儴鏌斿拰鎻愪寒 */
+        inset 0 5px 10px -4px rgba(255, 255, 255, 0.7),
+        /* 澶栭槾褰憋細鏆栬壊璋冩姇灏?*/
+        0 2px 4px rgba(120, 110, 95, 0.15),
+        0 4px 8px -2px rgba(100, 90, 75, 0.1);
+    
+    border: none;
+}
+
+/* 鐧藉瓙楂樺厜灞?- 鏌斿拰涓嶅埡鐪?*/
+.piece.skin-classic.p2.texture-3d::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: 12%;
+    width: 42%;
+    height: 32%;
+    background: radial-gradient(
+        ellipse 100% 80% at 50% 50%,
+        rgba(255, 255, 255, 0.75) 0%,
+        rgba(255, 255, 255, 0.45) 30%,
+        rgba(255, 255, 255, 0.15) 60%,
+        transparent 100%
+    );
+    border-radius: 50%;
+    transform: rotate(-12deg);
+    pointer-events: none;
+}
+
+/* 鐧藉瓙 - 杈圭紭鐨勬俯娑﹁繃娓?*/
+.piece.skin-classic.p2.texture-3d::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 50%;
+    background: 
+        /* 鍙充笅瑙掑井寮辩殑鐜鍙嶅厜 */
+        radial-gradient(
+            ellipse 35% 30% at 75% 72%,
+            rgba(255, 255, 255, 0.25) 0%,
+            rgba(255, 255, 255, 0.08) 50%,
+            transparent 100%
+        ),
+        /* 搴曢儴鐨勬殩鑹茶皟锛堣薄鐗欑壒鏈夛級 */
+        radial-gradient(
+            ellipse 70% 25% at 50% 92%,
+            rgba(220, 200, 170, 0.1) 0%,
+            transparent 70%
+        );
+    pointer-events: none;
+}
+
+/* ===== 鎵佸钩璐ㄦ劅 ===== */
+
+/* 榛戝瓙鎵佸钩鐗?*/
+.piece.skin-classic.p1.texture-flat { 
+    background: radial-gradient(
+        circle at 40% 38%, 
+        #505458 0%, 
+        #3a3e42 40%, 
+        #2d3035 70%,
+        #252830 100%
+    );
+    box-shadow: 
+        inset 0 -4px 8px -2px rgba(0, 0, 0, 0.3),
+        inset 0 3px 6px -2px rgba(255, 255, 255, 0.08),
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        0 3px 6px -2px rgba(0, 0, 0, 0.12);
+    border: none;
+}
+
+.piece.skin-classic.p1.texture-flat::before,
+.piece.skin-classic.p1.texture-flat::after {
+    display: none;
+}
+
+/* 鐧藉瓙鎵佸钩鐗?*/
+.piece.skin-classic.p2.texture-flat { 
+    background: radial-gradient(
+        circle at 40% 38%, 
+        #faf8f5 0%, 
+        #f0ede8 35%, 
+        #e5e0da 60%,
+        #d8d2ca 100%
+    );
+    box-shadow: 
+        inset 0 -4px 8px -2px rgba(160, 150, 135, 0.25),
+        inset 0 3px 6px -2px rgba(255, 255, 255, 0.6),
+        0 2px 4px rgba(100, 90, 75, 0.12),
+        0 3px 6px -2px rgba(80, 70, 55, 0.08);
+    border: none;
+}
+
+.piece.skin-classic.p2.texture-flat::before,
+.piece.skin-classic.p2.texture-flat::after {
+    display: none;
+}
+
+/* ===== 绉诲姩绔€傞厤 ===== */
+@media (max-width: 600px) {
+    .piece.skin-classic.p1.texture-3d {
+        background: radial-gradient(
+            circle at 48% 46%,
+            #2d3033 0%,
+            #3d4145 40%,
+            #555b62 75%,
+            #6a727b 100%
+        );
+        box-shadow: 
+            inset 0 -4px 10px -3px rgba(0, 0, 0, 0.3),
+            0 2px 4px rgba(0, 0, 0, 0.18),
+            0 3px 6px -2px rgba(0, 0, 0, 0.12);
+    }
+    
+    .piece.skin-classic.p2.texture-3d {
+        background: radial-gradient(
+            circle at 46% 44%,
+            #faf8f5 0%,
+            #ebe7e2 40%,
+            #ddd8d0 70%,
+            #ccc5bd 100%
+        );
+        box-shadow: 
+            inset 0 -4px 10px -3px rgba(180, 170, 155, 0.3),
+            inset 0 3px 6px -2px rgba(255, 255, 255, 0.6),
+            0 2px 4px rgba(120, 110, 95, 0.12),
+            0 3px 6px -2px rgba(100, 90, 75, 0.08);
+    }
+    
+    .piece.skin-classic.p1.texture-3d::before {
+        width: 35%;
+        height: 25%;
+        background: radial-gradient(
+            ellipse 100% 80% at 50% 50%,
+            rgba(255, 255, 255, 0.15) 0%,
+            rgba(255, 255, 255, 0.05) 50%,
+            transparent 100%
+        );
+    }
+    
+    .piece.skin-classic.p1.texture-3d::after {
+        display: none;
+    }
+    
+    .piece.skin-classic.p2.texture-3d::before {
+        width: 38%;
+        height: 28%;
+        background: radial-gradient(
+            ellipse 100% 80% at 50% 50%,
+            rgba(255, 255, 255, 0.65) 0%,
+            rgba(255, 255, 255, 0.2) 50%,
+            transparent 100%
+        );
+    }
+    
+    .piece.skin-classic.p2.texture-3d::after {
+        display: none;
+    }
+}
+
+.piece.skin-nature { background: transparent !important; box-shadow: none !important; }
 
 /* --- [Interactions] --- */
 .cell.territory-zone { background-color: rgba(211, 47, 47, 0.15) !important; box-shadow: inset 0 0 15px rgba(211, 47, 47, 0.1); } 
 .cell.territory-preview { background-color: rgba(211, 47, 47, 0.1); }
 .cell.corroded { background: var(--corrode-color) !important; z-index: 1; box-shadow: inset 0 0 10px #000; border-radius: 4px; }
-.cell.corroded::after { content: '☠️'; position: absolute; font-size: 1.2rem; color: #7f8c8d; z-index: 2; opacity: 0.8; }
+.cell.corroded::after { content: '鈽狅笍'; position: absolute; font-size: 1.2rem; color: #7f8c8d; z-index: 2; opacity: 0.8; }
 .cell.corroded .piece { opacity: 0.3; filter: grayscale(1) blur(1px); }
 .cell.win-highlight { position: relative; z-index: 10; } 
 .cell.win-highlight::before { content: ''; position: absolute; top: 10%; left: 10%; width: 80%; height: 80%; border-radius: 50%; background: #00e676; opacity: 0.8; filter: blur(6px); z-index: -1; animation: flash 0.8s infinite alternate; }
+.cell.selected-move::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 2px solid var(--select-color); border-radius: 50%; box-sizing: border-box; z-index: 5; animation: breathe 1.5s infinite; box-shadow: 0 0 10px var(--select-color); }
 
-/* [修复] 落子确认 - 使用子元素而非 ::after，避免覆盖竖线 */
-.cell.selected-move {
-    z-index: 5;
-}
-/* 落子确认指示器 - 由 JS 动态创建的子元素 */
-.move-indicator {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border: 2px solid var(--select-color);
-    border-radius: 50%;
-    box-sizing: border-box;
-    z-index: 4;
-    animation: breathe 1.5s infinite;
-    box-shadow: 0 0 10px var(--select-color);
-    pointer-events: none;
-}
-
-/* [Alpha 0.7.9.0] 落子锁定标记 - 系统化 HUD 瞄准风格 */
+/* [Alpha 0.7.9.0] 钀藉瓙閿佸畾鏍囪 - 绯荤粺鍖?HUD 鐬勫噯椋庢牸 */
 .last-move-marker {
     position: absolute;
     top: -10%;
@@ -320,7 +577,7 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     animation: markerBreath 2s ease-in-out infinite, markerFadeOut 2s ease-in forwards;
 }
 
-/* 4个L形角落 */
+/* 4涓狶褰㈣钀?*/
 .last-move-marker::before,
 .last-move-marker::after {
     content: '';
@@ -330,7 +587,7 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     box-sizing: border-box;
 }
 
-/* 左上角 L */
+/* 宸︿笂瑙?L */
 .last-move-marker::before {
     top: 0;
     left: 0;
@@ -338,7 +595,7 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     border-left: 2px solid #00e676;
 }
 
-/* 右下角 L */
+/* 鍙充笅瑙?L */
 .last-move-marker::after {
     bottom: 0;
     right: 0;
@@ -346,7 +603,7 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     border-right: 2px solid #00e676;
 }
 
-/* 右上角和左下角 */
+/* 鍙充笂瑙掑拰宸︿笅瑙?*/
 .last-move-corner {
     position: absolute;
     width: 25%;
@@ -355,7 +612,7 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     pointer-events: none;
 }
 
-/* 右上角 L */
+/* 鍙充笂瑙?L */
 .last-move-corner.top-right {
     top: 0;
     right: 0;
@@ -363,7 +620,7 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     border-right: 2px solid #00e676;
 }
 
-/* 左下角 L */
+/* 宸︿笅瑙?L */
 .last-move-corner.bottom-left {
     bottom: 0;
     left: 0;
@@ -371,7 +628,7 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     border-left: 2px solid #00e676;
 }
 
-/* 系统化呼吸动画 - 一开一合 */
+/* 绯荤粺鍖栧懠鍚稿姩鐢?- 涓€寮€涓€鍚?*/
 @keyframes markerBreath {
     0%, 100% { 
         transform: scale(1);
@@ -381,7 +638,7 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     }
 }
 
-/* 2秒后淡出消失 */
+/* 2绉掑悗娣″嚭娑堝け */
 @keyframes markerFadeOut {
     0%, 70% {
         opacity: 1;
@@ -423,7 +680,7 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
 .inline-icon { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; vertical-align: text-bottom; }
 .inline-icon svg { width: 100%; height: 100%; fill: currentColor; stroke: currentColor; }
 
-/* 技能卷轴 */
+/* 鎶€鑳藉嵎杞?*/
 .skill-scroll {
     --scroll-count: 0;
     width: 190px;
@@ -583,7 +840,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .skin-preview .classic-demo { width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #666 0%, #111 100%); box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
 .skin-preview .nature-demo { width: 100%; height: 100%; }
 
-/* [Alpha 0.7.9.0] 皮肤/棋盘选择器入口按钮 */
+/* [Alpha 0.7.9.0] 鐨偆/妫嬬洏閫夋嫨鍣ㄥ叆鍙ｆ寜閽?*/
 .skin-entry-row { display: flex; gap: 20px; justify-content: center; align-items: flex-start; margin: 25px 0; width: 100%; }
 .skin-entry-group { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; }
 .skin-section-title { font-size: 0.95rem; font-weight: 600; color: #2d3436; text-align: center; }
@@ -592,7 +849,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .skin-entry-preview { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; gap: 6px; padding: 10px; box-sizing: border-box; }
 .board-entry-preview { padding: 8px; }
 
-/* [Alpha 0.7.9.0] 棋子/棋盘选择器模态框 */
+/* [Alpha 0.7.9.0] 妫嬪瓙/妫嬬洏閫夋嫨鍣ㄦā鎬佹 */
 .selector-modal-content { max-width: 360px; }
 .skin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; width: 100%; }
 .skin-grid-item { border: 2px solid #e0e0e0; border-radius: 16px; padding: 12px; cursor: pointer; background: #fafafa; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px; }
@@ -601,7 +858,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .skin-grid-item.disabled { opacity: 0.5; cursor: not-allowed; }
 .skin-grid-label { font-size: 0.85rem; font-weight: 600; color: #2d3436; }
 
-/* 双棋子预览（黑白分隔） */
+/* 鍙屾瀛愰瑙堬紙榛戠櫧鍒嗛殧锛?*/
 .piece-dual-preview { width: 100%; height: 60px; display: flex; justify-content: center; align-items: center; gap: 0; position: relative; }
 .piece-half { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; }
 .piece-divider { width: 1px; height: 36px; background: #333; margin: 0 8px; }
@@ -610,10 +867,10 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .piece-maple { background: url('images/maple.png') center/contain no-repeat, radial-gradient(circle at 30% 30%, #8B4513 0%, #5D3A1A 100%); box-shadow: 0 3px 6px rgba(0,0,0,0.3); }
 .piece-sun { background: url('images/sun.png') center/contain no-repeat, radial-gradient(circle at 30% 30%, #FFD700 0%, #FFA500 100%); box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
 
-/* 迷你棋盘预览 */
+/* 杩蜂綘妫嬬洏棰勮 */
 .board-mini-preview { width: 100%; height: 60px; border-radius: 8px; position: relative; overflow: hidden; }
 
-/* 经典木质预览 - 强调立体木边效果 */
+/* 缁忓吀鏈ㄨ川棰勮 - 寮鸿皟绔嬩綋鏈ㄨ竟鏁堟灉 */
 .classic-wood-preview { 
     background: 
         linear-gradient(90deg, transparent 0%, rgba(139, 90, 43, 0.15) 50%, transparent 100%),
@@ -641,7 +898,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
     box-shadow: 0 1px 2px rgba(0,0,0,0.4);
 }
 
-/* 现代简约预览 - 强调金线镶嵌和紫檀木框 */
+/* 鐜颁唬绠€绾﹂瑙?- 寮鸿皟閲戠嚎闀跺祵鍜岀传妾€鏈ㄦ */
 .modern-preview { 
     background: 
         radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.3) 0%, transparent 60%),
@@ -670,7 +927,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
         inset 0 1px 2px rgba(0,0,0,0.5);
 }
 
-/* 现代简约预览 - 四角金色装饰点 */
+/* 鐜颁唬绠€绾﹂瑙?- 鍥涜閲戣壊瑁呴グ鐐?*/
 .modern-preview .corner-decor {
     position: absolute; width: 4px; height: 4px;
     background: linear-gradient(135deg, #d4af37 0%, #c5a059 100%);
@@ -682,48 +939,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .modern-preview .corner-decor.bl { bottom: 3px; left: 3px; }
 .modern-preview .corner-decor.br { bottom: 3px; right: 3px; }
 
-/* [Alpha 0.7.9.4] 沙滩预览 - 海水环绕 + 金色沙滩 */
-.beach-preview {
-    /* 继承基础尺寸 */
-    width: 100%;
-    height: 60px;
-    position: relative;
-    background: 
-        /* 海水层 */
-        linear-gradient(180deg, #87ceeb 0%, #5bb5d6 100%);
-    border-radius: 6px;
-    overflow: hidden;
-}
-.beach-preview::before {
-    content: '';
-    position: absolute;
-    top: 12%;
-    left: 10%;
-    right: 10%;
-    bottom: 12%;
-    background: 
-        /* 沙滩主体 */
-        radial-gradient(ellipse at 30% 30%, #f5e6c8 0%, transparent 50%),
-        linear-gradient(to bottom, #b8a070 0%, #e8d4a8 20%, #e8d4a8 80%, #b8a070 100%);
-    border-radius: 4px;
-    border: 2px solid #8b7355;
-}
-.beach-preview::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 4px;
-    height: 4px;
-    background: radial-gradient(circle, #c0c0c0 0%, #909090 100%);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    box-shadow: 
-        -8px -8px 0 2px rgba(250, 240, 230, 0.8),
-        8px 8px 0 1px rgba(180, 180, 180, 0.6);
-}
-
-/* 敬请期待样式 */
+/* 鏁鏈熷緟鏍峰紡 */
 .coming-soon { background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%); justify-content: center; align-items: center; }
 .coming-soon span { font-size: 1.5rem; color: #999; font-weight: bold; }
 .board-mini-preview.coming-soon { display: flex; }
@@ -762,9 +978,246 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
     } 
 }
 
-/* [Alpha 0.7.9.3] 棋子波纹特效已拆分至 css/pieces.css */
+/* ========================================= */
+/* [Alpha 0.7.9.3] 榛戠櫧妫嬪瓙娉㈢汗姘斿満绯荤粺       */
+/* 榛戝瓙锛氬ⅷ姘村柗婧?- 鐪熷疄澧ㄨ抗椋炴簠鎰?           */
+/* 鐧藉瓙锛氫紭闆呮稛婕?- 鐧借壊涓轰富鐨勬煍鍜屾尝绾?       */
+/* ========================================= */
 
-/* [Alpha 0.7.9.3] 棋盘落子震动效果 */
+/* ============ 榛戝瓙锛氬ⅷ姘村柗婧呮晥鏋?============ */
+
+/* 涓績澧ㄧ偣鍐插嚮 */
+.ink-center-blot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 60%;
+    height: 60%;
+    border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%;
+    transform: translate(-50%, -50%) scale(0.3);
+    pointer-events: none;
+    z-index: 15;
+    background: rgba(0, 0, 0, 0.9);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
+    animation: inkBlotBurst 0.35s ease-out forwards;
+}
+
+@keyframes inkBlotBurst {
+    0% {
+        transform: translate(-50%, -50%) scale(0.3);
+        opacity: 1;
+    }
+    40% {
+        transform: translate(-50%, -50%) scale(1.4);
+        opacity: 0.85;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.8);
+        opacity: 0;
+    }
+}
+
+/* 涓昏澧ㄨ抗椋炴簠 - 涓嶈鍒欏ⅷ鐐?*/
+.ink-splatter {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--splat-size, 5px);
+    height: calc(var(--splat-size, 5px) * var(--splat-stretch, 1));
+    transform: translate(-50%, -50%) rotate(var(--splat-rotation, 0deg));
+    pointer-events: none;
+    z-index: 16;
+    /* 绾粦澧ㄧ偣锛岃竟缂樼暐寰ā绯婃ā鎷熷ⅷ杩规笚閫?*/
+    background: radial-gradient(ellipse at center,
+        rgba(0, 0, 0, 0.95) 0%,
+        rgba(0, 0, 0, 0.9) 60%,
+        rgba(0, 0, 0, 0.7) 80%,
+        rgba(0, 0, 0, 0.3) 100%);
+    border-radius: 50% 45% 55% 50% / 45% 50% 50% 55%;
+    animation: inkSplatterFly 0.4s cubic-bezier(0.15, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes inkSplatterFly {
+    0% {
+        transform: translate(-50%, -50%) translate(0, 0) rotate(var(--splat-rotation, 0deg)) scale(0.2);
+        opacity: 1;
+    }
+    20% {
+        transform: translate(-50%, -50%) translate(calc(var(--splat-x) * 0.3), calc(var(--splat-y) * 0.3)) rotate(var(--splat-rotation, 0deg)) scale(1.2);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(-50%, -50%) translate(calc(var(--splat-x) * 0.7), calc(var(--splat-y) * 0.7)) rotate(var(--splat-rotation, 0deg)) scale(1);
+        opacity: 0.85;
+    }
+    100% {
+        transform: translate(-50%, -50%) translate(var(--splat-x), var(--splat-y)) rotate(var(--splat-rotation, 0deg)) scale(0.7);
+        opacity: 0;
+    }
+}
+
+/* 缁嗗皬澧ㄦ淮 - 鏇磋繙鏇村皬 */
+.ink-tiny-drop {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--drop-size, 3px);
+    height: var(--drop-size, 3px);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 17;
+    background: rgba(0, 0, 0, 0.92);
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+    animation: inkTinyFly 0.5s cubic-bezier(0.15, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes inkTinyFly {
+    0% {
+        transform: translate(-50%, -50%) translate(0, 0) scale(0.3);
+        opacity: 1;
+    }
+    30% {
+        transform: translate(-50%, -50%) translate(calc(var(--drop-x) * 0.4), calc(var(--drop-y) * 0.4)) scale(1.1);
+        opacity: 0.9;
+    }
+    100% {
+        transform: translate(-50%, -50%) translate(var(--drop-x), var(--drop-y)) scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* ============ 鐧藉瓙锛氫紭闆呯櫧鑹叉稛婕?============ */
+
+/* 鐧借壊鍚屽績鍦嗘尝绾?- 娣＄伆杈规锛屼紭闆呭唴鏁?*/
+.white-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0.5);
+    pointer-events: none;
+    z-index: 15;
+    /* 娣＄伆鑹茶竟妗嗭紝鐧借壊涓轰富 */
+    border: 2px solid rgba(160, 165, 175, 0.7);
+    background: transparent;
+    box-shadow: 
+        0 0 8px rgba(180, 185, 195, 0.4),
+        0 0 16px rgba(200, 205, 215, 0.2),
+        inset 0 0 6px rgba(220, 225, 235, 0.25);
+    animation: whiteRingExpand 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes whiteRingExpand {
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 0.9;
+        border-width: 2.5px;
+        border-color: rgba(150, 155, 165, 0.8);
+    }
+    40% {
+        transform: translate(-50%, -50%) scale(1.5);
+        opacity: 0.6;
+        border-width: 2px;
+        border-color: rgba(170, 175, 185, 0.6);
+    }
+    70% {
+        transform: translate(-50%, -50%) scale(2.0);
+        opacity: 0.35;
+        border-width: 1.5px;
+        border-color: rgba(190, 195, 205, 0.4);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(2.5);
+        opacity: 0;
+        border-width: 1px;
+    }
+}
+
+/* 涓績鏌斿厜 - 绾櫧鑹插厜鏅?*/
+.white-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0.4);
+    pointer-events: none;
+    z-index: 16;
+    /* 绾櫧鑹叉笎鍙橈紝寰井甯︾伆 */
+    background: radial-gradient(circle,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(250, 250, 252, 0.7) 30%,
+        rgba(240, 242, 245, 0.4) 60%,
+        transparent 100%);
+    box-shadow: 
+        0 0 15px rgba(255, 255, 255, 0.5),
+        0 0 30px rgba(240, 242, 248, 0.3);
+    animation: whiteGlowPulse 0.4s ease-out forwards;
+}
+
+@keyframes whiteGlowPulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0.4);
+        opacity: 1;
+    }
+    40% {
+        transform: translate(-50%, -50%) scale(1.1);
+        opacity: 0.85;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.3);
+        opacity: 0;
+    }
+}
+
+/* 鐧借壊鍏夌偣鏁ｈ惤 */
+.white-spark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 17;
+    /* 绾櫧鍏夌偣 */
+    background: radial-gradient(circle,
+        rgba(255, 255, 255, 1) 0%,
+        rgba(250, 250, 255, 0.9) 50%,
+        rgba(240, 242, 248, 0.6) 100%);
+    box-shadow: 
+        0 0 4px rgba(255, 255, 255, 0.8),
+        0 0 8px rgba(245, 248, 255, 0.5);
+    animation: whiteSparkFly 0.45s ease-out forwards;
+}
+
+@keyframes whiteSparkFly {
+    0% {
+        transform: translate(-50%, -50%) translate(0, 0) scale(0.5);
+        opacity: 1;
+    }
+    30% {
+        transform: translate(-50%, -50%) translate(calc(var(--spark-x) * 0.4), calc(var(--spark-y) * 0.5)) scale(1.1);
+        opacity: 0.9;
+    }
+    100% {
+        transform: translate(-50%, -50%) translate(var(--spark-x), var(--spark-y)) scale(0.4);
+        opacity: 0;
+    }
+}
+
+/* === 鏃х増鏍峰紡鍏煎锛堥殣钘忥級=== */
+.piece-ripple, .ink-ripple, .ink-main, .ink-second, .ink-edge, .ink-splash,
+.water-ring, .water-splash-center, .water-drop {
+    display: none;
+}
+
+/* [Alpha 0.7.9.3] 妫嬬洏钀藉瓙闇囧姩鏁堟灉 */
 @keyframes boardShake {
     0%, 100% { transform: translateY(-5px); }
     20% { transform: translateY(-5px) translate(2px, 1px); }
@@ -794,64 +1247,64 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 
 
 /* ========================================= */
-/* [Alpha 0.7.9.1] 现代简约棋盘皮肤          */
+/* [Alpha 0.7.9.1] 鐜颁唬绠€绾︽鐩樼毊鑲?         */
 /* Board Skin: Modern Minimalist             */
 /* ========================================= */
 
 .board.skin-modern { 
-    /* 核心：内盘面（更浅的榧木色） */
+    /* 鏍稿績锛氬唴鐩橀潰锛堟洿娴呯殑姒ф湪鑹诧級 */
     background-color: #eecfa1;
     background-image: 
-        /* 细腻的木纹噪点 - 使用SVG Filter生成分形噪点 */
+        /* 缁嗚吇鐨勬湪绾瑰櫔鐐?- 浣跨敤SVG Filter鐢熸垚鍒嗗舰鍣偣 */
         url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E"),
-        /* 温暖的径向光照，模拟顶光 */
+        /* 娓╂殩鐨勫緞鍚戝厜鐓э紝妯℃嫙椤跺厜 */
         radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.25) 0%, rgba(0, 0, 0, 0.05) 100%);
 
-    /* [CRITICAL] 调整 padding 以匹配当前棋盘尺寸 */
+    /* [CRITICAL] 璋冩暣 padding 浠ュ尮閰嶅綋鍓嶆鐩樺昂瀵?*/
     padding: 10px; 
     
-    /* 边框系统：模拟紫檀木外框 */
+    /* 杈规绯荤粺锛氭ā鎷熺传妾€鏈ㄥ妗?*/
     border: 6px solid #5d4037;
     border-radius: 6px; 
     
-    /* 光影与材质系统 */
+    /* 鍏夊奖涓庢潗璐ㄧ郴缁?*/
     box-shadow: 
-        /* 1. 金线镶嵌 (Gold Inlay) */
+        /* 1. 閲戠嚎闀跺祵 (Gold Inlay) */
         0 0 0 1px #c5a059,
-        /* 2. 外框立体感 - 模拟木材倒角 */
+        /* 2. 澶栨绔嬩綋鎰?- 妯℃嫙鏈ㄦ潗鍊掕 */
         0 0 0 4px #3e2723,
         0 0 0 5px rgba(255,255,255,0.1),
-        /* 3. 内阴影 - 让棋盘中心看起来是下陷镶嵌进去的 */
+        /* 3. 鍐呴槾褰?- 璁╂鐩樹腑蹇冪湅璧锋潵鏄笅闄烽暥宓岃繘鍘荤殑 */
         inset 2px 2px 6px rgba(0,0,0,0.4),
         inset -1px -1px 2px rgba(255,255,255,0.2),
-        /* 4. 环境投影 */
+        /* 4. 鐜鎶曞奖 */
         0 20px 50px rgba(0,0,0,0.4),
         0 5px 15px rgba(0,0,0,0.2);
         
-    /* 混合模式确保纹理自然融合 */
+    /* 娣峰悎妯″紡纭繚绾圭悊鑷劧铻嶅悎 */
     background-blend-mode: soft-light, normal;
 }
 
-/* 现代简约棋盘 - 四角回纹装饰 */
+/* 鐜颁唬绠€绾︽鐩?- 鍥涜鍥炵汗瑁呴グ */
 .board.skin-modern::before {
     content: '';
     position: absolute;
     top: 0; bottom: 0; left: 0; right: 0;
     pointer-events: none;
     z-index: 0;
-    display: block !important; /* 覆盖默认的 display: none */
+    display: block !important; /* 瑕嗙洊榛樿鐨?display: none */
     
-    /* 装饰纹样颜色 */
+    /* 瑁呴グ绾规牱棰滆壊 */
     --ornament-color: rgba(62, 39, 35, 0.12); 
     
-    /* 四角对称回纹 */
+    /* 鍥涜瀵圭О鍥炵汗 */
     background-image: 
         linear-gradient(135deg, var(--ornament-color) 25%, transparent 25%),
         linear-gradient(225deg, var(--ornament-color) 25%, transparent 25%),
         linear-gradient(315deg, var(--ornament-color) 25%, transparent 25%),
         linear-gradient(45deg, var(--ornament-color) 25%, transparent 25%);
         
-    /* 精确控制四个角的位置 */
+    /* 绮剧‘鎺у埗鍥涗釜瑙掔殑浣嶇疆 */
     background-position: 
         6px 6px,
         calc(100% - 6px) 6px,
@@ -861,11 +1314,11 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
     background-size: 28px 28px;
     background-repeat: no-repeat;
     
-    /* 微妙的整体光泽 */
+    /* 寰鐨勬暣浣撳厜娉?*/
     box-shadow: inset 0 0 80px rgba(255, 193, 7, 0.05);
 }
 
-/* 现代简约棋盘 - 移动端适配 */
+/* 鐜颁唬绠€绾︽鐩?- 绉诲姩绔€傞厤 */
 @media (max-width: 600px) { 
     .board.skin-modern { 
         padding: 4px; 
@@ -881,387 +1334,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 
 
 /* ========================================= */
-/* [Alpha 0.7.9.4] 沙滩棋盘皮肤              */
-/* Board Skin: Beach Paradise                */
-/* 设计理念：午后热带沙滩，海水环绕，惬意松软  */
-/* ========================================= */
-
-/* === 海水环绕层 (Board Wrapper) === */
-/* 只影响外围间隙，不覆盖棋盘内部 */
-.board-wrapper.skin-beach {
-    /* 海水基底色 - 清澈热带海水 */
-    background: 
-        linear-gradient(180deg, 
-            #6dd5ed 0%,
-            #4fc3dc 30%,
-            #3bb5d0 60%,
-            #2aa5c0 100%
-        );
-    
-    /* 覆盖默认样式 */
-    backdrop-filter: none;
-    border-radius: 12px;
-    /* [修复] 使用固定 padding 确保四边均匀，比其他皮肤更大以展示水流 */
-    padding: 24px;
-    position: relative;
-    overflow: hidden;
-    
-    /* [修复] 确保内部棋盘居中 */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    
-    box-shadow: 
-        /* 海水深度感 */
-        inset 0 0 20px rgba(0, 80, 120, 0.3),
-        inset 0 0 40px rgba(0, 60, 100, 0.15),
-        /* 外部投影 */
-        0 15px 40px rgba(0, 80, 120, 0.25),
-        0 6px 15px rgba(0, 60, 100, 0.15);
-}
-
-/* === 第一层：流动的海水波纹 === */
-.board-wrapper.skin-beach::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    border-radius: 12px;
-    pointer-events: none;
-    z-index: 0;
-    
-    /* 流动波纹 - 多层叠加 */
-    background: 
-        /* 波浪层1 - 大波 */
-        repeating-linear-gradient(
-            110deg,
-            transparent 0%,
-            rgba(255, 255, 255, 0.15) 2%,
-            transparent 4%,
-            transparent 10%
-        ),
-        /* 波浪层2 - 中波 */
-        repeating-linear-gradient(
-            95deg,
-            transparent 0%,
-            rgba(200, 240, 255, 0.12) 1.5%,
-            transparent 3%,
-            transparent 7%
-        ),
-        /* 波浪层3 - 细波 */
-        repeating-linear-gradient(
-            100deg,
-            transparent 0%,
-            rgba(255, 255, 255, 0.08) 1%,
-            transparent 2%,
-            transparent 5%
-        );
-    
-    background-size: 200% 200%, 150% 150%, 100% 100%;
-    animation: waterFlow 4s linear infinite;
-}
-
-/* === 第二层：浪花泡沫（靠近棋盘边缘） === */
-.board-wrapper.skin-beach::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    border-radius: 12px;
-    pointer-events: none;
-    z-index: 1;
-    
-    /* 内边缘浪花 - 模拟水拍打沙滩 */
-    box-shadow:
-        /* 浪花白沫 - 内圈 */
-        inset 0 0 8px 3px rgba(255, 255, 255, 0.4),
-        inset 0 0 15px 5px rgba(200, 240, 255, 0.25),
-        /* 水的光泽 */
-        inset 0 -3px 10px rgba(255, 255, 255, 0.2),
-        inset 0 3px 10px rgba(0, 60, 100, 0.15);
-    
-    animation: foamPulse 3s ease-in-out infinite;
-}
-
-/* === 海水流动动画 === */
-@keyframes waterFlow {
-    0% {
-        background-position: 0% 0%, 0% 0%, 0% 0%;
-    }
-    100% {
-        background-position: 200% 50%, 150% 30%, 100% 20%;
-    }
-}
-
-/* === 浪花脉动动画 === */
-@keyframes foamPulse {
-    0%, 100% {
-        box-shadow:
-            inset 0 0 8px 3px rgba(255, 255, 255, 0.4),
-            inset 0 0 15px 5px rgba(200, 240, 255, 0.25),
-            inset 0 -3px 10px rgba(255, 255, 255, 0.2),
-            inset 0 3px 10px rgba(0, 60, 100, 0.15);
-        opacity: 1;
-    }
-    50% {
-        box-shadow:
-            inset 0 0 12px 5px rgba(255, 255, 255, 0.55),
-            inset 0 0 20px 7px rgba(200, 240, 255, 0.35),
-            inset 0 -4px 12px rgba(255, 255, 255, 0.3),
-            inset 0 4px 12px rgba(0, 60, 100, 0.1);
-        opacity: 0.95;
-    }
-}
-
-/* === 沙滩主体 (Board) === */
-.board.skin-beach {
-    /* [重做] 真实沙滩色彩 - 金黄色调 */
-    --sand-bright: #f5d060;     /* 阳光直射的亮沙 */
-    --sand-main: #e8c040;       /* 主体沙色 - 明亮金黄 */
-    --sand-mid: #d4a830;        /* 中间色 */
-    --sand-dark: #c09020;       /* 阴影区 */
-    --sand-wet: #a07818;        /* 湿沙 */
-    
-    /* 纯净的沙黄色基底 */
-    background-color: #e0b838;
-    
-    /* 多层沙子纹理 */
-    background-image: 
-        /* 第6层：密集的沙粒点 - 模拟真实沙子颗粒 */
-        radial-gradient(circle 0.8px at 5% 8%, #f8e080 0%, transparent 100%),
-        radial-gradient(circle 0.6px at 12% 22%, #f0d060 0%, transparent 100%),
-        radial-gradient(circle 0.9px at 18% 5%, #ffe090 0%, transparent 100%),
-        radial-gradient(circle 0.7px at 25% 35%, #f5d870 0%, transparent 100%),
-        radial-gradient(circle 0.8px at 32% 12%, #f8dc78 0%, transparent 100%),
-        radial-gradient(circle 0.6px at 38% 28%, #f0c850 0%, transparent 100%),
-        radial-gradient(circle 0.9px at 45% 8%, #ffe488 0%, transparent 100%),
-        radial-gradient(circle 0.7px at 52% 42%, #f5d060 0%, transparent 100%),
-        radial-gradient(circle 0.8px at 58% 18%, #f8e090 0%, transparent 100%),
-        radial-gradient(circle 0.6px at 65% 32%, #f0d468 0%, transparent 100%),
-        radial-gradient(circle 0.9px at 72% 6%, #ffe080 0%, transparent 100%),
-        radial-gradient(circle 0.7px at 78% 25%, #f5dc70 0%, transparent 100%),
-        radial-gradient(circle 0.8px at 85% 15%, #f8d878 0%, transparent 100%),
-        radial-gradient(circle 0.6px at 92% 38%, #f0c848 0%, transparent 100%),
-        radial-gradient(circle 0.7px at 8% 55%, #ffe488 0%, transparent 100%),
-        radial-gradient(circle 0.8px at 15% 68%, #f5d060 0%, transparent 100%),
-        radial-gradient(circle 0.6px at 22% 82%, #f8e090 0%, transparent 100%),
-        radial-gradient(circle 0.9px at 28% 48%, #f0d468 0%, transparent 100%),
-        radial-gradient(circle 0.7px at 35% 72%, #ffe080 0%, transparent 100%),
-        radial-gradient(circle 0.8px at 42% 58%, #f5dc70 0%, transparent 100%),
-        radial-gradient(circle 0.6px at 48% 88%, #f8d878 0%, transparent 100%),
-        radial-gradient(circle 0.9px at 55% 65%, #f0c848 0%, transparent 100%),
-        radial-gradient(circle 0.7px at 62% 78%, #ffe488 0%, transparent 100%),
-        radial-gradient(circle 0.8px at 68% 52%, #f5d060 0%, transparent 100%),
-        radial-gradient(circle 0.6px at 75% 92%, #f8e090 0%, transparent 100%),
-        radial-gradient(circle 0.9px at 82% 62%, #f0d468 0%, transparent 100%),
-        radial-gradient(circle 0.7px at 88% 85%, #ffe080 0%, transparent 100%),
-        radial-gradient(circle 0.8px at 95% 48%, #f5dc70 0%, transparent 100%),
-        
-        /* 第5层：更多随机沙粒 */
-        radial-gradient(circle 1px at 3% 45%, #d8b030 0%, transparent 100%),
-        radial-gradient(circle 1.2px at 17% 62%, #c8a028 0%, transparent 100%),
-        radial-gradient(circle 1px at 33% 38%, #d0a830 0%, transparent 100%),
-        radial-gradient(circle 1.1px at 47% 75%, #c09020 0%, transparent 100%),
-        radial-gradient(circle 1px at 63% 45%, #d8b038 0%, transparent 100%),
-        radial-gradient(circle 1.2px at 77% 68%, #c8a020 0%, transparent 100%),
-        radial-gradient(circle 1px at 93% 55%, #d0a828 0%, transparent 100%),
-        
-        /* 第4层：高密度噪点 - 沙子颗粒感 */
-        url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2' numOctaves='6' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.25'/%3E%3C/svg%3E"),
-        
-        /* 第3层：中等噪点 */
-        url("data:image/svg+xml,%3Csvg viewBox='0 0 150 150' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)' opacity='0.15'/%3E%3C/svg%3E"),
-        
-        /* 第2层：阳光照射区域 */
-        radial-gradient(ellipse 80% 80% at 25% 20%, 
-            rgba(255, 240, 150, 0.5) 0%, 
-            transparent 60%),
-        
-        /* ===== 湿沙到干沙多层精细过渡（四边对称） ===== */
-        /* 第1层-A：最湿的边缘（深棕色，紧贴水边） */
-        linear-gradient(to bottom, rgba(120, 85, 25, 0.5) 0%, rgba(120, 85, 25, 0.3) 3%, transparent 6%),
-        linear-gradient(to top, rgba(120, 85, 25, 0.5) 0%, rgba(120, 85, 25, 0.3) 3%, transparent 6%),
-        linear-gradient(to right, rgba(120, 85, 25, 0.5) 0%, rgba(120, 85, 25, 0.3) 3%, transparent 6%),
-        linear-gradient(to left, rgba(120, 85, 25, 0.5) 0%, rgba(120, 85, 25, 0.3) 3%, transparent 6%),
-        
-        /* 第1层-B：湿沙第二层（稍浅） */
-        linear-gradient(to bottom, rgba(140, 100, 35, 0.35) 0%, rgba(140, 100, 35, 0.18) 6%, transparent 12%),
-        linear-gradient(to top, rgba(140, 100, 35, 0.35) 0%, rgba(140, 100, 35, 0.18) 6%, transparent 12%),
-        linear-gradient(to right, rgba(140, 100, 35, 0.35) 0%, rgba(140, 100, 35, 0.18) 6%, transparent 12%),
-        linear-gradient(to left, rgba(140, 100, 35, 0.35) 0%, rgba(140, 100, 35, 0.18) 6%, transparent 12%),
-        
-        /* 第1层-C：湿沙第三层（过渡色） */
-        linear-gradient(to bottom, rgba(160, 115, 45, 0.25) 0%, rgba(160, 115, 45, 0.1) 10%, transparent 18%),
-        linear-gradient(to top, rgba(160, 115, 45, 0.25) 0%, rgba(160, 115, 45, 0.1) 10%, transparent 18%),
-        linear-gradient(to right, rgba(160, 115, 45, 0.25) 0%, rgba(160, 115, 45, 0.1) 10%, transparent 18%),
-        linear-gradient(to left, rgba(160, 115, 45, 0.25) 0%, rgba(160, 115, 45, 0.1) 10%, transparent 18%),
-        
-        /* 第1层-D：半干沙（微微深色） */
-        linear-gradient(to bottom, rgba(180, 130, 55, 0.15) 0%, rgba(180, 130, 55, 0.05) 15%, transparent 25%),
-        linear-gradient(to top, rgba(180, 130, 55, 0.15) 0%, rgba(180, 130, 55, 0.05) 15%, transparent 25%),
-        linear-gradient(to right, rgba(180, 130, 55, 0.15) 0%, rgba(180, 130, 55, 0.05) 15%, transparent 25%),
-        linear-gradient(to left, rgba(180, 130, 55, 0.15) 0%, rgba(180, 130, 55, 0.05) 15%, transparent 25%);
-    
-    /* 边框：深色木棍/漂流木 */
-    border: 5px solid #6a4a20;
-    border-radius: 6px;
-    
-    box-shadow: 
-        /* 内部柔和光 */
-        inset 2px 2px 6px rgba(255, 230, 150, 0.3),
-        inset -2px -2px 6px rgba(100, 70, 20, 0.25),
-        /* 外部阴影 */
-        0 4px 10px rgba(100, 70, 20, 0.4),
-        0 8px 20px rgba(0, 0, 0, 0.15);
-    
-    padding: 10px;
-}
-
-/* 沙滩棋盘 - 角落装饰（渐变版） */
-.board.skin-beach::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    pointer-events: none;
-    z-index: 2;
-    display: block !important; /* 覆盖全局的display:none */
-    
-    background-image:
-        /* 右上角 - 海星PNG */
-        url('images/starfish.png'),
-        
-        /* 左上角 - 扇贝壳 */
-        radial-gradient(ellipse 18px 14px at 22px 22px, 
-            #faf0e6 0%, #f5deb3 40%, #deb887 70%, transparent 71%),
-        radial-gradient(ellipse 3px 10px at 18px 18px,
-            rgba(139, 115, 85, 0.3) 0%, transparent 100%),
-        radial-gradient(ellipse 3px 10px at 22px 16px,
-            rgba(139, 115, 85, 0.25) 0%, transparent 100%),
-        radial-gradient(ellipse 3px 10px at 26px 18px,
-            rgba(139, 115, 85, 0.3) 0%, transparent 100%),
-            
-        /* 左下角 - 螺旋贝 */
-        radial-gradient(ellipse 12px 16px at 20px calc(100% - 20px),
-            #faf8f0 0%, #e8dcc8 50%, #c9b896 80%, transparent 81%),
-        conic-gradient(from 180deg at 20px calc(100% - 20px),
-            rgba(139, 115, 85, 0.2) 0deg, transparent 30deg, 
-            rgba(139, 115, 85, 0.15) 60deg, transparent 90deg,
-            rgba(139, 115, 85, 0.2) 120deg, transparent 150deg,
-            rgba(139, 115, 85, 0.15) 180deg, transparent 210deg),
-            
-        /* 右下角 - 鹅卵石群 */
-        radial-gradient(ellipse 8px 6px at calc(100% - 28px) calc(100% - 18px),
-            #a0a0a0 0%, #808080 70%, transparent 71%),
-        radial-gradient(ellipse 6px 5px at calc(100% - 18px) calc(100% - 22px),
-            #b0b0b0 0%, #909090 70%, transparent 71%),
-        radial-gradient(ellipse 5px 4px at calc(100% - 22px) calc(100% - 28px),
-            #c0c0c0 0%, #a0a0a0 70%, transparent 71%);
-    
-    background-repeat: no-repeat;
-    background-size: 40px 48px, auto, auto, auto, auto, auto, auto, auto, auto, auto;
-    background-position: calc(100% + 5px) -5px, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
-}
-
-/* 沙滩棋盘 - 额外装饰层（沙滩边缘细节） */
-.board.skin-beach::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    pointer-events: none;
-    z-index: 1;
-    border-radius: 4px;
-    
-    /* 湿沙光泽反射 */
-    background: 
-        /* 边缘湿沙的微光反射 - 金黄色调 */
-        linear-gradient(to bottom, rgba(255, 220, 100, 0.25) 0%, transparent 12%),
-        linear-gradient(to top, rgba(255, 215, 90, 0.2) 0%, transparent 12%),
-        linear-gradient(to right, rgba(255, 218, 95, 0.22) 0%, transparent 12%),
-        linear-gradient(to left, rgba(255, 218, 95, 0.22) 0%, transparent 12%);
-}
-
-/* 沙滩棋盘 - 沙上划痕线条 */
-.board.skin-beach .cell::before {
-    background: rgba(160, 120, 50, 0.6);
-    box-shadow: 
-        0 0.5px 0 rgba(255, 220, 120, 0.3);
-    height: 1.2px;
-}
-
-.board.skin-beach .cell::after {
-    background: rgba(160, 120, 50, 0.6);
-    box-shadow: 
-        0.5px 0 0 rgba(255, 220, 120, 0.3);
-    width: 1.2px;
-}
-
-/* [修复] 沙滩棋盘落子确认 - 现在使用 JS 动态创建 .move-indicator 子元素，不再覆盖竖线 */
-
-/* 沙滩棋盘 - 鹅卵石星位 */
-.board.skin-beach .cell[data-star="true"] .dot {
-    width: 26%;
-    height: 26%;
-    background: 
-        /* 鹅卵石光泽 */
-        radial-gradient(ellipse 60% 40% at 35% 30%, 
-            rgba(255, 255, 255, 0.6) 0%, transparent 50%),
-        /* 鹅卵石主体 */
-        radial-gradient(circle at 45% 45%,
-            #d0d0d0 0%,
-            #b8b8b8 30%,
-            #a0a0a0 60%,
-            #888888 100%
-        );
-    border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%;
-    box-shadow: 
-        /* 石子立体感 */
-        inset 1px 1px 2px rgba(255, 255, 255, 0.4),
-        inset -1px -1px 2px rgba(0, 0, 0, 0.2),
-        /* 沙中嵌入感 */
-        0 2px 3px rgba(0, 0, 0, 0.25),
-        0 1px 1px rgba(139, 115, 85, 0.3);
-    transform: rotate(-5deg);
-}
-
-/* 沙滩棋盘 - 移动端适配 */
-@media (max-width: 600px) {
-    .board-wrapper.skin-beach {
-        /* [修复] 移动端也使用固定 padding */
-        padding: 12px;
-        animation: none; /* 移动端关闭动画节省性能 */
-    }
-    
-    .board-wrapper.skin-beach::before {
-        animation: none;
-        opacity: 0.6;
-    }
-    
-    .board.skin-beach {
-        padding: 4px;
-        border-width: 3px;
-        box-shadow: 
-            inset 1px 1px 3px rgba(255, 255, 255, 0.15),
-            inset -1px -1px 3px rgba(0, 0, 0, 0.1),
-            0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-    
-    .board.skin-beach::before {
-        /* 移动端简化装饰 */
-        background-image:
-            /* 只保留两个角的装饰 */
-            radial-gradient(ellipse 14px 10px at 16px 16px, 
-                #faf0e6 0%, #f5deb3 40%, #deb887 70%, transparent 71%),
-            radial-gradient(circle 5px at calc(100% - 20px) 20px,
-                #e07050 0%, #c85040 60%, transparent 61%);
-    }
-    
-    .board.skin-beach .cell[data-star="true"] .dot {
-        width: 24%;
-        height: 24%;
-    }
-}
-
-
-/* ========================================= */
-/* [Alpha 0.7.9.3] LYSH 开发者区域样式       */
+/* [Alpha 0.7.9.3] LYSH 寮€鍙戣€呭尯鍩熸牱寮?      */
 /* LYSH Developer Zone Styles                */
 /* ========================================= */
 
@@ -1445,18 +1518,18 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
     letter-spacing: 1px;
 }
 
-/* 棋盘震动选择器样式 */
+/* 妫嬬洏闇囧姩閫夋嫨鍣ㄦ牱寮?*/
 .shake-selector .capsule-opt {
     padding: 8px 16px;
     font-size: 0.85rem;
 }
 
 /* ========================================= */
-/* [Alpha 0.7.9.3] 棋子特效调试二级界面       */
+/* [Alpha 0.7.9.3] 妫嬪瓙鐗规晥璋冭瘯浜岀骇鐣岄潰       */
 /* Piece Effect Debug Panel                  */
 /* ========================================= */
 
-/* 长按金色灌满动画 - 简单稳定版 */
+/* 闀挎寜閲戣壊鐏屾弧鍔ㄧ敾 - 绠€鍗曠ǔ瀹氱増 */
 .skin-grid-item.long-press-ready {
     position: relative;
     overflow: hidden;
@@ -1476,7 +1549,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 }
 
 .skin-grid-item.long-pressing::after {
-    /* 前200ms静默等待，后500ms快速灌满 */
+    /* 鍓?00ms闈欓粯绛夊緟锛屽悗500ms蹇€熺亴婊?*/
     animation: goldFillUp 500ms linear 200ms forwards;
 }
 
@@ -1485,7 +1558,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
     100% { height: 100%; }
 }
 
-/* 长按完成闪烁效果 */
+/* 闀挎寜瀹屾垚闂儊鏁堟灉 */
 .skin-grid-item.long-press-complete::after {
     height: 100%;
     background: #fff;
@@ -1498,7 +1571,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
     100% { background: #ffd700; opacity: 0.6; }
 }
 
-/* 棋子特效调试面板样式 */
+/* 妫嬪瓙鐗规晥璋冭瘯闈㈡澘鏍峰紡 */
 .piece-effect-panel {
     max-width: 380px;
 }
@@ -1581,4 +1654,388 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* [Alpha 0.7.9.3] 落子动画和自然棋子特效已拆分至 css/pieces.css */
+/* ========================================= */
+/* [Alpha 0.7.9.3] 涓ょ钀藉瓙鍔ㄧ敾椋庢牸           */
+/* Drop Animation Styles: Fast / Slow        */
+/* 鍩轰簬 Alpha 0.7.9.2 鍘熺増鍔ㄧ敾杩樺師            */
+/* 閫熷害鍜屽洖寮圭浉浜掔嫭绔嬶紝缁熶竴鏃堕暱               */
+/* ========================================= */
+
+/* 蹇€熻惤瀛愬姩鐢伙紙Alpha 0.7.9.2 鍘熺増锛? 鏃犲洖寮?*/
+@keyframes dropFast {
+    0% { 
+        transform: scale(1.6) translateY(-30px); 
+        opacity: 0; 
+    } 
+    60% { 
+        transform: scale(0.95) translateY(2px); 
+        opacity: 1; 
+    }
+    100% { 
+        transform: scale(1) translateY(0); 
+    } 
+}
+
+/* 鎱㈤€熻惤瀛愬姩鐢?- 鏃犲洖寮?*/
+@keyframes dropSlow {
+    0% { 
+        transform: scale(1.6) translateY(-30px); 
+        opacity: 0; 
+    } 
+    60% { 
+        transform: scale(0.95) translateY(2px); 
+        opacity: 1; 
+    }
+    100% { 
+        transform: scale(1) translateY(0); 
+    } 
+}
+
+/* 蹇€?+ 鍥炲脊锛堟椂闀夸笌蹇€熸棤鍥炲脊鐩稿悓锛?/
+@keyframes dropFastBounce {
+    0% { 
+        transform: scale(1.6) translateY(-30px); 
+        opacity: 0; 
+    } 
+    45% { 
+        transform: scale(0.88) translateY(4px); 
+        opacity: 1; 
+    }
+    70% {
+        transform: scale(1.1) translateY(-4px);
+    }
+    88% {
+        transform: scale(0.96) translateY(1px);
+    }
+    100% { 
+        transform: scale(1) translateY(0); 
+    } 
+}
+
+/* 鎱㈤€?+ 鍥炲脊锛堟椂闀夸笌鎱㈤€熸棤鍥炲脊鐩稿悓锛?/
+@keyframes dropSlowBounce {
+    0% { 
+        transform: scale(1.6) translateY(-30px); 
+        opacity: 0; 
+    } 
+    45% { 
+        transform: scale(0.88) translateY(4px); 
+        opacity: 1; 
+    }
+    70% {
+        transform: scale(1.1) translateY(-4px);
+    }
+    88% {
+        transform: scale(0.96) translateY(1px);
+    }
+    100% { 
+        transform: scale(1) translateY(0); 
+    } 
+}
+
+/* 鍔ㄧ敾绫?- 閫熷害鍜屽洖寮圭嫭绔嬶紝缁熶竴鏃堕暱 */
+.piece.drop-fast {
+    animation: dropFast 0.25s ease-out;
+}
+
+.piece.drop-fast-bounce {
+    animation: dropFastBounce 0.25s ease-out;
+}
+
+.piece.drop-slow {
+    animation: dropSlow 0.45s ease-out;
+}
+
+.piece.drop-slow-bounce {
+    animation: dropSlowBounce 0.45s ease-out;
+}
+
+/* ========================================= */
+/* [Alpha 0.7.9.3] 鑷劧妫嬪瓙鐗规晥              */
+/* Nature Piece Effects                      */
+/* ========================================= */
+
+/* ========================================= */
+/* [Alpha 0.7.9.3] 鑷劧妫嬪瓙钀藉瓙鐗规晥绯荤粺      */
+/* Nature Piece Drop Effects - Enhanced      */
+/* ========================================= */
+
+/* === 钀藉彾椋樿惤鐗规晥 === */
+.nature-leaf {
+    position: absolute;
+    border-radius: 50% 0 50% 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) translate(var(--start-x), var(--start-y)) rotate(0deg);
+    pointer-events: none;
+    z-index: 25;
+    opacity: 0;
+    /* 娣诲姞鍙惰剦绾圭悊 */
+    background-image: 
+        linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%),
+        linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.15) 100%);
+    background-blend-mode: overlay;
+    /* 鏌斿拰闃村奖澧炲姞绔嬩綋鎰?*/
+    box-shadow: 
+        0 2px 4px rgba(0,0,0,0.2),
+        inset 0 1px 2px rgba(255,255,255,0.3);
+    animation: leafFall 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes leafFall {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translate(var(--start-x), var(--start-y)) rotate(0deg) scale(0.3);
+    }
+    15% {
+        opacity: 1;
+        transform: translate(-50%, -50%) translate(var(--start-x), calc(var(--start-y) + 3px)) rotate(calc(var(--rotation) * 0.15)) scale(1.1);
+    }
+    40% {
+        opacity: 0.95;
+        transform: translate(-50%, -50%) translate(calc(var(--start-x) + var(--end-x) * 0.3), calc(var(--start-y) + var(--end-y) * 0.3)) rotate(calc(var(--rotation) * 0.4)) scale(1);
+    }
+    70% {
+        opacity: 0.7;
+        transform: translate(-50%, -50%) translate(calc(var(--end-x) * 0.7), calc(var(--end-y) * 0.7)) rotate(calc(var(--rotation) * 0.75)) scale(0.85);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translate(var(--end-x), var(--end-y)) rotate(var(--rotation)) scale(0.5);
+    }
+}
+
+/* 钀藉彾灏樺湡鏁堟灉 */
+.nature-leaf-dust {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 120%;
+    height: 120%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0.3);
+    background: radial-gradient(circle, 
+        rgba(139, 69, 19, 0.25) 0%, 
+        rgba(160, 82, 45, 0.15) 30%, 
+        rgba(210, 105, 30, 0.08) 60%, 
+        transparent 80%);
+    pointer-events: none;
+    z-index: 24;
+    animation: leafDustPuff 0.6s ease-out forwards;
+}
+
+@keyframes leafDustPuff {
+    0% {
+        transform: translate(-50%, -50%) scale(0.3);
+        opacity: 0;
+    }
+    30% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.8);
+        opacity: 0;
+    }
+}
+
+/* === 闃冲厜鐗规晥绯荤粺 === */
+
+/* 鏍稿績闂厜锛堢灛闂寸垎鍙戯級 */
+.nature-sun-flash {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200%;
+    height: 200%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: radial-gradient(circle, 
+        rgba(255, 255, 255, 1) 0%, 
+        rgba(255, 255, 200, 0.9) 20%, 
+        rgba(255, 215, 0, 0.6) 40%, 
+        transparent 70%);
+    pointer-events: none;
+    z-index: 30;
+    animation: sunFlashBurst 0.25s ease-out forwards;
+}
+
+@keyframes sunFlashBurst {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 1;
+    }
+    40% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0.9;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.8);
+        opacity: 0;
+    }
+}
+
+/* 涓诲厜鏅曪紙娓╂殩鎵╂暎锛?*/
+.nature-sun-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 150%;
+    height: 150%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0.5);
+    background: radial-gradient(circle, 
+        rgba(255, 223, 0, 0.9) 0%, 
+        rgba(255, 193, 7, 0.7) 25%, 
+        rgba(255, 152, 0, 0.5) 50%, 
+        rgba(255, 87, 34, 0.2) 75%, 
+        transparent 100%);
+    pointer-events: none;
+    z-index: 17;
+    /* 娣诲姞鏌斿拰鍏夋檿 */
+    box-shadow: 
+        0 0 20px rgba(255, 193, 7, 0.5),
+        0 0 40px rgba(255, 152, 0, 0.3);
+    animation: sunGlowExpand 0.7s ease-out forwards;
+}
+
+@keyframes sunGlowExpand {
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 1;
+    }
+    40% {
+        transform: translate(-50%, -50%) scale(1.8);
+        opacity: 0.85;
+    }
+    70% {
+        transform: translate(-50%, -50%) scale(2.5);
+        opacity: 0.5;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(3);
+        opacity: 0;
+    }
+}
+
+/* 澶栧眰鍏夌幆锛堟稛婕晥鏋滐級 */
+.nature-sun-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    border: 3px solid rgba(255, 215, 0, 0.8);
+    background: transparent;
+    pointer-events: none;
+    z-index: 18;
+    box-shadow: 
+        0 0 10px rgba(255, 215, 0, 0.6),
+        inset 0 0 10px rgba(255, 215, 0, 0.3);
+    animation: sunRingExpand 0.6s ease-out forwards;
+}
+
+@keyframes sunRingExpand {
+    0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 1;
+        border-width: 3px;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(2);
+        opacity: 0.7;
+        border-width: 2px;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(3.5);
+        opacity: 0;
+        border-width: 1px;
+    }
+}
+
+/* 闃冲厜灏勭嚎锛堟洿浜洿闀匡級 */
+.nature-sun-ray {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 35px;
+    background: linear-gradient(to bottom, 
+        rgba(255, 255, 255, 1) 0%, 
+        rgba(255, 223, 0, 0.95) 20%, 
+        rgba(255, 193, 7, 0.7) 50%, 
+        rgba(255, 152, 0, 0.3) 80%, 
+        transparent 100%);
+    transform-origin: center bottom;
+    transform: translate(-50%, -100%) rotate(var(--ray-angle)) scaleY(0);
+    pointer-events: none;
+    z-index: 19;
+    border-radius: 2px;
+    /* 鍏夎姃鍙戝厜鏁堟灉 */
+    box-shadow: 
+        0 0 6px rgba(255, 215, 0, 0.8),
+        0 0 12px rgba(255, 193, 7, 0.4);
+    animation: sunRayShoot 0.5s ease-out forwards;
+}
+
+@keyframes sunRayShoot {
+    0% {
+        transform: translate(-50%, -100%) rotate(var(--ray-angle)) scaleY(0);
+        opacity: 1;
+    }
+    30% {
+        transform: translate(-50%, -100%) rotate(var(--ray-angle)) scaleY(1.3);
+        opacity: 1;
+    }
+    60% {
+        transform: translate(-50%, -100%) rotate(var(--ray-angle)) scaleY(1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translate(-50%, -100%) rotate(var(--ray-angle)) scaleY(0.2);
+        opacity: 0;
+    }
+}
+
+/* 閲戣壊绮掑瓙锛堥棯鐑侀鏁ｏ級 */
+.nature-sun-particle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: radial-gradient(circle, 
+        rgba(255, 255, 255, 1) 0%, 
+        rgba(255, 223, 0, 1) 40%, 
+        rgba(255, 193, 7, 0.8) 70%, 
+        transparent 100%);
+    transform: translate(-50%, -50%) rotate(var(--particle-angle)) translateY(0);
+    pointer-events: none;
+    z-index: 20;
+    box-shadow: 
+        0 0 8px rgba(255, 215, 0, 1),
+        0 0 16px rgba(255, 193, 7, 0.6);
+    animation: sunParticleFly 0.7s ease-out forwards;
+}
+
+@keyframes sunParticleFly {
+    0% {
+        transform: translate(-50%, -50%) rotate(var(--particle-angle)) translateY(0) scale(0.5);
+        opacity: 1;
+    }
+    30% {
+        transform: translate(-50%, -50%) rotate(var(--particle-angle)) translateY(-25px) scale(1.2);
+        opacity: 1;
+    }
+    60% {
+        transform: translate(-50%, -50%) rotate(var(--particle-angle)) translateY(-40px) scale(1);
+        opacity: 0.7;
+    }
+    100% {
+        transform: translate(-50%, -50%) rotate(var(--particle-angle)) translateY(-55px) scale(0.3);
+        opacity: 0;
+    }
+}
