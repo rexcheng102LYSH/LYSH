@@ -72,10 +72,27 @@ const GameState = {
     userMusicPref: 'origin',
     currentSkin: 'classic',
     currentBoardSkin: 'classic_wood',  // [Alpha 0.7.9.0] 棋盘皮肤
+    
+    // [Alpha 0.7.9.3] 棋子特效设置（每款棋子独立保存）
+    pieceEffectSettings: {
+        classic: {
+            texture: '3d',             // 棋子质感: '3d'(立体) | 'flat'(扁平)，默认立体
+            rippleEnabled: false,      // 波纹气场，默认关
+            bounceEnabled: false,      // 棋子回弹，默认关
+            dropStyle: 'fast'          // 落子速度: 'fast'(快) | 'slow'(慢)，默认快
+        },
+        nature: {
+            effectEnabled: false,      // 自然特效（落叶/光芒），默认关
+            bounceEnabled: false,      // 棋子回弹，默认关
+            dropStyle: 'fast'          // 落子速度: 'fast'(快) | 'slow'(慢)，默认快
+        }
+    },
     winEffect: 'default',
     winCelebration: 'default',
     currentSeason: 'spring',
     fpsLimit: '60',  // '60' | 'unlimited' - 默認 60 幀保護低配設備
+    boardShakeEnabled: false,  // [Alpha 0.7.9.3] 棋盘震动开关，默认关闭
+    djIndicatorEnabled: false, // [Alpha 0.7.9.3] DJ提示器开关，默认关闭
     statusScrollMode: 'auto', // 'auto' | 'manual'
     statusScrollOpen: false,
     statusScrollAutoOpened: false,
@@ -207,11 +224,14 @@ let bombTarget = GameState.bombTarget;
 let userMusicPref = GameState.userMusicPref;
 let currentSkin = GameState.currentSkin;
 let currentBoardSkin = GameState.currentBoardSkin;  // [Alpha 0.7.9.0] 棋盘皮肤
+let pieceEffectSettings = GameState.pieceEffectSettings;  // [Alpha 0.7.9.3] 棋子特效设置
 let winEffect = GameState.winEffect;
 let winCelebration = GameState.winCelebration;
 let currentSeason = GameState.currentSeason;
 let draftTurn = GameState.draftTurn;
 let fpsLimit = GameState.fpsLimit;
+let boardShakeEnabled = GameState.boardShakeEnabled;  // [Alpha 0.7.9.3] 棋盘震动开关
+let djIndicatorEnabled = GameState.djIndicatorEnabled; // [Alpha 0.7.9.3] DJ提示器开关
 let statusScrollMode = GameState.statusScrollMode;
 let statusScrollOpen = GameState.statusScrollOpen;
 let statusScrollAutoOpened = GameState.statusScrollAutoOpened;

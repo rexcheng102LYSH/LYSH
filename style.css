@@ -272,26 +272,288 @@ h2 { color: var(--ui-text-sub); margin-bottom: 25px; font-weight: 400; font-size
     
     pointer-events: none; border-radius: 50%; 
     display: flex; justify-content: center; align-items: center; 
-    animation: drop 0.3s cubic-bezier(0.19, 1, 0.22, 1); 
+    /* [Alpha 0.7.9.3] 移除默认动画，完全由 JS 根据设置动态添加动画类 */
+    /* animation: 由 JS 动态添加 drop-fast / drop-slow / drop-fast-bounce / drop-slow-bounce */
     will-change: transform, opacity, box-shadow;
 }
 .piece-svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3)); }
 .piece-img { width: 100%; height: 100%; object-fit: contain; display: block; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3)); }
 .piece.skin-nature .piece-img { width: 105%; height: 105%; margin: -2.5%; transform: none; }
 
+/* ========================================= */
+/* ========================================= */
+/* [Alpha 0.7.9.4] 温润棋子美术 - 低对比度版 */
+/* Warm & Soft Piece Art - Low Contrast      */
+/* 黑子：石墨灰调 / 白子：象牙暖白调          */
+/* 核心理念：温润、透气、不油腻               */
+/* ========================================= */
+
+/* 棋子基础样式 */
 .piece.skin-classic { 
+    border-radius: 50%;
+    position: relative;
+    transform-style: preserve-3d;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+/* ===== 立体质感 - 炭灰黑子 ===== */
+/* 
+ * 设计理念：纯正的炭灰色，不偏绿不偏蓝
+ * 中心较深，边缘有自然的灰色过渡
+ */
+.piece.skin-classic.p1.texture-3d { 
+    background: 
+        /* 球体主体：纯正炭灰色，无色偏 */
+        radial-gradient(
+            circle at 48% 46%,
+            #1a1a1a 0%,
+            #222222 18%,
+            #2c2c2c 35%,
+            #383838 52%,
+            #454545 68%,
+            #525252 82%,
+            #5e5e5e 100%
+        );
+    
+    /* 柔和的阴影 */
     box-shadow: 
-        inset 0 -4px 6px rgba(0,0,0,0.6), 
-        inset 0 3px 8px rgba(255,255,255,0.5), 
-        0 4px 8px rgba(0,0,0,0.4), 
-        2px 8px 16px rgba(0,0,0,0.15); 
+        inset 0 -5px 12px -4px rgba(0, 0, 0, 0.4),
+        inset 0 5px 10px -4px rgba(255, 255, 255, 0.05),
+        0 2px 4px rgba(0, 0, 0, 0.22),
+        0 4px 8px -2px rgba(0, 0, 0, 0.15);
+    
+    border: none;
 }
-.piece.skin-classic.p1 { 
-    background: radial-gradient(circle at 35% 30%, #666 0%, #1a1a1a 40%, #000 100%); 
+
+/* 黑子高光层 - 柔和的光斑 */
+.piece.skin-classic.p1.texture-3d::before {
+    content: '';
+    position: absolute;
+    top: 12%;
+    left: 15%;
+    width: 38%;
+    height: 28%;
+    background: radial-gradient(
+        ellipse 100% 80% at 50% 50%,
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(255, 255, 255, 0.08) 40%,
+        rgba(255, 255, 255, 0.02) 70%,
+        transparent 100%
+    );
+    border-radius: 50%;
+    transform: rotate(-15deg);
+    pointer-events: none;
 }
-.piece.skin-classic.p2 { 
-    background: radial-gradient(circle at 35% 30%, #fff 0%, #f0f0f0 40%, #ddd 100%); 
+
+/* 黑子 - 边缘的微妙透气感 */
+.piece.skin-classic.p1.texture-3d::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 50%;
+    /* 边缘用纯灰色，不带色偏 */
+    background: radial-gradient(
+        circle at 50% 50%,
+        transparent 0%,
+        transparent 65%,
+        rgba(128, 128, 128, 0.06) 80%,
+        rgba(150, 150, 150, 0.1) 92%,
+        rgba(170, 170, 170, 0.12) 100%
+    );
+    pointer-events: none;
 }
+
+/* ===== 立体质感 - 象牙白子 ===== */
+/* 
+ * 设计理念：不是冷白，而是温暖的象牙色
+ * 带一点点米黄/奶油色调，看起来温润舒服
+ * 阴影用暖灰色而不是冷灰色
+ */
+.piece.skin-classic.p2.texture-3d { 
+    background: 
+        /* 球体主体：象牙白的柔和过渡 */
+        radial-gradient(
+            circle at 46% 44%,
+            #faf8f5 0%,
+            #f5f3f0 18%,
+            #efece8 35%,
+            #e8e4df 52%,
+            #e0dbd5 68%,
+            #d6d0c9 82%,
+            #ccc5bd 100%
+        );
+    
+    /* 温暖的阴影系统 */
+    box-shadow: 
+        /* 内阴影：底部用暖灰色 */
+        inset 0 -5px 12px -4px rgba(180, 170, 155, 0.35),
+        /* 内阴影：顶部柔和提亮 */
+        inset 0 5px 10px -4px rgba(255, 255, 255, 0.7),
+        /* 外阴影：暖色调投射 */
+        0 2px 4px rgba(120, 110, 95, 0.15),
+        0 4px 8px -2px rgba(100, 90, 75, 0.1);
+    
+    border: none;
+}
+
+/* 白子高光层 - 柔和不刺眼 */
+.piece.skin-classic.p2.texture-3d::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: 12%;
+    width: 42%;
+    height: 32%;
+    background: radial-gradient(
+        ellipse 100% 80% at 50% 50%,
+        rgba(255, 255, 255, 0.75) 0%,
+        rgba(255, 255, 255, 0.45) 30%,
+        rgba(255, 255, 255, 0.15) 60%,
+        transparent 100%
+    );
+    border-radius: 50%;
+    transform: rotate(-12deg);
+    pointer-events: none;
+}
+
+/* 白子 - 边缘的温润过渡 */
+.piece.skin-classic.p2.texture-3d::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 50%;
+    background: 
+        /* 右下角微弱的环境反光 */
+        radial-gradient(
+            ellipse 35% 30% at 75% 72%,
+            rgba(255, 255, 255, 0.25) 0%,
+            rgba(255, 255, 255, 0.08) 50%,
+            transparent 100%
+        ),
+        /* 底部的暖色调（象牙特有） */
+        radial-gradient(
+            ellipse 70% 25% at 50% 92%,
+            rgba(220, 200, 170, 0.1) 0%,
+            transparent 70%
+        );
+    pointer-events: none;
+}
+
+/* ===== 扁平质感 ===== */
+
+/* 黑子扁平版 */
+.piece.skin-classic.p1.texture-flat { 
+    background: radial-gradient(
+        circle at 40% 38%, 
+        #505458 0%, 
+        #3a3e42 40%, 
+        #2d3035 70%,
+        #252830 100%
+    );
+    box-shadow: 
+        inset 0 -4px 8px -2px rgba(0, 0, 0, 0.3),
+        inset 0 3px 6px -2px rgba(255, 255, 255, 0.08),
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        0 3px 6px -2px rgba(0, 0, 0, 0.12);
+    border: none;
+}
+
+.piece.skin-classic.p1.texture-flat::before,
+.piece.skin-classic.p1.texture-flat::after {
+    display: none;
+}
+
+/* 白子扁平版 */
+.piece.skin-classic.p2.texture-flat { 
+    background: radial-gradient(
+        circle at 40% 38%, 
+        #faf8f5 0%, 
+        #f0ede8 35%, 
+        #e5e0da 60%,
+        #d8d2ca 100%
+    );
+    box-shadow: 
+        inset 0 -4px 8px -2px rgba(160, 150, 135, 0.25),
+        inset 0 3px 6px -2px rgba(255, 255, 255, 0.6),
+        0 2px 4px rgba(100, 90, 75, 0.12),
+        0 3px 6px -2px rgba(80, 70, 55, 0.08);
+    border: none;
+}
+
+.piece.skin-classic.p2.texture-flat::before,
+.piece.skin-classic.p2.texture-flat::after {
+    display: none;
+}
+
+/* ===== 移动端适配 ===== */
+@media (max-width: 600px) {
+    .piece.skin-classic.p1.texture-3d {
+        background: radial-gradient(
+            circle at 48% 46%,
+            #2d3033 0%,
+            #3d4145 40%,
+            #555b62 75%,
+            #6a727b 100%
+        );
+        box-shadow: 
+            inset 0 -4px 10px -3px rgba(0, 0, 0, 0.3),
+            0 2px 4px rgba(0, 0, 0, 0.18),
+            0 3px 6px -2px rgba(0, 0, 0, 0.12);
+    }
+    
+    .piece.skin-classic.p2.texture-3d {
+        background: radial-gradient(
+            circle at 46% 44%,
+            #faf8f5 0%,
+            #ebe7e2 40%,
+            #ddd8d0 70%,
+            #ccc5bd 100%
+        );
+        box-shadow: 
+            inset 0 -4px 10px -3px rgba(180, 170, 155, 0.3),
+            inset 0 3px 6px -2px rgba(255, 255, 255, 0.6),
+            0 2px 4px rgba(120, 110, 95, 0.12),
+            0 3px 6px -2px rgba(100, 90, 75, 0.08);
+    }
+    
+    .piece.skin-classic.p1.texture-3d::before {
+        width: 35%;
+        height: 25%;
+        background: radial-gradient(
+            ellipse 100% 80% at 50% 50%,
+            rgba(255, 255, 255, 0.15) 0%,
+            rgba(255, 255, 255, 0.05) 50%,
+            transparent 100%
+        );
+    }
+    
+    .piece.skin-classic.p1.texture-3d::after {
+        display: none;
+    }
+    
+    .piece.skin-classic.p2.texture-3d::before {
+        width: 38%;
+        height: 28%;
+        background: radial-gradient(
+            ellipse 100% 80% at 50% 50%,
+            rgba(255, 255, 255, 0.65) 0%,
+            rgba(255, 255, 255, 0.2) 50%,
+            transparent 100%
+        );
+    }
+    
+    .piece.skin-classic.p2.texture-3d::after {
+        display: none;
+    }
+}
+
 .piece.skin-nature { background: transparent !important; box-shadow: none !important; }
 
 /* --- [Interactions] --- */
@@ -696,9 +958,277 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 
 @keyframes fadeZoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 @keyframes drop { 
-    0% { transform: scale(1.6) translateY(-30px); opacity: 0; box-shadow: 0 30px 30px rgba(0,0,0,0.1); } 
-    60% { transform: scale(0.95) translateY(2px); opacity: 1; }
-    100% { transform: scale(1) translateY(0); } 
+    0% { 
+        transform: scale(1.3) translateY(-20px); 
+        opacity: 0; 
+        filter: blur(2px);
+    } 
+    50% { 
+        transform: scale(0.92) translateY(3px); 
+        opacity: 1; 
+        filter: blur(0);
+    }
+    70% {
+        transform: scale(1.05) translateY(-2px);
+    }
+    85% {
+        transform: scale(0.98) translateY(1px);
+    }
+    100% { 
+        transform: scale(1) translateY(0); 
+    } 
+}
+
+/* ========================================= */
+/* [Alpha 0.7.9.3] 黑白棋子波纹气场系统       */
+/* 黑子：墨水喷溅 - 真实墨迹飞溅感            */
+/* 白子：优雅涟漪 - 白色为主的柔和波纹        */
+/* ========================================= */
+
+/* ============ 黑子：墨水喷溅效果 ============ */
+
+/* 中心墨点冲击 */
+.ink-center-blot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 60%;
+    height: 60%;
+    border-radius: 45% 55% 50% 50% / 50% 45% 55% 50%;
+    transform: translate(-50%, -50%) scale(0.3);
+    pointer-events: none;
+    z-index: 15;
+    background: rgba(0, 0, 0, 0.9);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
+    animation: inkBlotBurst 0.35s ease-out forwards;
+}
+
+@keyframes inkBlotBurst {
+    0% {
+        transform: translate(-50%, -50%) scale(0.3);
+        opacity: 1;
+    }
+    40% {
+        transform: translate(-50%, -50%) scale(1.4);
+        opacity: 0.85;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.8);
+        opacity: 0;
+    }
+}
+
+/* 主要墨迹飞溅 - 不规则墨点 */
+.ink-splatter {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--splat-size, 5px);
+    height: calc(var(--splat-size, 5px) * var(--splat-stretch, 1));
+    transform: translate(-50%, -50%) rotate(var(--splat-rotation, 0deg));
+    pointer-events: none;
+    z-index: 16;
+    /* 纯黑墨点，边缘略微模糊模拟墨迹渗透 */
+    background: radial-gradient(ellipse at center,
+        rgba(0, 0, 0, 0.95) 0%,
+        rgba(0, 0, 0, 0.9) 60%,
+        rgba(0, 0, 0, 0.7) 80%,
+        rgba(0, 0, 0, 0.3) 100%);
+    border-radius: 50% 45% 55% 50% / 45% 50% 50% 55%;
+    animation: inkSplatterFly 0.4s cubic-bezier(0.15, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes inkSplatterFly {
+    0% {
+        transform: translate(-50%, -50%) translate(0, 0) rotate(var(--splat-rotation, 0deg)) scale(0.2);
+        opacity: 1;
+    }
+    20% {
+        transform: translate(-50%, -50%) translate(calc(var(--splat-x) * 0.3), calc(var(--splat-y) * 0.3)) rotate(var(--splat-rotation, 0deg)) scale(1.2);
+        opacity: 1;
+    }
+    50% {
+        transform: translate(-50%, -50%) translate(calc(var(--splat-x) * 0.7), calc(var(--splat-y) * 0.7)) rotate(var(--splat-rotation, 0deg)) scale(1);
+        opacity: 0.85;
+    }
+    100% {
+        transform: translate(-50%, -50%) translate(var(--splat-x), var(--splat-y)) rotate(var(--splat-rotation, 0deg)) scale(0.7);
+        opacity: 0;
+    }
+}
+
+/* 细小墨滴 - 更远更小 */
+.ink-tiny-drop {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--drop-size, 3px);
+    height: var(--drop-size, 3px);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 17;
+    background: rgba(0, 0, 0, 0.92);
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+    animation: inkTinyFly 0.5s cubic-bezier(0.15, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes inkTinyFly {
+    0% {
+        transform: translate(-50%, -50%) translate(0, 0) scale(0.3);
+        opacity: 1;
+    }
+    30% {
+        transform: translate(-50%, -50%) translate(calc(var(--drop-x) * 0.4), calc(var(--drop-y) * 0.4)) scale(1.1);
+        opacity: 0.9;
+    }
+    100% {
+        transform: translate(-50%, -50%) translate(var(--drop-x), var(--drop-y)) scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* ============ 白子：优雅白色涟漪 ============ */
+
+/* 白色同心圆波纹 - 淡灰边框，优雅内敛 */
+.white-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0.5);
+    pointer-events: none;
+    z-index: 15;
+    /* 淡灰色边框，白色为主 */
+    border: 2px solid rgba(160, 165, 175, 0.7);
+    background: transparent;
+    box-shadow: 
+        0 0 8px rgba(180, 185, 195, 0.4),
+        0 0 16px rgba(200, 205, 215, 0.2),
+        inset 0 0 6px rgba(220, 225, 235, 0.25);
+    animation: whiteRingExpand 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes whiteRingExpand {
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 0.9;
+        border-width: 2.5px;
+        border-color: rgba(150, 155, 165, 0.8);
+    }
+    40% {
+        transform: translate(-50%, -50%) scale(1.5);
+        opacity: 0.6;
+        border-width: 2px;
+        border-color: rgba(170, 175, 185, 0.6);
+    }
+    70% {
+        transform: translate(-50%, -50%) scale(2.0);
+        opacity: 0.35;
+        border-width: 1.5px;
+        border-color: rgba(190, 195, 205, 0.4);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(2.5);
+        opacity: 0;
+        border-width: 1px;
+    }
+}
+
+/* 中心柔光 - 纯白色光晕 */
+.white-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0.4);
+    pointer-events: none;
+    z-index: 16;
+    /* 纯白色渐变，微微带灰 */
+    background: radial-gradient(circle,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(250, 250, 252, 0.7) 30%,
+        rgba(240, 242, 245, 0.4) 60%,
+        transparent 100%);
+    box-shadow: 
+        0 0 15px rgba(255, 255, 255, 0.5),
+        0 0 30px rgba(240, 242, 248, 0.3);
+    animation: whiteGlowPulse 0.4s ease-out forwards;
+}
+
+@keyframes whiteGlowPulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0.4);
+        opacity: 1;
+    }
+    40% {
+        transform: translate(-50%, -50%) scale(1.1);
+        opacity: 0.85;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.3);
+        opacity: 0;
+    }
+}
+
+/* 白色光点散落 */
+.white-spark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 17;
+    /* 纯白光点 */
+    background: radial-gradient(circle,
+        rgba(255, 255, 255, 1) 0%,
+        rgba(250, 250, 255, 0.9) 50%,
+        rgba(240, 242, 248, 0.6) 100%);
+    box-shadow: 
+        0 0 4px rgba(255, 255, 255, 0.8),
+        0 0 8px rgba(245, 248, 255, 0.5);
+    animation: whiteSparkFly 0.45s ease-out forwards;
+}
+
+@keyframes whiteSparkFly {
+    0% {
+        transform: translate(-50%, -50%) translate(0, 0) scale(0.5);
+        opacity: 1;
+    }
+    30% {
+        transform: translate(-50%, -50%) translate(calc(var(--spark-x) * 0.4), calc(var(--spark-y) * 0.5)) scale(1.1);
+        opacity: 0.9;
+    }
+    100% {
+        transform: translate(-50%, -50%) translate(var(--spark-x), var(--spark-y)) scale(0.4);
+        opacity: 0;
+    }
+}
+
+/* === 旧版样式兼容（隐藏）=== */
+.piece-ripple, .ink-ripple, .ink-main, .ink-second, .ink-edge, .ink-splash,
+.water-ring, .water-splash-center, .water-drop {
+    display: none;
+}
+
+/* [Alpha 0.7.9.3] 棋盘落子震动效果 */
+@keyframes boardShake {
+    0%, 100% { transform: translateY(-5px); }
+    20% { transform: translateY(-5px) translate(2px, 1px); }
+    40% { transform: translateY(-5px) translate(-2px, -1px); }
+    60% { transform: translateY(-5px) translate(1px, 2px); }
+    80% { transform: translateY(-5px) translate(-1px, -1px); }
+}
+
+.board-wrapper.shake {
+    animation: boardShake 120ms ease-out;
 }
 @keyframes flashWhite { 0%{opacity:1;} 100%{opacity:0;} }
 @keyframes shake { 0%{transform:translateX(0);} 25%{transform:translateX(-2px);} 75%{transform:translateX(2px);} }
@@ -801,4 +1331,712 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
             0 10px 30px rgba(0,0,0,0.3);
     } 
     .board.skin-modern::before { display: none !important; }
+}
+
+
+/* ========================================= */
+/* [Alpha 0.7.9.3] LYSH 开发者区域样式       */
+/* LYSH Developer Zone Styles                */
+/* ========================================= */
+
+.lysh-modal {
+    background: linear-gradient(135deg, rgba(10, 10, 15, 0.95) 0%, rgba(20, 20, 30, 0.98) 100%);
+}
+
+.lysh-panel {
+    width: 90%;
+    max-width: 420px;
+    background: linear-gradient(180deg, rgba(25, 25, 35, 0.98) 0%, rgba(15, 15, 22, 0.99) 100%);
+    border: 1px solid rgba(100, 100, 150, 0.3);
+    border-radius: 20px;
+    box-shadow: 
+        0 0 60px rgba(80, 80, 200, 0.15),
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+}
+
+.lysh-header {
+    padding: 30px 24px 20px;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(60, 60, 100, 0.2) 0%, transparent 100%);
+    border-bottom: 1px solid rgba(100, 100, 150, 0.2);
+}
+
+.lysh-logo {
+    font-size: 2.5rem;
+    font-weight: 900;
+    letter-spacing: 8px;
+    background: linear-gradient(135deg, #a0a0ff 0%, #6060ff 50%, #a0a0ff 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 30px rgba(100, 100, 255, 0.5);
+    animation: lyshLogoShine 3s ease-in-out infinite;
+}
+
+@keyframes lyshLogoShine {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.lysh-subtitle {
+    font-size: 0.75rem;
+    color: rgba(150, 150, 200, 0.7);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 8px;
+}
+
+.lysh-content {
+    padding: 20px 24px;
+}
+
+.lysh-section {
+    margin-bottom: 20px;
+}
+
+.lysh-section:last-child {
+    margin-bottom: 0;
+}
+
+.lysh-section-title {
+    font-size: 0.7rem;
+    color: rgba(150, 150, 200, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    padding-left: 4px;
+}
+
+.lysh-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: rgba(40, 40, 60, 0.4);
+    border: 1px solid rgba(80, 80, 120, 0.3);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+}
+
+.lysh-item:last-child {
+    margin-bottom: 0;
+}
+
+.lysh-item:hover:not(.disabled) {
+    background: rgba(50, 50, 80, 0.5);
+    border-color: rgba(100, 100, 150, 0.4);
+}
+
+.lysh-item.disabled {
+    opacity: 0.4;
+}
+
+.lysh-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.lysh-item-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: rgba(220, 220, 255, 0.9);
+}
+
+.lysh-item-desc {
+    font-size: 0.7rem;
+    color: rgba(150, 150, 200, 0.6);
+}
+
+.lysh-toggle {
+    display: flex;
+    gap: 4px;
+    background: rgba(20, 20, 30, 0.6);
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.lysh-toggle-btn {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(150, 150, 200, 0.6);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lysh-toggle-btn:hover {
+    color: rgba(200, 200, 255, 0.8);
+}
+
+.lysh-toggle-btn.active {
+    background: linear-gradient(135deg, #5050aa 0%, #4040aa 100%);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(80, 80, 170, 0.4);
+}
+
+.lysh-footer {
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(100, 100, 150, 0.2);
+    background: rgba(15, 15, 22, 0.5);
+}
+
+.lysh-back-btn {
+    padding: 12px 32px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: 1px solid rgba(100, 100, 150, 0.4);
+    border-radius: 10px;
+    background: rgba(40, 40, 60, 0.5);
+    color: rgba(200, 200, 255, 0.9);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lysh-back-btn:hover {
+    background: rgba(60, 60, 100, 0.6);
+    border-color: rgba(120, 120, 180, 0.5);
+    transform: translateY(-1px);
+}
+
+.lysh-back-btn:active {
+    transform: translateY(0);
+}
+
+.lysh-version {
+    font-size: 0.65rem;
+    color: rgba(100, 100, 150, 0.4);
+    letter-spacing: 1px;
+}
+
+/* 棋盘震动选择器样式 */
+.shake-selector .capsule-opt {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+}
+
+/* ========================================= */
+/* [Alpha 0.7.9.3] 棋子特效调试二级界面       */
+/* Piece Effect Debug Panel                  */
+/* ========================================= */
+
+/* 长按金色灌满动画 - 简单稳定版 */
+.skin-grid-item.long-press-ready {
+    position: relative;
+    overflow: hidden;
+}
+
+.skin-grid-item.long-press-ready::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0%;
+    background: #ffd700;
+    opacity: 0.6;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.skin-grid-item.long-pressing::after {
+    /* 前200ms静默等待，后500ms快速灌满 */
+    animation: goldFillUp 500ms linear 200ms forwards;
+}
+
+@keyframes goldFillUp {
+    0% { height: 0%; }
+    100% { height: 100%; }
+}
+
+/* 长按完成闪烁效果 */
+.skin-grid-item.long-press-complete::after {
+    height: 100%;
+    background: #fff;
+    opacity: 0.9;
+    animation: goldFlash 150ms ease-out;
+}
+
+@keyframes goldFlash {
+    0% { background: #fff; opacity: 1; }
+    100% { background: #ffd700; opacity: 0.6; }
+}
+
+/* 棋子特效调试面板样式 */
+.piece-effect-panel {
+    max-width: 380px;
+}
+
+.piece-effect-subtitle {
+    font-size: 0.8rem;
+    color: #888;
+    margin: 0 0 20px 0;
+    text-align: center;
+}
+
+.piece-effect-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.piece-effect-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.piece-effect-item:hover {
+    background: #fff;
+    border-color: #dee2e6;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.piece-effect-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.piece-effect-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #2d3436;
+}
+
+.piece-effect-desc {
+    font-size: 0.7rem;
+    color: #888;
+}
+
+.piece-effect-toggle {
+    display: flex;
+    gap: 4px;
+    background: #e9ecef;
+    padding: 3px;
+    border-radius: 8px;
+}
+
+.effect-toggle-btn {
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.effect-toggle-btn:hover {
+    color: #555;
+}
+
+.effect-toggle-btn.active {
+    background: #fff;
+    color: #2d3436;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================= */
+/* [Alpha 0.7.9.3] 两种落子动画风格           */
+/* Drop Animation Styles: Fast / Slow        */
+/* 基于 Alpha 0.7.9.2 原版动画还原            */
+/* 速度和回弹相互独立，统一时长               */
+/* ========================================= */
+
+/* 快速落子动画（Alpha 0.7.9.2 原版）- 无回弹 */
+@keyframes dropFast {
+    0% { 
+        transform: scale(1.6) translateY(-30px); 
+        opacity: 0; 
+    } 
+    60% { 
+        transform: scale(0.95) translateY(2px); 
+        opacity: 1; 
+    }
+    100% { 
+        transform: scale(1) translateY(0); 
+    } 
+}
+
+/* 慢速落子动画 - 无回弹 */
+@keyframes dropSlow {
+    0% { 
+        transform: scale(1.6) translateY(-30px); 
+        opacity: 0; 
+    } 
+    60% { 
+        transform: scale(0.95) translateY(2px); 
+        opacity: 1; 
+    }
+    100% { 
+        transform: scale(1) translateY(0); 
+    } 
+}
+
+/* 快速 + 回弹（时长与快速无回弹相同）*/
+@keyframes dropFastBounce {
+    0% { 
+        transform: scale(1.6) translateY(-30px); 
+        opacity: 0; 
+    } 
+    45% { 
+        transform: scale(0.88) translateY(4px); 
+        opacity: 1; 
+    }
+    70% {
+        transform: scale(1.1) translateY(-4px);
+    }
+    88% {
+        transform: scale(0.96) translateY(1px);
+    }
+    100% { 
+        transform: scale(1) translateY(0); 
+    } 
+}
+
+/* 慢速 + 回弹（时长与慢速无回弹相同）*/
+@keyframes dropSlowBounce {
+    0% { 
+        transform: scale(1.6) translateY(-30px); 
+        opacity: 0; 
+    } 
+    45% { 
+        transform: scale(0.88) translateY(4px); 
+        opacity: 1; 
+    }
+    70% {
+        transform: scale(1.1) translateY(-4px);
+    }
+    88% {
+        transform: scale(0.96) translateY(1px);
+    }
+    100% { 
+        transform: scale(1) translateY(0); 
+    } 
+}
+
+/* 动画类 - 速度和回弹独立，统一时长 */
+.piece.drop-fast {
+    animation: dropFast 0.25s ease-out;
+}
+
+.piece.drop-fast-bounce {
+    animation: dropFastBounce 0.25s ease-out;
+}
+
+.piece.drop-slow {
+    animation: dropSlow 0.45s ease-out;
+}
+
+.piece.drop-slow-bounce {
+    animation: dropSlowBounce 0.45s ease-out;
+}
+
+/* ========================================= */
+/* [Alpha 0.7.9.3] 自然棋子特效              */
+/* Nature Piece Effects                      */
+/* ========================================= */
+
+/* ========================================= */
+/* [Alpha 0.7.9.3] 自然棋子落子特效系统      */
+/* Nature Piece Drop Effects - Enhanced      */
+/* ========================================= */
+
+/* === 落叶飘落特效 === */
+.nature-leaf {
+    position: absolute;
+    border-radius: 50% 0 50% 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) translate(var(--start-x), var(--start-y)) rotate(0deg);
+    pointer-events: none;
+    z-index: 25;
+    opacity: 0;
+    /* 添加叶脉纹理 */
+    background-image: 
+        linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%),
+        linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.15) 100%);
+    background-blend-mode: overlay;
+    /* 柔和阴影增加立体感 */
+    box-shadow: 
+        0 2px 4px rgba(0,0,0,0.2),
+        inset 0 1px 2px rgba(255,255,255,0.3);
+    animation: leafFall 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes leafFall {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translate(var(--start-x), var(--start-y)) rotate(0deg) scale(0.3);
+    }
+    15% {
+        opacity: 1;
+        transform: translate(-50%, -50%) translate(var(--start-x), calc(var(--start-y) + 3px)) rotate(calc(var(--rotation) * 0.15)) scale(1.1);
+    }
+    40% {
+        opacity: 0.95;
+        transform: translate(-50%, -50%) translate(calc(var(--start-x) + var(--end-x) * 0.3), calc(var(--start-y) + var(--end-y) * 0.3)) rotate(calc(var(--rotation) * 0.4)) scale(1);
+    }
+    70% {
+        opacity: 0.7;
+        transform: translate(-50%, -50%) translate(calc(var(--end-x) * 0.7), calc(var(--end-y) * 0.7)) rotate(calc(var(--rotation) * 0.75)) scale(0.85);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) translate(var(--end-x), var(--end-y)) rotate(var(--rotation)) scale(0.5);
+    }
+}
+
+/* 落叶尘土效果 */
+.nature-leaf-dust {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 120%;
+    height: 120%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0.3);
+    background: radial-gradient(circle, 
+        rgba(139, 69, 19, 0.25) 0%, 
+        rgba(160, 82, 45, 0.15) 30%, 
+        rgba(210, 105, 30, 0.08) 60%, 
+        transparent 80%);
+    pointer-events: none;
+    z-index: 24;
+    animation: leafDustPuff 0.6s ease-out forwards;
+}
+
+@keyframes leafDustPuff {
+    0% {
+        transform: translate(-50%, -50%) scale(0.3);
+        opacity: 0;
+    }
+    30% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.8);
+        opacity: 0;
+    }
+}
+
+/* === 阳光特效系统 === */
+
+/* 核心闪光（瞬间爆发） */
+.nature-sun-flash {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200%;
+    height: 200%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: radial-gradient(circle, 
+        rgba(255, 255, 255, 1) 0%, 
+        rgba(255, 255, 200, 0.9) 20%, 
+        rgba(255, 215, 0, 0.6) 40%, 
+        transparent 70%);
+    pointer-events: none;
+    z-index: 30;
+    animation: sunFlashBurst 0.25s ease-out forwards;
+}
+
+@keyframes sunFlashBurst {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 1;
+    }
+    40% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0.9;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.8);
+        opacity: 0;
+    }
+}
+
+/* 主光晕（温暖扩散） */
+.nature-sun-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 150%;
+    height: 150%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0.5);
+    background: radial-gradient(circle, 
+        rgba(255, 223, 0, 0.9) 0%, 
+        rgba(255, 193, 7, 0.7) 25%, 
+        rgba(255, 152, 0, 0.5) 50%, 
+        rgba(255, 87, 34, 0.2) 75%, 
+        transparent 100%);
+    pointer-events: none;
+    z-index: 17;
+    /* 添加柔和光晕 */
+    box-shadow: 
+        0 0 20px rgba(255, 193, 7, 0.5),
+        0 0 40px rgba(255, 152, 0, 0.3);
+    animation: sunGlowExpand 0.7s ease-out forwards;
+}
+
+@keyframes sunGlowExpand {
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 1;
+    }
+    40% {
+        transform: translate(-50%, -50%) scale(1.8);
+        opacity: 0.85;
+    }
+    70% {
+        transform: translate(-50%, -50%) scale(2.5);
+        opacity: 0.5;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(3);
+        opacity: 0;
+    }
+}
+
+/* 外层光环（涟漪效果） */
+.nature-sun-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    border: 3px solid rgba(255, 215, 0, 0.8);
+    background: transparent;
+    pointer-events: none;
+    z-index: 18;
+    box-shadow: 
+        0 0 10px rgba(255, 215, 0, 0.6),
+        inset 0 0 10px rgba(255, 215, 0, 0.3);
+    animation: sunRingExpand 0.6s ease-out forwards;
+}
+
+@keyframes sunRingExpand {
+    0% {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 1;
+        border-width: 3px;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(2);
+        opacity: 0.7;
+        border-width: 2px;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(3.5);
+        opacity: 0;
+        border-width: 1px;
+    }
+}
+
+/* 阳光射线（更亮更长） */
+.nature-sun-ray {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 35px;
+    background: linear-gradient(to bottom, 
+        rgba(255, 255, 255, 1) 0%, 
+        rgba(255, 223, 0, 0.95) 20%, 
+        rgba(255, 193, 7, 0.7) 50%, 
+        rgba(255, 152, 0, 0.3) 80%, 
+        transparent 100%);
+    transform-origin: center bottom;
+    transform: translate(-50%, -100%) rotate(var(--ray-angle)) scaleY(0);
+    pointer-events: none;
+    z-index: 19;
+    border-radius: 2px;
+    /* 光芒发光效果 */
+    box-shadow: 
+        0 0 6px rgba(255, 215, 0, 0.8),
+        0 0 12px rgba(255, 193, 7, 0.4);
+    animation: sunRayShoot 0.5s ease-out forwards;
+}
+
+@keyframes sunRayShoot {
+    0% {
+        transform: translate(-50%, -100%) rotate(var(--ray-angle)) scaleY(0);
+        opacity: 1;
+    }
+    30% {
+        transform: translate(-50%, -100%) rotate(var(--ray-angle)) scaleY(1.3);
+        opacity: 1;
+    }
+    60% {
+        transform: translate(-50%, -100%) rotate(var(--ray-angle)) scaleY(1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: translate(-50%, -100%) rotate(var(--ray-angle)) scaleY(0.2);
+        opacity: 0;
+    }
+}
+
+/* 金色粒子（闪烁飞散） */
+.nature-sun-particle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: radial-gradient(circle, 
+        rgba(255, 255, 255, 1) 0%, 
+        rgba(255, 223, 0, 1) 40%, 
+        rgba(255, 193, 7, 0.8) 70%, 
+        transparent 100%);
+    transform: translate(-50%, -50%) rotate(var(--particle-angle)) translateY(0);
+    pointer-events: none;
+    z-index: 20;
+    box-shadow: 
+        0 0 8px rgba(255, 215, 0, 1),
+        0 0 16px rgba(255, 193, 7, 0.6);
+    animation: sunParticleFly 0.7s ease-out forwards;
+}
+
+@keyframes sunParticleFly {
+    0% {
+        transform: translate(-50%, -50%) rotate(var(--particle-angle)) translateY(0) scale(0.5);
+        opacity: 1;
+    }
+    30% {
+        transform: translate(-50%, -50%) rotate(var(--particle-angle)) translateY(-25px) scale(1.2);
+        opacity: 1;
+    }
+    60% {
+        transform: translate(-50%, -50%) rotate(var(--particle-angle)) translateY(-40px) scale(1);
+        opacity: 0.7;
+    }
+    100% {
+        transform: translate(-50%, -50%) rotate(var(--particle-angle)) translateY(-55px) scale(0.3);
+        opacity: 0;
+    }
 }

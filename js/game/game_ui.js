@@ -1,9 +1,10 @@
 // ================= ????? UI =================
 // ================= DJ 底鼓提示灯开关 =================
-let djDrumIndicatorEnabled = false;  // 默认关闭（60FPS 时）
+// [Alpha 0.7.9.3] 改为使用 GameState.djIndicatorEnabled
+// let djDrumIndicatorEnabled = false;  // 已移至 GameState
 
 // [CRITICAL FIX] 将变量暴露到 window 对象，确保跨文件安全访问
-window.djDrumIndicatorEnabled = djDrumIndicatorEnabled;
+window.djDrumIndicatorEnabled = GameState.djIndicatorEnabled;
 
 function getIcon(player) {
     if (typeof PIECE_ICONS === 'undefined') return (player === MAPLE ? 'B' : 'W');
@@ -59,7 +60,7 @@ function openSettings() {
     document.getElementById('valAmbient').innerText = Math.round(SoundEngine.ambientVolume * 100) + '%';
     updateTrackUI();
     updateSeasonUI();
-    updateFPSUI();
+    updateBoardShakeUI();
     updateStatusScrollUI();
 }
 function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
@@ -196,40 +197,85 @@ function updateSeasonUI() {
     if (activeBtn) activeBtn.classList.add('active');
 }
 
-function changeFPSLimit(limit) {
+// [Alpha 0.7.9.3] 棋盘震动开关
+function changeBoardShake(state) {
     SoundEngine.playPlace();
     
-    // [Alpha 0.7.8.3] 改造：无限制按钮现在控制底鼓提示灯开关
-    // 60 FPS 按钮：关闭提示灯（默认）
-    // 无限制按钮：开启提示灯（内部测试用）
-    if (limit === '60') {
-        djDrumIndicatorEnabled = false;
-        window.djDrumIndicatorEnabled = false; // [CRITICAL FIX] 同步到 window 对象
-    } else if (limit === 'unlimited') {
-        djDrumIndicatorEnabled = true;
-        window.djDrumIndicatorEnabled = true; // [CRITICAL FIX] 同步到 window 对象
+    if (state === 'on') {
+        GameState.boardShakeEnabled = true;
+        boardShakeEnabled = true;
+    } else {
+        GameState.boardShakeEnabled = false;
+        boardShakeEnabled = false;
     }
     
-    // 不改变实际帧数，保持锁帧 60fps
-    GameState.fpsLimit = '60';
-    fpsLimit = '60';
-    FrameRateController.setFPSLimit('60');
-    
-    updateFPSUI();
+    updateBoardShakeUI();
 }
 
-function updateFPSUI() {
-    document.querySelectorAll('.fps-opt').forEach(el => el.classList.remove('active'));
+function updateBoardShakeUI() {
+    document.querySelectorAll('.shake-opt').forEach(el => el.classList.remove('active'));
     
-    // 根据提示灯状态更新 UI
-    if (djDrumIndicatorEnabled) {
-        const el = document.getElementById('fpsUnlimited');
+    if (GameState.boardShakeEnabled) {
+        const el = document.getElementById('shakeOn');
         if (el) el.classList.add('active');
     } else {
-        const el = document.getElementById('fps60');
+        const el = document.getElementById('shakeOff');
         if (el) el.classList.add('active');
     }
 }
+
+// [Alpha 0.7.9.3] LYSH 开发者区域
+function openLyshPanel() {
+    document.getElementById('lyshModal').style.display = 'flex';
+    updateDJIndicatorUI();
+}
+
+function closeLyshPanel() {
+    document.getElementById('lyshModal').style.display = 'none';
+}
+
+// [Alpha 0.7.9.3] DJ 提示器开关（从原 FPS 设置迁移）
+function changeDJIndicator(state) {
+    SoundEngine.playPlace();
+    
+    if (state === 'on') {
+        GameState.djIndicatorEnabled = true;
+        djIndicatorEnabled = true;
+        window.djDrumIndicatorEnabled = true; // 兼容旧代码
+    } else {
+        GameState.djIndicatorEnabled = false;
+        djIndicatorEnabled = false;
+        window.djDrumIndicatorEnabled = false; // 兼容旧代码
+    }
+    
+    updateDJIndicatorUI();
+}
+
+function updateDJIndicatorUI() {
+    const offBtn = document.getElementById('djIndicatorOff');
+    const onBtn = document.getElementById('djIndicatorOn');
+    
+    if (offBtn) offBtn.classList.remove('active');
+    if (onBtn) onBtn.classList.remove('active');
+    
+    if (GameState.djIndicatorEnabled) {
+        if (onBtn) onBtn.classList.add('active');
+    } else {
+        if (offBtn) offBtn.classList.add('active');
+    }
+}
+
+// [Alpha 0.7.9.3] 键盘 L 键监听 - 打开 LYSH 区域
+document.addEventListener('keydown', function(e) {
+    // 按 L 键打开 LYSH 开发者区域
+    if (e.key === 'l' || e.key === 'L') {
+        // 检查是否在输入框中，避免干扰
+        if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+            return;
+        }
+        openLyshPanel();
+    }
+});
 
 function changeStatusScrollMode(mode) {
     GameState.statusScrollMode = mode;
@@ -532,11 +578,17 @@ function openPieceSelector() {
     document.getElementById('skinModal').style.display = 'none';
     document.getElementById('pieceSelectorModal').style.display = 'flex';
     updatePieceSelectorUI();
+    // [Alpha 0.7.9.3] 初始化长按检测（黑白 + 自然）
+    setupPieceLongPress();
+    setupNatureLongPress();
 }
 
 function closePieceSelector() {
     document.getElementById('pieceSelectorModal').style.display = 'none';
     document.getElementById('skinModal').style.display = 'flex';
+    // [Alpha 0.7.9.3] 清理长按状态（黑白 + 自然）
+    cleanupPieceLongPress();
+    cleanupNatureLongPress();
 }
 
 function selectPieceSkin(skin) {
@@ -642,5 +694,386 @@ function updateBoardEntryPreview() {
 
 if (window.GameHost && typeof window.GameHost.register === 'function') {
     window.GameHost.register('ui', { init: function() {} });
+}
+
+// ================= [Alpha 0.7.9.3] 棋子特效调试系统 =================
+
+// 长按检测相关变量
+let pieceLongPressTimer = null;
+let pieceLongPressTarget = null;
+const LONG_PRESS_DURATION = 700; // 0.7秒
+
+// 初始化长按检测
+function setupPieceLongPress() {
+    const classicItem = document.getElementById('pieceGridClassic');
+    if (!classicItem) return;
+    
+    // 添加长按就绪标记
+    classicItem.classList.add('long-press-ready');
+    
+    // 鼠标事件
+    classicItem.addEventListener('mousedown', handlePieceLongPressStart);
+    classicItem.addEventListener('mouseup', handlePieceLongPressEnd);
+    classicItem.addEventListener('mouseleave', handlePieceLongPressEnd);
+    
+    // 触摸事件（移动端）
+    classicItem.addEventListener('touchstart', handlePieceLongPressStart, { passive: true });
+    classicItem.addEventListener('touchend', handlePieceLongPressEnd);
+    classicItem.addEventListener('touchcancel', handlePieceLongPressEnd);
+}
+
+// 清理长按检测
+function cleanupPieceLongPress() {
+    const classicItem = document.getElementById('pieceGridClassic');
+    if (!classicItem) return;
+    
+    // 清除计时器
+    if (pieceLongPressTimer) {
+        clearTimeout(pieceLongPressTimer);
+        pieceLongPressTimer = null;
+    }
+    
+    // 移除动画类
+    classicItem.classList.remove('long-pressing', 'long-press-complete');
+    
+    // 移除事件监听器
+    classicItem.removeEventListener('mousedown', handlePieceLongPressStart);
+    classicItem.removeEventListener('mouseup', handlePieceLongPressEnd);
+    classicItem.removeEventListener('mouseleave', handlePieceLongPressEnd);
+    classicItem.removeEventListener('touchstart', handlePieceLongPressStart);
+    classicItem.removeEventListener('touchend', handlePieceLongPressEnd);
+    classicItem.removeEventListener('touchcancel', handlePieceLongPressEnd);
+}
+
+// 长按开始
+function handlePieceLongPressStart(e) {
+    const target = e.currentTarget;
+    pieceLongPressTarget = target;
+    
+    // 添加长按动画类
+    target.classList.add('long-pressing');
+    
+    // 设置计时器
+    pieceLongPressTimer = setTimeout(() => {
+        // 长按完成
+        target.classList.remove('long-pressing');
+        target.classList.add('long-press-complete');
+        
+        // 播放音效
+        SoundEngine.playPlace();
+        
+        // 短暂延迟后打开二级界面
+        setTimeout(() => {
+            target.classList.remove('long-press-complete');
+            openPieceEffectPanel();
+        }, 300);
+        
+        pieceLongPressTimer = null;
+    }, LONG_PRESS_DURATION);
+}
+
+// 长按结束（未完成）
+function handlePieceLongPressEnd(e) {
+    const target = pieceLongPressTarget || e.currentTarget;
+    
+    // 清除计时器
+    if (pieceLongPressTimer) {
+        clearTimeout(pieceLongPressTimer);
+        pieceLongPressTimer = null;
+    }
+    
+    // 移除动画类
+    target.classList.remove('long-pressing');
+    
+    pieceLongPressTarget = null;
+}
+
+// 打开棋子特效调试面板
+function openPieceEffectPanel() {
+    document.getElementById('pieceSelectorModal').style.display = 'none';
+    document.getElementById('pieceEffectModal').style.display = 'flex';
+    updatePieceEffectUI();
+}
+
+// 关闭棋子特效调试面板
+function closePieceEffectPanel() {
+    document.getElementById('pieceEffectModal').style.display = 'none';
+    document.getElementById('pieceSelectorModal').style.display = 'flex';
+}
+
+// 切换棋子质感
+function changePieceTexture(texture) {
+    SoundEngine.playPlace();
+    GameState.pieceEffectSettings.classic.texture = texture;
+    pieceEffectSettings = GameState.pieceEffectSettings; // 同步
+    updatePieceEffectUI();
+}
+
+// 更新棋子特效UI状态
+function updatePieceEffectUI() {
+    const settings = GameState.pieceEffectSettings.classic;
+    
+    // 棋子质感
+    document.getElementById('texture3D').classList.remove('active');
+    document.getElementById('textureFlat').classList.remove('active');
+    if (settings.texture === '3d') {
+        document.getElementById('texture3D').classList.add('active');
+    } else {
+        document.getElementById('textureFlat').classList.add('active');
+    }
+    
+    // 波纹气场
+    document.getElementById('rippleOff').classList.remove('active');
+    document.getElementById('rippleOn').classList.remove('active');
+    if (settings.rippleEnabled) {
+        document.getElementById('rippleOn').classList.add('active');
+    } else {
+        document.getElementById('rippleOff').classList.add('active');
+    }
+    
+    // 棋子回弹
+    document.getElementById('bounceOff').classList.remove('active');
+    document.getElementById('bounceOn').classList.remove('active');
+    if (settings.bounceEnabled) {
+        document.getElementById('bounceOn').classList.add('active');
+    } else {
+        document.getElementById('bounceOff').classList.add('active');
+    }
+    
+    // 落子速度
+    document.getElementById('dropFast').classList.remove('active');
+    document.getElementById('dropSlow').classList.remove('active');
+    if (settings.dropStyle === 'fast') {
+        document.getElementById('dropFast').classList.add('active');
+    } else {
+        document.getElementById('dropSlow').classList.add('active');
+    }
+}
+
+// 切换波纹气场
+function changePieceRipple(state) {
+    SoundEngine.playPlace();
+    GameState.pieceEffectSettings.classic.rippleEnabled = (state === 'on');
+    pieceEffectSettings = GameState.pieceEffectSettings; // 同步
+    updatePieceEffectUI();
+}
+
+// 切换棋子回弹
+function changePieceBounce(state) {
+    SoundEngine.playPlace();
+    GameState.pieceEffectSettings.classic.bounceEnabled = (state === 'on');
+    pieceEffectSettings = GameState.pieceEffectSettings; // 同步
+    updatePieceEffectUI();
+}
+
+// 切换落子风格
+function changePieceDropStyle(style) {
+    SoundEngine.playPlace();
+    GameState.pieceEffectSettings.classic.dropStyle = style;
+    pieceEffectSettings = GameState.pieceEffectSettings; // 同步
+    updatePieceEffectUI();
+}
+
+// 获取当前棋子的落子动画类名
+function getPieceDropAnimationClass() {
+    if (currentSkin === 'nature') {
+        // 自然皮肤使用独立设置
+        const settings = GameState.pieceEffectSettings.nature;
+        const style = settings.dropStyle;
+        const bounce = settings.bounceEnabled;
+        
+        if (style === 'fast') {
+            return bounce ? 'drop-fast-bounce' : 'drop-fast';
+        } else {
+            return bounce ? 'drop-slow-bounce' : 'drop-slow';
+        }
+    }
+    
+    // 黑白皮肤
+    const settings = GameState.pieceEffectSettings.classic;
+    const style = settings.dropStyle;
+    const bounce = settings.bounceEnabled;
+    
+    if (style === 'fast') {
+        return bounce ? 'drop-fast-bounce' : 'drop-fast';
+    } else {
+        return bounce ? 'drop-slow-bounce' : 'drop-slow';
+    }
+}
+
+// 检查是否启用波纹特效（黑白皮肤）
+function isPieceRippleEnabled() {
+    if (currentSkin !== 'classic') {
+        return false; // 自然皮肤不使用波纹，使用专属特效
+    }
+    return GameState.pieceEffectSettings.classic.rippleEnabled;
+}
+
+// 检查是否启用自然特效（自然皮肤）
+function isNatureEffectEnabled() {
+    if (currentSkin !== 'nature') {
+        return false;
+    }
+    return GameState.pieceEffectSettings.nature.effectEnabled;
+}
+
+// 获取当前棋子的质感类名
+function getPieceTextureClass() {
+    // 只有 classic 皮肤支持质感调试
+    if (currentSkin !== 'classic') {
+        return 'texture-3d'; // 其他皮肤使用默认立体质感
+    }
+    
+    const texture = GameState.pieceEffectSettings.classic.texture;
+    return texture === 'flat' ? 'texture-flat' : 'texture-3d';
+}
+
+// ================= [Alpha 0.7.9.3] 自然棋子特效调试系统 =================
+
+// 自然棋子长按检测变量
+let natureLongPressTimer = null;
+let natureLongPressTarget = null;
+
+// 初始化自然棋子长按检测
+function setupNatureLongPress() {
+    const natureItem = document.getElementById('pieceGridNature');
+    if (!natureItem) return;
+    
+    // 添加长按就绪标记
+    natureItem.classList.add('long-press-ready');
+    
+    // 鼠标事件
+    natureItem.addEventListener('mousedown', handleNatureLongPressStart);
+    natureItem.addEventListener('mouseup', handleNatureLongPressEnd);
+    natureItem.addEventListener('mouseleave', handleNatureLongPressEnd);
+    
+    // 触摸事件（移动端）
+    natureItem.addEventListener('touchstart', handleNatureLongPressStart, { passive: true });
+    natureItem.addEventListener('touchend', handleNatureLongPressEnd);
+    natureItem.addEventListener('touchcancel', handleNatureLongPressEnd);
+}
+
+// 清理自然棋子长按检测
+function cleanupNatureLongPress() {
+    const natureItem = document.getElementById('pieceGridNature');
+    if (!natureItem) return;
+    
+    if (natureLongPressTimer) {
+        clearTimeout(natureLongPressTimer);
+        natureLongPressTimer = null;
+    }
+    
+    natureItem.classList.remove('long-pressing', 'long-press-complete');
+    
+    natureItem.removeEventListener('mousedown', handleNatureLongPressStart);
+    natureItem.removeEventListener('mouseup', handleNatureLongPressEnd);
+    natureItem.removeEventListener('mouseleave', handleNatureLongPressEnd);
+    natureItem.removeEventListener('touchstart', handleNatureLongPressStart);
+    natureItem.removeEventListener('touchend', handleNatureLongPressEnd);
+    natureItem.removeEventListener('touchcancel', handleNatureLongPressEnd);
+}
+
+// 自然棋子长按开始
+function handleNatureLongPressStart(e) {
+    const target = e.currentTarget;
+    natureLongPressTarget = target;
+    
+    target.classList.add('long-pressing');
+    
+    natureLongPressTimer = setTimeout(() => {
+        target.classList.remove('long-pressing');
+        target.classList.add('long-press-complete');
+        
+        SoundEngine.playPlace();
+        
+        setTimeout(() => {
+            target.classList.remove('long-press-complete');
+            openNatureEffectPanel();
+        }, 300);
+        
+        natureLongPressTimer = null;
+    }, LONG_PRESS_DURATION);
+}
+
+// 自然棋子长按结束
+function handleNatureLongPressEnd(e) {
+    const target = natureLongPressTarget || e.currentTarget;
+    
+    if (natureLongPressTimer) {
+        clearTimeout(natureLongPressTimer);
+        natureLongPressTimer = null;
+    }
+    
+    target.classList.remove('long-pressing');
+    natureLongPressTarget = null;
+}
+
+// 打开自然棋子特效调试面板
+function openNatureEffectPanel() {
+    document.getElementById('pieceSelectorModal').style.display = 'none';
+    document.getElementById('natureEffectModal').style.display = 'flex';
+    updateNatureEffectUI();
+}
+
+// 关闭自然棋子特效调试面板
+function closeNatureEffectPanel() {
+    document.getElementById('natureEffectModal').style.display = 'none';
+    document.getElementById('pieceSelectorModal').style.display = 'flex';
+}
+
+// 更新自然棋子特效UI状态
+function updateNatureEffectUI() {
+    const settings = GameState.pieceEffectSettings.nature;
+    
+    // 自然特效
+    document.getElementById('natureFxOff').classList.remove('active');
+    document.getElementById('natureFxOn').classList.remove('active');
+    if (settings.effectEnabled) {
+        document.getElementById('natureFxOn').classList.add('active');
+    } else {
+        document.getElementById('natureFxOff').classList.add('active');
+    }
+    
+    // 棋子回弹
+    document.getElementById('natureBounceOff').classList.remove('active');
+    document.getElementById('natureBounceOn').classList.remove('active');
+    if (settings.bounceEnabled) {
+        document.getElementById('natureBounceOn').classList.add('active');
+    } else {
+        document.getElementById('natureBounceOff').classList.add('active');
+    }
+    
+    // 落子速度
+    document.getElementById('natureDropFast').classList.remove('active');
+    document.getElementById('natureDropSlow').classList.remove('active');
+    if (settings.dropStyle === 'fast') {
+        document.getElementById('natureDropFast').classList.add('active');
+    } else {
+        document.getElementById('natureDropSlow').classList.add('active');
+    }
+}
+
+// 切换自然特效
+function changeNatureEffect(state) {
+    SoundEngine.playPlace();
+    GameState.pieceEffectSettings.nature.effectEnabled = (state === 'on');
+    pieceEffectSettings = GameState.pieceEffectSettings; // 同步
+    updateNatureEffectUI();
+}
+
+// 切换自然棋子回弹
+function changeNatureBounce(state) {
+    SoundEngine.playPlace();
+    GameState.pieceEffectSettings.nature.bounceEnabled = (state === 'on');
+    pieceEffectSettings = GameState.pieceEffectSettings; // 同步
+    updateNatureEffectUI();
+}
+
+// 切换自然棋子落子风格
+function changeNatureDropStyle(style) {
+    SoundEngine.playPlace();
+    GameState.pieceEffectSettings.nature.dropStyle = style;
+    pieceEffectSettings = GameState.pieceEffectSettings; // 同步
+    updateNatureEffectUI();
 }
 

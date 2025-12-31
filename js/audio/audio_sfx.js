@@ -1126,6 +1126,300 @@ window.AudioSFX = {
         };
         target.tone = function(f, type, d, v=0.1) { this.playNote(f, d, type, v * this.sfxVolume, 0.01, 0.1); },
 
+        // [Alpha 0.7.9.3] 棋子打击感革命 - 黑子落子音效
+        // 设计理念：黑曜石落木板 - 沉稳、厚重、有力
+        target.playBlackStone = function() {
+            if (this.isMuted || !this.ctx) return;
+            const t = this.ctx.currentTime;
+            
+            // === 第1层：低频撞击主体（石头的重量感）===
+            const impact = this.ctx.createOscillator();
+            const impactGain = this.ctx.createGain();
+            impact.type = 'sine';
+            impact.frequency.setValueAtTime(120, t);
+            impact.frequency.exponentialRampToValueAtTime(60, t + 0.08);
+            impactGain.gain.setValueAtTime(0.5 * this.sfxVolume, t);
+            impactGain.gain.exponentialRampToValueAtTime(0.01, t + 0.12);
+            impact.connect(impactGain);
+            impactGain.connect(this.ctx.destination);
+            impact.start(t);
+            impact.stop(t + 0.15);
+            
+            // === 第2层：中频木质共鸣（棋盘的回响）===
+            const wood = this.ctx.createOscillator();
+            const woodGain = this.ctx.createGain();
+            const woodFilter = this.ctx.createBiquadFilter();
+            wood.type = 'triangle';
+            wood.frequency.setValueAtTime(280, t);
+            wood.frequency.exponentialRampToValueAtTime(180, t + 0.1);
+            woodFilter.type = 'bandpass';
+            woodFilter.frequency.setValueAtTime(300, t);
+            woodFilter.Q.value = 3;
+            woodGain.gain.setValueAtTime(0.25 * this.sfxVolume, t);
+            woodGain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+            wood.connect(woodFilter);
+            woodFilter.connect(woodGain);
+            woodGain.connect(this.ctx.destination);
+            wood.start(t);
+            wood.stop(t + 0.18);
+            
+            // === 第3层：高频瞬态点击（落子的"咔"声）===
+            const click = this.ctx.createOscillator();
+            const clickGain = this.ctx.createGain();
+            click.type = 'square';
+            click.frequency.setValueAtTime(1800, t);
+            click.frequency.exponentialRampToValueAtTime(800, t + 0.02);
+            clickGain.gain.setValueAtTime(0.15 * this.sfxVolume, t);
+            clickGain.gain.exponentialRampToValueAtTime(0.01, t + 0.04);
+            click.connect(clickGain);
+            clickGain.connect(this.ctx.destination);
+            click.start(t);
+            click.stop(t + 0.05);
+            
+            // === 第4层：噪音层（石头摩擦的质感）===
+            const noiseBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.06, this.ctx.sampleRate);
+            const noiseData = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < noiseData.length; i++) {
+                noiseData[i] = (Math.random() * 2 - 1) * Math.exp(-i / noiseData.length * 4);
+            }
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = noiseBuffer;
+            const noiseFilter = this.ctx.createBiquadFilter();
+            noiseFilter.type = 'lowpass';
+            noiseFilter.frequency.setValueAtTime(2000, t);
+            const noiseGain = this.ctx.createGain();
+            noiseGain.gain.setValueAtTime(0.2 * this.sfxVolume, t);
+            noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.06);
+            noise.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(this.ctx.destination);
+            noise.start(t);
+        },
+
+        // [Alpha 0.7.9.3] 棋子打击感革命 - 白子落子音效
+        // 设计理念：白玉落木板 - 清脆、通透、优雅
+        target.playWhiteStone = function() {
+            if (this.isMuted || !this.ctx) return;
+            const t = this.ctx.currentTime;
+            
+            // === 第1层：中频撞击主体（玉石的清脆感）===
+            const impact = this.ctx.createOscillator();
+            const impactGain = this.ctx.createGain();
+            impact.type = 'sine';
+            impact.frequency.setValueAtTime(200, t);
+            impact.frequency.exponentialRampToValueAtTime(120, t + 0.06);
+            impactGain.gain.setValueAtTime(0.4 * this.sfxVolume, t);
+            impactGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+            impact.connect(impactGain);
+            impactGain.connect(this.ctx.destination);
+            impact.start(t);
+            impact.stop(t + 0.12);
+            
+            // === 第2层：高频陶瓷质感（玉石的通透感）===
+            const ceramic = this.ctx.createOscillator();
+            const ceramicGain = this.ctx.createGain();
+            ceramic.type = 'sine';
+            ceramic.frequency.setValueAtTime(800, t);
+            ceramic.frequency.exponentialRampToValueAtTime(500, t + 0.08);
+            ceramicGain.gain.setValueAtTime(0.2 * this.sfxVolume, t);
+            ceramicGain.gain.exponentialRampToValueAtTime(0.01, t + 0.12);
+            ceramic.connect(ceramicGain);
+            ceramicGain.connect(this.ctx.destination);
+            ceramic.start(t);
+            ceramic.stop(t + 0.15);
+            
+            // === 第3层：木质共鸣（棋盘的温暖回响）===
+            const wood = this.ctx.createOscillator();
+            const woodGain = this.ctx.createGain();
+            const woodFilter = this.ctx.createBiquadFilter();
+            wood.type = 'triangle';
+            wood.frequency.setValueAtTime(350, t);
+            wood.frequency.exponentialRampToValueAtTime(220, t + 0.1);
+            woodFilter.type = 'bandpass';
+            woodFilter.frequency.setValueAtTime(400, t);
+            woodFilter.Q.value = 2;
+            woodGain.gain.setValueAtTime(0.18 * this.sfxVolume, t);
+            woodGain.gain.exponentialRampToValueAtTime(0.01, t + 0.14);
+            wood.connect(woodFilter);
+            woodFilter.connect(woodGain);
+            woodGain.connect(this.ctx.destination);
+            wood.start(t);
+            wood.stop(t + 0.16);
+            
+            // === 第4层：高频闪烁（玉石的光泽感）===
+            const shimmer = this.ctx.createOscillator();
+            const shimmerGain = this.ctx.createGain();
+            shimmer.type = 'sine';
+            shimmer.frequency.setValueAtTime(2400, t);
+            shimmer.frequency.exponentialRampToValueAtTime(1600, t + 0.03);
+            shimmerGain.gain.setValueAtTime(0.12 * this.sfxVolume, t);
+            shimmerGain.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
+            shimmer.connect(shimmerGain);
+            shimmerGain.connect(this.ctx.destination);
+            shimmer.start(t);
+            shimmer.stop(t + 0.06);
+            
+            // === 第5层：轻微回响尾音（优雅的余韵）===
+            const reverb = this.ctx.createOscillator();
+            const reverbGain = this.ctx.createGain();
+            reverb.type = 'sine';
+            reverb.frequency.setValueAtTime(400, t + 0.05);
+            reverb.frequency.exponentialRampToValueAtTime(300, t + 0.15);
+            reverbGain.gain.setValueAtTime(0.08 * this.sfxVolume, t + 0.05);
+            reverbGain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+            reverb.connect(reverbGain);
+            reverbGain.connect(this.ctx.destination);
+            reverb.start(t + 0.05);
+            reverb.stop(t + 0.22);
+        },
+
+        // [Alpha 0.7.9.3] 自然棋子音效 - 落叶（枫叶）落子音效
+        // 设计理念：秋叶飘落 - 沙沙声、轻柔、自然
+        target.playMapleStone = function() {
+            if (this.isMuted || !this.ctx) return;
+            const t = this.ctx.currentTime;
+            
+            // === 第1层：沙沙的树叶摩擦声（主体）===
+            const rustleBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.25, this.ctx.sampleRate);
+            const rustleData = rustleBuffer.getChannelData(0);
+            for (let i = 0; i < rustleData.length; i++) {
+                // 模拟树叶沙沙声的不规则噪音
+                const envelope = Math.sin(Math.PI * i / rustleData.length) * Math.exp(-i / rustleData.length * 2);
+                rustleData[i] = (Math.random() * 2 - 1) * envelope;
+            }
+            const rustle = this.ctx.createBufferSource();
+            rustle.buffer = rustleBuffer;
+            const rustleFilter = this.ctx.createBiquadFilter();
+            rustleFilter.type = 'bandpass';
+            rustleFilter.frequency.setValueAtTime(3000, t);
+            rustleFilter.Q.value = 1.5;
+            const rustleGain = this.ctx.createGain();
+            rustleGain.gain.setValueAtTime(0.35 * this.sfxVolume, t);
+            rustleGain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+            rustle.connect(rustleFilter);
+            rustleFilter.connect(rustleGain);
+            rustleGain.connect(this.ctx.destination);
+            rustle.start(t);
+            
+            // === 第2层：轻柔的落地声（叶子触地）===
+            const land = this.ctx.createOscillator();
+            const landGain = this.ctx.createGain();
+            land.type = 'sine';
+            land.frequency.setValueAtTime(180, t + 0.08);
+            land.frequency.exponentialRampToValueAtTime(80, t + 0.18);
+            landGain.gain.setValueAtTime(0.2 * this.sfxVolume, t + 0.08);
+            landGain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+            land.connect(landGain);
+            landGain.connect(this.ctx.destination);
+            land.start(t + 0.08);
+            land.stop(t + 0.22);
+            
+            // === 第3层：高频细节（叶脉的质感）===
+            const detail = this.ctx.createOscillator();
+            const detailGain = this.ctx.createGain();
+            detail.type = 'triangle';
+            detail.frequency.setValueAtTime(1200, t);
+            detail.frequency.exponentialRampToValueAtTime(600, t + 0.1);
+            detailGain.gain.setValueAtTime(0.1 * this.sfxVolume, t);
+            detailGain.gain.exponentialRampToValueAtTime(0.01, t + 0.12);
+            detail.connect(detailGain);
+            detailGain.connect(this.ctx.destination);
+            detail.start(t);
+            detail.stop(t + 0.15);
+            
+            // === 第4层：风的余韵（自然氛围）===
+            const windBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.15, this.ctx.sampleRate);
+            const windData = windBuffer.getChannelData(0);
+            for (let i = 0; i < windData.length; i++) {
+                windData[i] = (Math.random() * 2 - 1) * Math.exp(-i / windData.length * 3) * 0.3;
+            }
+            const wind = this.ctx.createBufferSource();
+            wind.buffer = windBuffer;
+            const windFilter = this.ctx.createBiquadFilter();
+            windFilter.type = 'lowpass';
+            windFilter.frequency.setValueAtTime(800, t + 0.1);
+            const windGain = this.ctx.createGain();
+            windGain.gain.setValueAtTime(0.15 * this.sfxVolume, t + 0.1);
+            windGain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+            wind.connect(windFilter);
+            windFilter.connect(windGain);
+            windGain.connect(this.ctx.destination);
+            wind.start(t + 0.1);
+        },
+
+        // [Alpha 0.7.9.3] 自然棋子音效 - 太阳落子音效
+        // 设计理念：阳光照耀 - 温暖、明亮、光辉扩散
+        target.playSunStone = function() {
+            if (this.isMuted || !this.ctx) return;
+            const t = this.ctx.currentTime;
+            
+            // === 第1层：温暖的光辉主体（明亮的正弦波）===
+            const glow = this.ctx.createOscillator();
+            const glowGain = this.ctx.createGain();
+            glow.type = 'sine';
+            glow.frequency.setValueAtTime(600, t);
+            glow.frequency.exponentialRampToValueAtTime(400, t + 0.15);
+            glowGain.gain.setValueAtTime(0.3 * this.sfxVolume, t);
+            glowGain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+            glow.connect(glowGain);
+            glowGain.connect(this.ctx.destination);
+            glow.start(t);
+            glow.stop(t + 0.22);
+            
+            // === 第2层：高频闪烁（阳光的闪耀感）===
+            const sparkle = this.ctx.createOscillator();
+            const sparkleGain = this.ctx.createGain();
+            sparkle.type = 'sine';
+            sparkle.frequency.setValueAtTime(2000, t);
+            sparkle.frequency.exponentialRampToValueAtTime(1200, t + 0.08);
+            sparkleGain.gain.setValueAtTime(0.18 * this.sfxVolume, t);
+            sparkleGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+            sparkle.connect(sparkleGain);
+            sparkleGain.connect(this.ctx.destination);
+            sparkle.start(t);
+            sparkle.stop(t + 0.12);
+            
+            // === 第3层：和声泛音（光芒的层次感）===
+            const harmonic = this.ctx.createOscillator();
+            const harmonicGain = this.ctx.createGain();
+            harmonic.type = 'triangle';
+            harmonic.frequency.setValueAtTime(1200, t);
+            harmonic.frequency.exponentialRampToValueAtTime(800, t + 0.12);
+            harmonicGain.gain.setValueAtTime(0.12 * this.sfxVolume, t);
+            harmonicGain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+            harmonic.connect(harmonicGain);
+            harmonicGain.connect(this.ctx.destination);
+            harmonic.start(t);
+            harmonic.stop(t + 0.18);
+            
+            // === 第4层：温暖的低频支撑（太阳的温度感）===
+            const warmth = this.ctx.createOscillator();
+            const warmthGain = this.ctx.createGain();
+            warmth.type = 'sine';
+            warmth.frequency.setValueAtTime(250, t);
+            warmth.frequency.exponentialRampToValueAtTime(150, t + 0.1);
+            warmthGain.gain.setValueAtTime(0.2 * this.sfxVolume, t);
+            warmthGain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+            warmth.connect(warmthGain);
+            warmthGain.connect(this.ctx.destination);
+            warmth.start(t);
+            warmth.stop(t + 0.18);
+            
+            // === 第5层：光辉扩散的余韵（渐弱的回响）===
+            const echo = this.ctx.createOscillator();
+            const echoGain = this.ctx.createGain();
+            echo.type = 'sine';
+            echo.frequency.setValueAtTime(500, t + 0.1);
+            echo.frequency.exponentialRampToValueAtTime(350, t + 0.25);
+            echoGain.gain.setValueAtTime(0.1 * this.sfxVolume, t + 0.1);
+            echoGain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+            echo.connect(echoGain);
+            echoGain.connect(this.ctx.destination);
+            echo.start(t + 0.1);
+            echo.stop(t + 0.32);
+        },
+
+        // [保留旧接口] 通用落子音效（用于非棋子场景）
         target.playPlace = function() { this.tone(400, 'sine', 0.1, 0.3); },
 
         target.playSkill = function() { this.tone(600, 'triangle', 0.1, 0.2); setTimeout(() => this.tone(800, 'triangle', 0.2, 0.1), 100); },

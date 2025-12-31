@@ -3,7 +3,7 @@ const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "Alpha0.7.9.2", 
+        subTitle: "Alpha0.7.9.3", 
         btnPvE: "人機對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -35,9 +35,13 @@ const I18N = {
         // [恢复Alpha0.7.8.9] 文本缩短，避免 UI 溢出
         seasonSpring: "春", seasonSummer: "夏", seasonAutumn: "秋", seasonWinter: "冬",
         
-        lblFPSLimit: "畫面幀率",
-        fps60: "60 FPS",
-        fpsUnlimited: "無限制",
+        // [Alpha 0.7.9.3] 棋盘震动 & LYSH 区域
+        lblBoardShake: "棋盤震動",
+        optOff: "關",
+        optOn: "開",
+        lblDJIndicator: "DJ 提示器",
+        descDJIndicator: "DJ模式下顯示節拍判定提示燈",
+        
         lblStatusScroll: "狀態欄",
         statusAuto: "自動",
         statusManual: "手動",
@@ -54,6 +58,27 @@ const I18N = {
         boardClassicWood: "經典木質",
         boardModern: "現代簡約",
         skinComingSoon: "敬請期待",
+
+        // [Alpha 0.7.9.3] 棋子特效调试
+        lblPieceEffect: "特效調試",
+        lblPieceEffectDesc: "自定義「黑白」棋子的落子特效",
+        lblPieceTexture: "棋子質感",
+        descPieceTexture: "選擇棋子的視覺風格",
+        opt3D: "立體",
+        optFlat: "扁平",
+        lblRippleEffect: "波紋氣場",
+        descRippleEffect: "落子時的圓形擴散波紋",
+        lblBounceEffect: "棋子回彈",
+        descBounceEffect: "落子動畫的彈跳效果",
+        lblDropStyle: "落子速度",
+        descDropStyle: "選擇落子動畫的速度風格",
+        optFast: "快",
+        optSlow: "慢",
+        // [Alpha 0.7.9.3] 自然棋子特效调试
+        lblNatureEffect: "特效調試",
+        lblNatureEffectDesc: "自定義「自然」棋子的落子特效",
+        lblNatureFx: "自然特效",
+        descNatureFx: "落葉飄落與陽光光芒",
 
         // [New] 特效菜单翻译
         lblWinEffect: "連珠特效",
@@ -107,7 +132,7 @@ const I18N = {
     'zh': {
         langName: "简", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "Alpha0.7.9.2", 
+        subTitle: "Alpha0.7.9.3", 
         btnPvE: "人机对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -139,9 +164,13 @@ const I18N = {
         // [恢复Alpha0.7.8.9] 文本缩短，避免 UI 溢出
         seasonSpring: "春", seasonSummer: "夏", seasonAutumn: "秋", seasonWinter: "冬",
         
-        lblFPSLimit: "画面帧率",
-        fps60: "60 FPS",
-        fpsUnlimited: "无限制",
+        // [Alpha 0.7.9.3] 棋盘震动 & LYSH 区域
+        lblBoardShake: "棋盘震动",
+        optOff: "关",
+        optOn: "开",
+        lblDJIndicator: "DJ 提示器",
+        descDJIndicator: "DJ模式下显示节拍判定提示灯",
+        
         lblStatusScroll: "状态栏",
         statusAuto: "自动",
         statusManual: "手动",
@@ -158,6 +187,27 @@ const I18N = {
         boardClassicWood: "经典木质",
         boardModern: "现代简约",
         skinComingSoon: "敬请期待",
+
+        // [Alpha 0.7.9.3] 棋子特效调试
+        lblPieceEffect: "特效调试",
+        lblPieceEffectDesc: "自定义「黑白」棋子的落子特效",
+        lblPieceTexture: "棋子质感",
+        descPieceTexture: "选择棋子的视觉风格",
+        opt3D: "立体",
+        optFlat: "扁平",
+        lblRippleEffect: "波纹气场",
+        descRippleEffect: "落子时的圆形扩散波纹",
+        lblBounceEffect: "棋子回弹",
+        descBounceEffect: "落子动画的弹跳效果",
+        lblDropStyle: "落子速度",
+        descDropStyle: "选择落子动画的速度风格",
+        optFast: "快",
+        optSlow: "慢",
+        // [Alpha 0.7.9.3] 自然棋子特效调试
+        lblNatureEffect: "特效调试",
+        lblNatureEffectDesc: "自定义「自然」棋子的落子特效",
+        lblNatureFx: "自然特效",
+        descNatureFx: "落叶飘落与阳光光芒",
 
         // [New] 特效菜单翻译
         lblWinEffect: "连珠特效",
@@ -211,7 +261,7 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Skill Gomoku <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "Alpha0.7.9.2", 
+        subTitle: "Alpha0.7.9.3", 
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -243,9 +293,13 @@ const I18N = {
         // [恢复Alpha0.7.8.9] Shorter labels to avoid overflow
         seasonSpring: "Spring", seasonSummer: "Summer", seasonAutumn: "Autumn", seasonWinter: "Winter",
         
-        lblFPSLimit: "Frame Rate",
-        fps60: "60 FPS",
-        fpsUnlimited: "Unlimited",
+        // [Alpha 0.7.9.3] Board Shake & LYSH Zone
+        lblBoardShake: "Board Shake",
+        optOff: "Off",
+        optOn: "On",
+        lblDJIndicator: "DJ Indicator",
+        descDJIndicator: "Show beat timing indicator in DJ mode",
+        
         lblStatusScroll: "Status Bar",
         statusAuto: "Auto",
         statusManual: "Manual",
@@ -262,6 +316,27 @@ const I18N = {
         boardClassicWood: "Classic Wood",
         boardModern: "Modern",
         skinComingSoon: "Coming Soon",
+
+        // [Alpha 0.7.9.3] Piece Effect Debug
+        lblPieceEffect: "Effect Debug",
+        lblPieceEffectDesc: "Customize drop effects for Classic pieces",
+        lblPieceTexture: "Piece Texture",
+        descPieceTexture: "Choose piece visual style",
+        opt3D: "3D",
+        optFlat: "Flat",
+        lblRippleEffect: "Ripple Aura",
+        descRippleEffect: "Circular ripple on piece drop",
+        lblBounceEffect: "Bounce Effect",
+        descBounceEffect: "Bouncy drop animation",
+        lblDropStyle: "Drop Speed",
+        descDropStyle: "Choose drop animation speed",
+        optFast: "Fast",
+        optSlow: "Slow",
+        // [Alpha 0.7.9.3] Nature Piece Effect Debug
+        lblNatureEffect: "Effect Debug",
+        lblNatureEffectDesc: "Customize drop effects for Nature pieces",
+        lblNatureFx: "Nature FX",
+        descNatureFx: "Falling leaves & sunlight glow",
 
         // [New] Effect Menu Translations
         lblWinEffect: "Line Effect",

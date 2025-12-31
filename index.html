@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>技能五子棋 - Alpha0.7.9.2</title>
+    <title>技能五子棋 - Alpha0.7.9.3</title>
     <script>
         // [恢复Alpha0.7.8.9] 全局致命错误捕获：弹窗提示 + 显示错误来源
         (function() {
@@ -64,7 +64,7 @@
             });
         })();
     </script>
-    <link rel="stylesheet" href="style.css?v=Alpha0.7.9.2">
+    <link rel="stylesheet" href="style.css?v=Alpha0.7.9.3">
 </head>
 <body onclick="SoundEngine.init()">
 
@@ -87,8 +87,8 @@
         <div class="glass-panel menu-panel">
             <h1 data-i18n="gameTitle">技能五子棋 <span style="font-size:0.5em">Alpha</span></h1>
             <h2 style="margin-top:-5px; font-size:1.2rem; color:#666;">
-                <span data-i18n="subTitle">Alpha0.7.9.2</span> 
-                <span class="version-tag">Alpha0.7.9.2</span>
+                <span data-i18n="subTitle">Alpha0.7.9.3</span> 
+                <span class="version-tag">Alpha0.7.9.3</span>
             </h2>
             
             <button class="btn primary" onclick="showDifficultyScreen()" data-i18n="btnPvE">人机对战 (PvE)</button>
@@ -230,10 +230,10 @@
 
             <div class="setting-item setting-row">
                 <div class="setting-group">
-                    <label data-i18n="lblFPSLimit">畫面幀率</label>
-                    <div class="capsule-selector fps-selector">
-                        <button class="capsule-opt fps-opt active" id="fps60" onclick="changeFPSLimit('60')" data-i18n="fps60">60 FPS</button>
-                        <button class="capsule-opt fps-opt" id="fpsUnlimited" onclick="changeFPSLimit('unlimited')" data-i18n="fpsUnlimited">無限制</button>
+                    <label data-i18n="lblBoardShake">棋盘震动</label>
+                    <div class="capsule-selector shake-selector">
+                        <button class="capsule-opt shake-opt active" id="shakeOff" onclick="changeBoardShake('off')" data-i18n="optOff">关</button>
+                        <button class="capsule-opt shake-opt" id="shakeOn" onclick="changeBoardShake('on')" data-i18n="optOn">开</button>
                     </div>
                 </div>
                 <div class="setting-group">
@@ -331,6 +331,114 @@
         </div>
     </div>
 
+    <!-- [Alpha 0.7.9.3] 棋子特效调试二级模态框 -->
+    <div id="pieceEffectModal" class="modal">
+        <div class="modal-content selector-modal-content piece-effect-panel">
+            <h2 style="margin-top:0; margin-bottom:8px;" data-i18n="lblPieceEffect">特效调试</h2>
+            <p class="piece-effect-subtitle" data-i18n="lblPieceEffectDesc">自定义"黑白"棋子的落子特效</p>
+            
+            <div class="piece-effect-list">
+                <!-- 棋子质感 -->
+                <div class="piece-effect-item">
+                    <div class="piece-effect-info">
+                        <span class="piece-effect-name" data-i18n="lblPieceTexture">棋子质感</span>
+                        <span class="piece-effect-desc" data-i18n="descPieceTexture">选择棋子的视觉风格</span>
+                    </div>
+                    <div class="piece-effect-toggle">
+                        <button class="effect-toggle-btn active" id="texture3D" onclick="changePieceTexture('3d')" data-i18n="opt3D">立体</button>
+                        <button class="effect-toggle-btn" id="textureFlat" onclick="changePieceTexture('flat')" data-i18n="optFlat">扁平</button>
+                    </div>
+                </div>
+                
+                <!-- 波纹气场 -->
+                <div class="piece-effect-item">
+                    <div class="piece-effect-info">
+                        <span class="piece-effect-name" data-i18n="lblRippleEffect">波纹气场</span>
+                        <span class="piece-effect-desc" data-i18n="descRippleEffect">落子时的圆形扩散波纹</span>
+                    </div>
+                    <div class="piece-effect-toggle">
+                        <button class="effect-toggle-btn active" id="rippleOff" onclick="changePieceRipple('off')" data-i18n="optOff">关</button>
+                        <button class="effect-toggle-btn" id="rippleOn" onclick="changePieceRipple('on')" data-i18n="optOn">开</button>
+                    </div>
+                </div>
+                
+                <!-- 棋子回弹 -->
+                <div class="piece-effect-item">
+                    <div class="piece-effect-info">
+                        <span class="piece-effect-name" data-i18n="lblBounceEffect">棋子回弹</span>
+                        <span class="piece-effect-desc" data-i18n="descBounceEffect">落子动画的弹跳效果</span>
+                    </div>
+                    <div class="piece-effect-toggle">
+                        <button class="effect-toggle-btn active" id="bounceOff" onclick="changePieceBounce('off')" data-i18n="optOff">关</button>
+                        <button class="effect-toggle-btn" id="bounceOn" onclick="changePieceBounce('on')" data-i18n="optOn">开</button>
+                    </div>
+                </div>
+                
+                <!-- 落子速度 -->
+                <div class="piece-effect-item">
+                    <div class="piece-effect-info">
+                        <span class="piece-effect-name" data-i18n="lblDropStyle">落子速度</span>
+                        <span class="piece-effect-desc" data-i18n="descDropStyle">选择落子动画的速度风格</span>
+                    </div>
+                    <div class="piece-effect-toggle">
+                        <button class="effect-toggle-btn active" id="dropFast" onclick="changePieceDropStyle('fast')" data-i18n="optFast">快</button>
+                        <button class="effect-toggle-btn" id="dropSlow" onclick="changePieceDropStyle('slow')" data-i18n="optSlow">慢</button>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn secondary" onclick="closePieceEffectPanel()" style="margin-top:20px;" data-i18n="btnBack">返回</button>
+        </div>
+    </div>
+
+    <!-- [Alpha 0.7.9.3] 自然棋子特效调试二级模态框 -->
+    <div id="natureEffectModal" class="modal">
+        <div class="modal-content selector-modal-content piece-effect-panel">
+            <h2 style="margin-top:0; margin-bottom:8px;" data-i18n="lblNatureEffect">特效调试</h2>
+            <p class="piece-effect-subtitle" data-i18n="lblNatureEffectDesc">自定义"自然"棋子的落子特效</p>
+            
+            <div class="piece-effect-list">
+                <!-- 自然特效（落叶/光芒）-->
+                <div class="piece-effect-item">
+                    <div class="piece-effect-info">
+                        <span class="piece-effect-name" data-i18n="lblNatureFx">自然特效</span>
+                        <span class="piece-effect-desc" data-i18n="descNatureFx">落叶飘落与阳光光芒</span>
+                    </div>
+                    <div class="piece-effect-toggle">
+                        <button class="effect-toggle-btn active" id="natureFxOff" onclick="changeNatureEffect('off')" data-i18n="optOff">关</button>
+                        <button class="effect-toggle-btn" id="natureFxOn" onclick="changeNatureEffect('on')" data-i18n="optOn">开</button>
+                    </div>
+                </div>
+                
+                <!-- 棋子回弹 -->
+                <div class="piece-effect-item">
+                    <div class="piece-effect-info">
+                        <span class="piece-effect-name" data-i18n="lblBounceEffect">棋子回弹</span>
+                        <span class="piece-effect-desc" data-i18n="descBounceEffect">落子动画的弹跳效果</span>
+                    </div>
+                    <div class="piece-effect-toggle">
+                        <button class="effect-toggle-btn active" id="natureBounceOff" onclick="changeNatureBounce('off')" data-i18n="optOff">关</button>
+                        <button class="effect-toggle-btn" id="natureBounceOn" onclick="changeNatureBounce('on')" data-i18n="optOn">开</button>
+                    </div>
+                </div>
+                
+                <!-- 落子速度 -->
+                <div class="piece-effect-item">
+                    <div class="piece-effect-info">
+                        <span class="piece-effect-name" data-i18n="lblDropStyle">落子速度</span>
+                        <span class="piece-effect-desc" data-i18n="descDropStyle">选择落子动画的速度风格</span>
+                    </div>
+                    <div class="piece-effect-toggle">
+                        <button class="effect-toggle-btn active" id="natureDropFast" onclick="changeNatureDropStyle('fast')" data-i18n="optFast">快</button>
+                        <button class="effect-toggle-btn" id="natureDropSlow" onclick="changeNatureDropStyle('slow')" data-i18n="optSlow">慢</button>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn secondary" onclick="closeNatureEffectPanel()" style="margin-top:20px;" data-i18n="btnBack">返回</button>
+        </div>
+    </div>
+
     <!-- [Alpha 0.7.9.0] 棋盘选择器模态框 -->
     <div id="boardSelectorModal" class="modal">
         <div class="modal-content selector-modal-content">
@@ -369,37 +477,75 @@
     <div id="toast"></div>
     <div id="explosionOverlay"></div>
 
-    <script src="assets.js?v=Alpha0.7.9.2"></script>
-    <script src="js/audio/audio_host.js?v=Alpha0.7.9.2"></script>
-    <script src="js/audio/audio_sfx.js?v=Alpha0.7.9.2"></script>
-    <script src="js/audio/audio_assets.js?v=Alpha0.7.9.2"></script>
-    <script src="js/audio/audio_hub.js?v=Alpha0.7.9.2"></script>
-    <script src="lang.js?v=Alpha0.7.9.2"></script> 
-    <script src="background.js?v=Alpha0.7.9.2"></script>
-    <script src="js/fx/fx_host.js?v=Alpha0.7.9.2"></script>
-    <script src="js/fx/lines.js?v=Alpha0.7.9.2"></script>
-    <script src="js/fx/winning/fireworks.js?v=Alpha0.7.9.2"></script>
-    <script src="js/fx/winning/golden.js?v=Alpha0.7.9.2"></script>
-    <script src="js/fx/winning/dj.js?v=Alpha0.7.9.2"></script>
-    <script src="gamestate.js?v=Alpha0.7.9.2"></script>
-    <script src="js/skills/registry.js?v=Alpha0.7.9.2"></script>
-    <script src="js/skills/double.js?v=Alpha0.7.9.2"></script>
-    <script src="js/skills/voodoo.js?v=Alpha0.7.9.2"></script>
-    <script src="js/skills/move_self.js?v=Alpha0.7.9.2"></script>
-    <script src="js/skills/move_enemy.js?v=Alpha0.7.9.2"></script>
-    <script src="js/skills/zone.js?v=Alpha0.7.9.2"></script>
-    <script src="js/skills/bomb.js?v=Alpha0.7.9.2"></script>
-    <script src="js/skills/god_hand.js?v=Alpha0.7.9.2"></script>
-    <script src="js/skills/chaos.js?v=Alpha0.7.9.2"></script>
-    <script src="js/skills/short_battle.js?v=Alpha0.7.9.2"></script>
-    <script src="js/skills/swap.js?v=Alpha0.7.9.2"></script>
-    <script src="js/game/game_host.js?v=Alpha0.7.9.2"></script>
-    <script src="js/game/game_core.js?v=Alpha0.7.9.2"></script>
-    <script src="js/game/game_ui.js?v=Alpha0.7.9.2"></script>
-    <script src="js/game/game_render.js?v=Alpha0.7.9.2"></script>
-    <script src="js/game/game_skills.js?v=Alpha0.7.9.2"></script>
-    <script src="js/game/game_ai.js?v=Alpha0.7.9.2"></script>
-    <script src="ai.js?v=Alpha0.7.9.2"></script>
+    <!-- [Alpha 0.7.9.3] LYSH 开发者区域 -->
+    <div id="lyshModal" class="modal lysh-modal">
+        <div class="lysh-panel">
+            <div class="lysh-header">
+                <div class="lysh-logo">LYSH</div>
+                <div class="lysh-subtitle">Developer Zone</div>
+            </div>
+            <div class="lysh-content">
+                <div class="lysh-section">
+                    <div class="lysh-section-title">调试工具</div>
+                    <div class="lysh-item">
+                        <div class="lysh-item-info">
+                            <span class="lysh-item-name" data-i18n="lblDJIndicator">DJ 提示器</span>
+                            <span class="lysh-item-desc" data-i18n="descDJIndicator">DJ模式下显示节拍判定提示灯</span>
+                        </div>
+                        <div class="lysh-toggle">
+                            <button class="lysh-toggle-btn active" id="djIndicatorOff" onclick="changeDJIndicator('off')" data-i18n="optOff">关</button>
+                            <button class="lysh-toggle-btn" id="djIndicatorOn" onclick="changeDJIndicator('on')" data-i18n="optOn">开</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="lysh-section">
+                    <div class="lysh-section-title">更多功能</div>
+                    <div class="lysh-item disabled">
+                        <div class="lysh-item-info">
+                            <span class="lysh-item-name">敬请期待</span>
+                            <span class="lysh-item-desc">更多开发者工具即将推出...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="lysh-footer">
+                <button class="lysh-back-btn" onclick="closeLyshPanel()" data-i18n="btnBack">返回</button>
+                <div class="lysh-version">Project Lysh Alpha</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets.js?v=Alpha0.7.9.3"></script>
+    <script src="js/audio/audio_host.js?v=Alpha0.7.9.3"></script>
+    <script src="js/audio/audio_sfx.js?v=Alpha0.7.9.3"></script>
+    <script src="js/audio/audio_assets.js?v=Alpha0.7.9.3"></script>
+    <script src="js/audio/audio_hub.js?v=Alpha0.7.9.3"></script>
+    <script src="lang.js?v=Alpha0.7.9.3"></script> 
+    <script src="background.js?v=Alpha0.7.9.3"></script>
+    <script src="js/fx/fx_host.js?v=Alpha0.7.9.3"></script>
+    <script src="js/fx/lines.js?v=Alpha0.7.9.3"></script>
+    <script src="js/fx/winning/fireworks.js?v=Alpha0.7.9.3"></script>
+    <script src="js/fx/winning/golden.js?v=Alpha0.7.9.3"></script>
+    <script src="js/fx/winning/dj.js?v=Alpha0.7.9.3"></script>
+    <script src="gamestate.js?v=Alpha0.7.9.3"></script>
+    <script src="js/skills/registry.js?v=Alpha0.7.9.3"></script>
+    <script src="js/skills/double.js?v=Alpha0.7.9.3"></script>
+    <script src="js/skills/voodoo.js?v=Alpha0.7.9.3"></script>
+    <script src="js/skills/move_self.js?v=Alpha0.7.9.3"></script>
+    <script src="js/skills/move_enemy.js?v=Alpha0.7.9.3"></script>
+    <script src="js/skills/zone.js?v=Alpha0.7.9.3"></script>
+    <script src="js/skills/bomb.js?v=Alpha0.7.9.3"></script>
+    <script src="js/skills/god_hand.js?v=Alpha0.7.9.3"></script>
+    <script src="js/skills/chaos.js?v=Alpha0.7.9.3"></script>
+    <script src="js/skills/short_battle.js?v=Alpha0.7.9.3"></script>
+    <script src="js/skills/swap.js?v=Alpha0.7.9.3"></script>
+    <script src="js/game/game_host.js?v=Alpha0.7.9.3"></script>
+    <script src="js/game/game_core.js?v=Alpha0.7.9.3"></script>
+    <script src="js/game/game_ui.js?v=Alpha0.7.9.3"></script>
+    <script src="js/game/game_render.js?v=Alpha0.7.9.3"></script>
+    <script src="js/game/game_skills.js?v=Alpha0.7.9.3"></script>
+    <script src="js/game/game_ai.js?v=Alpha0.7.9.3"></script>
+    <script src="ai.js?v=Alpha0.7.9.3"></script>
 
 </body>
 </html>
