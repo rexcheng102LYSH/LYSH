@@ -1582,3 +1582,446 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 }
 
 /* [Alpha 0.7.9.3] 落子动画和自然棋子特效已拆分至 css/pieces.css */
+
+
+/* ============================================
+   联网对战 UI 样式
+   ============================================ */
+
+/* 联网弹窗基础样式 */
+.online-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+.online-modal.show {
+    display: flex;
+}
+
+.online-panel {
+    background: linear-gradient(145deg, #1a1a2e, #16213e);
+    border-radius: 16px;
+    padding: 24px;
+    min-width: 320px;
+    max-width: 400px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.online-panel.small {
+    min-width: 280px;
+    max-width: 320px;
+    padding: 20px;
+}
+
+/* 头部 */
+.online-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.online-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.online-subtitle {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* 内容区 */
+.online-content {
+    margin-bottom: 20px;
+}
+
+.online-content.center {
+    text-align: center;
+}
+
+.online-content p {
+    color: rgba(255, 255, 255, 0.8);
+    margin: 16px 0;
+}
+
+/* 按钮 */
+.online-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    padding: 16px 24px;
+    margin-bottom: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.online-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.online-btn.primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-color: transparent;
+}
+
+.online-btn.primary:hover {
+    background: linear-gradient(135deg, #7b8ff0, #8a5db8);
+}
+
+.online-btn.danger {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    border-color: transparent;
+}
+
+.online-btn.small {
+    width: auto;
+    padding: 10px 20px;
+    margin-bottom: 0;
+}
+
+.btn-icon {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+/* 底部 */
+.online-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.online-back-btn {
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.online-back-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* 输入框 */
+.input-group {
+    margin-bottom: 16px;
+}
+
+.input-group label {
+    display: block;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.room-input {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1.5rem;
+    text-align: center;
+    letter-spacing: 8px;
+    font-family: monospace;
+}
+
+.room-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.room-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+    letter-spacing: 8px;
+}
+
+/* 房间号显示 */
+.room-id-display {
+    margin: 20px 0;
+}
+
+.room-id-label {
+    display: block;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+
+.room-id-value {
+    display: block;
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #667eea;
+    letter-spacing: 8px;
+    font-family: monospace;
+}
+
+.copy-btn {
+    padding: 8px 16px;
+    background: rgba(102, 126, 234, 0.2);
+    border: 1px solid rgba(102, 126, 234, 0.5);
+    border-radius: 6px;
+    color: #667eea;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+    background: rgba(102, 126, 234, 0.3);
+}
+
+.waiting-hint {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.9rem;
+    margin-top: 16px;
+}
+
+/* 等待动画 */
+.waiting-spinner {
+    width: 40px;
+    height: 40px;
+    margin: 20px auto;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 猜拳界面 */
+.rps-countdown {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #667eea;
+    margin-bottom: 20px;
+}
+
+.rps-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.rps-btn {
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rps-btn:hover:not(.disabled) {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.rps-btn.selected {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-color: transparent;
+}
+
+.rps-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.rps-emoji {
+    font-size: 1rem;
+    color: #fff;
+}
+
+.rps-status {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+}
+
+.rps-status.chosen {
+    color: #4ade80;
+}
+
+.rps-choices {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 16px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.rps-result {
+    font-size: 1.2rem;
+    font-weight: bold;
+    padding: 8px 16px;
+    border-radius: 8px;
+}
+
+.rps-result.win {
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.1);
+}
+
+.rps-result.lose {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.1);
+}
+
+.rps-result.tie {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+}
+
+/* 选边界面 */
+.side-buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+
+.side-btn {
+    padding: 20px 24px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.side-btn:hover {
+    transform: translateY(-4px);
+}
+
+.side-btn.black {
+    border-color: #333;
+}
+
+.side-btn.black:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.side-btn.white {
+    border-color: #ddd;
+}
+
+.side-btn.white:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.side-icon {
+    display: block;
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 8px;
+    border-radius: 50%;
+}
+
+.side-btn.black .side-icon {
+    background: radial-gradient(circle at 30% 30%, #555, #111);
+}
+
+.side-btn.white .side-icon {
+    background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+}
+
+.side-text {
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+/* 游戏结果 */
+.game-result {
+    font-size: 1.5rem;
+    font-weight: bold;
+    padding: 16px;
+}
+
+.game-result.win {
+    color: #4ade80;
+}
+
+.game-result.lose {
+    color: #f87171;
+}
+
+/* 断线警告 */
+.disconnect-warning {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(248, 113, 113, 0.9);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    z-index: 3000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.disconnect-warning.show {
+    display: block;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.warning-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* LYSH 开发者选单项目箭头 */
+.lysh-item-arrow {
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 1.2rem;
+}
+
+.lysh-item:not(.disabled):hover .lysh-item-arrow {
+    color: rgba(255, 255, 255, 0.6);
+}

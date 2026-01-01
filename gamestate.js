@@ -68,6 +68,15 @@ const GameState = {
     lastMove: null,  // { r, c, player } 记录最后一颗落子的位置和玩家
     moveCount: 0,    // 落子计数，用于判断是否显示锁定标记（从第2颗开始显示）
     
+    // === [联网对战] 在线状态 ===
+    online: {
+        isOnline: false,         // 是否联网模式
+        roomId: null,            // 当前房间号
+        myColor: null,           // 'black' | 'white'
+        opponentNickname: null,  // 对手昵称
+        opponentPieceStyle: null // 对手棋子样式
+    },
+    
     // === 用戶偏好設置 ===
     userMusicPref: 'origin',
     currentSkin: 'classic',

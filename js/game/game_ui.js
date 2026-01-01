@@ -38,7 +38,12 @@ const screens = {
 };
 
 function showScreen(n) { 
-    document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+    // [联网对战修复] 跳过带有 online-modal 类的弹窗，避免意外隐藏联网 UI
+    document.querySelectorAll('.modal').forEach(m => {
+        if (!m.classList.contains('online-modal')) {
+            m.style.display = 'none';
+        }
+    });
     Object.values(screens).forEach(s => { 
         if(s && !s.classList.contains('modal')) s.classList.remove('active'); 
     }); 
@@ -232,6 +237,12 @@ function openLyshPanel() {
 
 function closeLyshPanel() {
     document.getElementById('lyshModal').style.display = 'none';
+}
+
+// [联网对战] 打开联网对战测试入口
+function openOnlineTest() {
+    closeLyshPanel();
+    OnlineUI.showOnlineMenu();
 }
 
 // [Alpha 0.7.9.3] DJ 提示器开关（从原 FPS 设置迁移）

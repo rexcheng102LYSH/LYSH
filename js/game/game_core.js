@@ -420,6 +420,12 @@ function restoreState(state) {
 function handleCellClick(r, c, bypassConfirm = false) {
     if (!gameActive) return;
     
+    // [联网对战] 联网模式分支
+    if (GameState.online && GameState.online.isOnline) {
+        handleOnlineCellClick(r, c);
+        return;
+    }
+    
     // [Alpha 0.7.9.0] 修复 PvE 模式下玩家可以在 AI 回合落子的 bug
     // 注意：bypassConfirm = true 表示是 AI 调用，不需要检查
     if (!bypassConfirm && GameState.gameMode === 'pve' && GameState.currentPlayer !== GameState.humanSide) {
@@ -732,4 +738,183 @@ window.addEventListener('DOMContentLoaded', function() {
 if (window.GameHost && typeof window.GameHost.register === 'function') {
     window.GameHost.register('core', { init: function() {} });
 }
+
+// ================= 联网对战函数 =================
+
+/**
+ * 处理联网模式下的落子点击
+ */
+function handleOnlineCellClick(r, c) {
+    // 检查是否轮到自己
+    if (!OnlineGame.isMyTurn()) {
+        SoundEngine.playError();
+        showToast('等待对手落子');
+        return;
+    }
+    
+    // 检查位置是否为空
+    if (board[r][c] !== EMPTY) {
+        SoundEngine.playError();
+        return;
+    }
+    
+    // 检查领地限制
+    if (isZoneRestricted(r, c, currentPlayer)) {
+        showToast(t('errZone', 'toast'));
+        SoundEngine.playError();
+        return;
+    }
+    
+    // 确认落子（两次点击确认）
+    if (!selectedCell || selectedCell.r !== r || selectedCell.c !== c) {
+        if (selectedCell) {
+            const old = getCell(selectedCell.r, selectedCell.c);
+            if (old) hideMoveIndicator(old);
+        }
+        GameState.selectedCell = { r, c };
+        selectedCell = { r, c };
+        const newCell = getCell(r, c);
+        if (newCell) showMoveIndicator(newCell);
+        SoundEngine.playPlace();
+        return;
+    }
+    
+    // 清除选中状态
+    const old = getCell(selectedCell.r, selectedCell.c);
+    if (old) hideMoveIndicator(old);
+    GameState.selectedCell = null;
+    selectedCell = null;
+    
+    // 发送落子到服务器
+    OnlineGame.sendMove(r, c);
+}
+
+/**
+ * 启动联网游戏
+ * @param {string} myColor - 我的颜色 'black' | 'white'
+ * @param {string} opponentName - 对手昵称
+ */
+function startOnlineGame(myColor, opponentName) {
+    // 重置游戏状态
+    GameState.resetGame();
+    
+    // 同步向后兼容变量（确保所有变量都正确同步）
+    board = GameState.board;
+    currentPlayer = GameState.currentPlayer;
+    gameActive = GameState.gameActive;
+    historyStack = GameState.historyStack;
+    skillUsed = GameState.skillUsed;
+    activeEffect = GameState.activeEffect;
+    territoryZones = GameState.territoryZones;
+    isDoubleMoveActive = GameState.isDoubleMoveActive;
+    chaosDebuff = GameState.chaosDebuff;
+    shortBattleTurns = GameState.shortBattleTurns;
+    timeRemaining = GameState.timeRemaining;
+    selectedCell = GameState.selectedCell;
+    bombTarget = GameState.bombTarget;
+    
+    // [关键修复] 同步皮肤变量，确保棋子能正确渲染
+    currentSkin = GameState.currentSkin;
+    currentBoardSkin = GameState.currentBoardSkin;
+    
+    // 设置联网模式
+    GameState.gameMode = 'online';
+    gameMode = 'online';
+    
+    // 设置游戏激活
+    GameState.gameActive = true;
+    gameActive = true;
+    
+    // 黑方先手 (MAPLE = 1 = 黑方)
+    GameState.currentPlayer = MAPLE;
+    currentPlayer = MAPLE;
+    
+    // [关键修复] 先隐藏所有联网弹窗，再显示游戏界面
+    if (typeof OnlineUI !== 'undefined') {
+        OnlineUI.hideAllModals();
+    }
+    
+    // 使用正确的 showScreen 函数显示游戏界面
+    showScreen('game');
+    
+    // 隐藏结算弹窗
+    document.getElementById('winnerModal').style.display = 'none';
+    
+    // 隐藏难度标签和计分板（联网模式不需要）
+    const dt = document.getElementById('diffTag');
+    const sb = document.getElementById('scoreBoard');
+    if (dt) dt.style.display = 'none';
+    if (sb) sb.style.display = 'none';
+    
+    // 渲染棋盘
+    renderBoard();
+    
+    // 更新静态文本和动态 UI
+    updateStaticText();
+    updateDynamicUI();
+    
+    // 显示对手信息
+    showToast('对战开始！对手: ' + opponentName);
+    
+    // 初始化音效
+    SoundEngine.init();
+    SoundEngine.switchTrack(GameState.userMusicPref);
+    
+    console.log('[OnlineGame] Game started, myColor:', myColor, 'currentPlayer:', currentPlayer, 'currentSkin:', currentSkin);
+}
+
+/**
+ * 联网模式下接收对手落子后的本地处理
+ * 由 OnlineGame.onPiecePlaced 调用
+ */
+function handleOnlineOpponentMove(r, c, pieceValue) {
+    // 更新棋盘数据
+    GameState.board[r][c] = pieceValue;
+    board[r][c] = pieceValue;
+    
+    // 更新落子记录
+    GameState.lastMove = { r, c, player: pieceValue };
+    GameState.moveCount++;
+    lastMove = GameState.lastMove;
+    moveCount = GameState.moveCount;
+    
+    // [关键修复] 直接在对应格子上渲染棋子，而不是重新渲染整个棋盘
+    const cell = getCell(r, c);
+    if (cell) {
+        renderPieceInCell(cell, pieceValue);
+    }
+    
+    // 播放音效
+    SoundEngine.playPlace();
+    
+    // 更新落子标记
+    if (typeof updateLastMoveMarker === 'function') {
+        updateLastMoveMarker();
+    }
+    
+    // 检查胜负（本地也检查一次，服务器会发送最终结果）
+    const winLine = checkWin(r, c, pieceValue);
+    if (winLine) {
+        // 高亮连珠线
+        winLine.forEach(pos => {
+            const winCell = getCell(pos.r, pos.c);
+            if (winCell) winCell.classList.add('win-highlight');
+        });
+        
+        // 绘制连珠特效
+        if (typeof VisualFX !== 'undefined') {
+            VisualFX.drawWinLine(winLine, winEffect);
+        }
+    }
+    
+    // 更新 UI
+    updateDynamicUI();
+    
+    console.log('[OnlineGame] Opponent move processed:', r, c, pieceValue);
+}
+
+// 暴露到全局
+window.startOnlineGame = startOnlineGame;
+window.handleOnlineCellClick = handleOnlineCellClick;
+window.handleOnlineOpponentMove = handleOnlineOpponentMove;
 

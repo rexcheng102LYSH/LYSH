@@ -499,6 +499,13 @@
                 </div>
                 <div class="lysh-section">
                     <div class="lysh-section-title">更多功能</div>
+                    <div class="lysh-item" onclick="openOnlineTest()">
+                        <div class="lysh-item-info">
+                            <span class="lysh-item-name">联网对战 (测试)</span>
+                            <span class="lysh-item-desc">房间制联网对战功能测试入口</span>
+                        </div>
+                        <div class="lysh-item-arrow">></div>
+                    </div>
                     <div class="lysh-item disabled">
                         <div class="lysh-item-info">
                             <span class="lysh-item-name">敬请期待</span>
@@ -513,6 +520,198 @@
             </div>
         </div>
     </div>
+
+    <!-- ========== 联网对战 UI 弹窗 (独立于 lyshModal) ========== -->
+    
+    <!-- 联网对战主菜单 -->
+    <div id="onlineMenuModal" class="modal online-modal">
+        <div class="online-panel">
+            <div class="online-header">
+                <div class="online-title">联网对战</div>
+                <div class="online-subtitle">Online Battle (Test)</div>
+            </div>
+            <div class="online-content">
+                <button class="online-btn primary" onclick="OnlineUI.showCreateRoom()">
+                    <span class="btn-icon">+</span>
+                    <span class="btn-text">创建房间</span>
+                </button>
+                <button class="online-btn" onclick="OnlineUI.showJoinRoom()">
+                    <span class="btn-icon">#</span>
+                    <span class="btn-text">加入房间</span>
+                </button>
+            </div>
+            <div class="online-footer">
+                <button class="online-back-btn" onclick="OnlineUI.hideOnlineMenu()">返回</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 加入房间弹窗 -->
+    <div id="joinRoomModal" class="modal online-modal">
+        <div class="online-panel small">
+            <div class="online-header">
+                <div class="online-title">加入房间</div>
+            </div>
+            <div class="online-content">
+                <div class="input-group">
+                    <label>请输入6位房间号</label>
+                    <input type="text" id="roomIdInput" maxlength="6" placeholder="000000" class="room-input">
+                </div>
+            </div>
+            <div class="online-footer">
+                <button class="online-back-btn" onclick="OnlineUI.hideJoinRoom()">取消</button>
+                <button class="online-btn primary small" onclick="OnlineUI.confirmJoinRoom()">加入</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 等待房间弹窗 -->
+    <div id="waitingRoomModal" class="modal online-modal">
+        <div class="online-panel">
+            <div class="online-header">
+                <div class="online-title">等待对手</div>
+            </div>
+            <div class="online-content center">
+                <div class="room-id-display">
+                    <span class="room-id-label">房间号</span>
+                    <span class="room-id-value" id="waitingRoomId">000000</span>
+                </div>
+                <button class="copy-btn" onclick="OnlineUI.copyRoomId()">复制房间号</button>
+                <div class="waiting-hint">将房间号分享给朋友，等待加入...</div>
+                <div class="waiting-spinner"></div>
+            </div>
+            <div class="online-footer">
+                <button class="online-back-btn" onclick="OnlineGame.leaveRoom()">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 猜拳弹窗 -->
+    <div id="rpsModal" class="modal online-modal">
+        <div class="online-panel">
+            <div class="online-header">
+                <div class="online-title">猜拳选边</div>
+                <div class="online-subtitle" id="rpsRound">第 1 轮</div>
+            </div>
+            <div class="online-content center">
+                <div class="rps-countdown">
+                    <span id="rpsCountdown">10</span>
+                </div>
+                <div class="rps-buttons">
+                    <button class="rps-btn" data-choice="rock" onclick="OnlineUI.selectRps('rock')">
+                        <span class="rps-emoji">石头</span>
+                    </button>
+                    <button class="rps-btn" data-choice="paper" onclick="OnlineUI.selectRps('paper')">
+                        <span class="rps-emoji">布</span>
+                    </button>
+                    <button class="rps-btn" data-choice="scissors" onclick="OnlineUI.selectRps('scissors')">
+                        <span class="rps-emoji">剪刀</span>
+                    </button>
+                </div>
+                <div class="rps-status" id="rpsOpponentStatus">等待对手选择...</div>
+                <div class="rps-choices">
+                    <span id="rpsMyChoice"></span>
+                    <span id="rpsOpponentChoice"></span>
+                </div>
+                <div class="rps-result" id="rpsResult"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 选边弹窗 -->
+    <div id="sideChoiceModal" class="modal online-modal">
+        <div class="online-panel small">
+            <div class="online-header">
+                <div class="online-title">选择先后手</div>
+            </div>
+            <div class="online-content center">
+                <div class="side-buttons">
+                    <button class="side-btn black" onclick="OnlineUI.selectSide('black')">
+                        <span class="side-icon"></span>
+                        <span class="side-text">先手 (黑方)</span>
+                    </button>
+                    <button class="side-btn white" onclick="OnlineUI.selectSide('white')">
+                        <span class="side-icon"></span>
+                        <span class="side-text">后手 (白方)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 游戏结束弹窗 -->
+    <div id="onlineGameOverModal" class="modal online-modal">
+        <div class="online-panel">
+            <div class="online-header">
+                <div class="online-title">游戏结束</div>
+            </div>
+            <div class="online-content center">
+                <div class="game-result" id="onlineGameResult">你赢了！</div>
+            </div>
+            <div class="online-footer">
+                <button class="online-btn" onclick="OnlineGame.requestRematch()">再来一局</button>
+                <button class="online-back-btn" onclick="OnlineGame.leaveRoom()">离开房间</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 悔棋请求弹窗 -->
+    <div id="undoRequestModal" class="modal online-modal">
+        <div class="online-panel small">
+            <div class="online-header">
+                <div class="online-title">悔棋请求</div>
+            </div>
+            <div class="online-content center">
+                <p>对手请求悔棋，是否同意？</p>
+            </div>
+            <div class="online-footer">
+                <button class="online-back-btn" onclick="OnlineUI.respondUndo(false)">拒绝</button>
+                <button class="online-btn primary small" onclick="OnlineUI.respondUndo(true)">同意</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 投降确认弹窗 -->
+    <div id="surrenderConfirmModal" class="modal online-modal">
+        <div class="online-panel small">
+            <div class="online-header">
+                <div class="online-title">确认投降</div>
+            </div>
+            <div class="online-content center">
+                <p>是否确认投降？</p>
+            </div>
+            <div class="online-footer">
+                <button class="online-back-btn" onclick="OnlineUI.hideSurrenderConfirm()">否</button>
+                <button class="online-btn danger small" onclick="OnlineUI.confirmSurrender()">是</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 再来一局请求弹窗 -->
+    <div id="rematchRequestModal" class="modal online-modal">
+        <div class="online-panel small">
+            <div class="online-header">
+                <div class="online-title">再来一局</div>
+            </div>
+            <div class="online-content center">
+                <p>对手请求再来一局，是否同意？</p>
+            </div>
+            <div class="online-footer">
+                <button class="online-back-btn" onclick="OnlineUI.respondRematch(false)">拒绝</button>
+                <button class="online-btn primary small" onclick="OnlineUI.respondRematch(true)">同意</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 断线警告 -->
+    <div id="disconnectWarning" class="disconnect-warning">
+        <div class="warning-content">
+            <span>对手已断线，等待重连...</span>
+            <span class="countdown">(<span id="disconnectCountdown">30</span>秒)</span>
+        </div>
+    </div>
+    
+    <!-- ========== 联网对战 UI 结束 ========== -->
 
     <script src="assets.js?v=Alpha0.7.9.4"></script>
     <script src="js/audio/audio_host.js?v=Alpha0.7.9.4"></script>
@@ -545,6 +744,13 @@
     <script src="js/game/game_skills.js?v=Alpha0.7.9.4"></script>
     <script src="js/game/game_ai.js?v=Alpha0.7.9.4"></script>
     <script src="ai.js?v=Alpha0.7.9.4"></script>
+    
+    <!-- Socket.IO 客户端 (联网对战) -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <!-- 联网对战模块 -->
+    <script src="js/network/socket_client.js?v=Alpha0.7.9.4"></script>
+    <script src="js/network/online_game.js?v=Alpha0.7.9.4"></script>
+    <script src="js/network/online_ui.js?v=Alpha0.7.9.4"></script>
 
 </body>
 </html>
