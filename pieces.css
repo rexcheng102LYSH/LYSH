@@ -1,6 +1,6 @@
 /* ========================================= */
 /* pieces.css - 棋子样式与落子特效           */
-/* Project Lysh - Alpha 0.7.9.3              */
+/* Project Lysh - Alpha 0.7.9.4              */
 /* 从 style.css 拆分独立                     */
 /* ========================================= */
 
@@ -435,7 +435,6 @@
     transform: translate(-50%, -50%) rotate(var(--splat-rotation, 0deg));
     pointer-events: none;
     z-index: 16;
-    /* 纯黑墨点，边缘略微模糊模拟墨迹渗透 */
     background: radial-gradient(ellipse at center,
         rgba(0, 0, 0, 0.95) 0%,
         rgba(0, 0, 0, 0.9) 60%,
@@ -508,7 +507,6 @@
     transform: translate(-50%, -50%) scale(0.5);
     pointer-events: none;
     z-index: 15;
-    /* 淡灰色边框，白色为主 */
     border: 2px solid rgba(160, 165, 175, 0.7);
     background: transparent;
     box-shadow: 
@@ -555,7 +553,6 @@
     transform: translate(-50%, -50%) scale(0.4);
     pointer-events: none;
     z-index: 16;
-    /* 纯白色渐变，微微带灰 */
     background: radial-gradient(circle,
         rgba(255, 255, 255, 0.95) 0%,
         rgba(250, 250, 252, 0.7) 30%,
@@ -593,7 +590,6 @@
     transform: translate(-50%, -50%);
     pointer-events: none;
     z-index: 17;
-    /* 纯白光点 */
     background: radial-gradient(circle,
         rgba(255, 255, 255, 1) 0%,
         rgba(250, 250, 255, 0.9) 50%,
@@ -641,12 +637,10 @@
     pointer-events: none;
     z-index: 25;
     opacity: 0;
-    /* 添加叶脉纹理 */
     background-image: 
         linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%),
         linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.15) 100%);
     background-blend-mode: overlay;
-    /* 柔和阴影增加立体感 */
     box-shadow: 
         0 2px 4px rgba(0,0,0,0.2),
         inset 0 1px 2px rgba(255,255,255,0.3);
@@ -763,7 +757,6 @@
         transparent 100%);
     pointer-events: none;
     z-index: 17;
-    /* 添加柔和光晕 */
     box-shadow: 
         0 0 20px rgba(255, 193, 7, 0.5),
         0 0 40px rgba(255, 152, 0, 0.3);
@@ -844,7 +837,6 @@
     pointer-events: none;
     z-index: 19;
     border-radius: 2px;
-    /* 光芒发光效果 */
     box-shadow:
         0 0 6px rgba(255, 215, 0, 0.8),
         0 0 12px rgba(255, 193, 7, 0.4);

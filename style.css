@@ -2025,3 +2025,268 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .lysh-item:not(.disabled):hover .lysh-item-arrow {
     color: rgba(255, 255, 255, 0.6);
 }
+
+
+/* ========================================= */
+/* [Alpha 0.7.9.5] 国际象棋棋盘皮肤          */
+/* Board Skin: Chess Classic                 */
+/* 设计理念：经典国际象棋风格，黑白格子交替    */
+/* ========================================= */
+
+/* === 国际象棋棋盘主体 === */
+/* 设计理念：
+   - 15x15 落子点，14x14 = 196 个格子（由金色棋线围成）
+   - 196 个格子黑白交替填充
+   - 边缘区域（棋盘线外、边框内）是古典深棕色木纹
+   - 最外侧边框是黄金
+   - 星位用圆形红宝石（更醒目绚丽）
+*/
+.board.skin-chess {
+    /* 古典深棕色木纹底色填充边缘区域 */
+    background: 
+        /* 木纹纹理 */
+        repeating-linear-gradient(
+            90deg,
+            rgba(60, 40, 20, 0.1) 0px,
+            rgba(60, 40, 20, 0.1) 2px,
+            transparent 2px,
+            transparent 8px
+        ),
+        repeating-linear-gradient(
+            0deg,
+            rgba(80, 50, 25, 0.08) 0px,
+            rgba(80, 50, 25, 0.08) 1px,
+            transparent 1px,
+            transparent 6px
+        ),
+        /* 深棕色木质渐变 */
+        linear-gradient(135deg, 
+            #5d4037 0%, 
+            #4e342e 15%,
+            #3e2723 30%,
+            #4e342e 50%,
+            #5d4037 70%,
+            #4e342e 85%,
+            #3e2723 100%
+        );
+    
+    /* 边框：黄金质感边框 */
+    border: 6px solid #8b6914;
+    border-radius: 4px;
+    
+    /* 光影系统 */
+    box-shadow: 
+        /* 黄金外框 */
+        0 0 0 2px #d4af37,
+        0 0 0 4px #8b6914,
+        /* 木质立体感 */
+        inset 2px 2px 8px rgba(0, 0, 0, 0.4),
+        inset -2px -2px 4px rgba(255, 255, 255, 0.05),
+        /* 外部投影 */
+        0 15px 40px rgba(0, 0, 0, 0.35),
+        0 5px 15px rgba(0, 0, 0, 0.2);
+    
+    position: relative;
+}
+
+/* 14x14 黑白格子背景层 */
+.board.skin-chess::before {
+    content: '';
+    position: absolute;
+    
+    /* 起始位置 = padding + 半个cell */
+    top: calc(10px + (100% - 20px) / 30);
+    left: calc(10px + (100% - 20px) / 30);
+    
+    /* 尺寸 = 14 × cell = (100% - 20px) × 14 / 15 */
+    width: calc((100% - 20px) * 14 / 15);
+    height: calc((100% - 20px) * 14 / 15);
+    
+    /* 14x14 黑白格子图案 */
+    background: 
+        repeating-conic-gradient(
+            from 0deg,
+            #f8f6f0 0deg 90deg,
+            #3a3a42 90deg 180deg,
+            #f8f6f0 180deg 270deg,
+            #3a3a42 270deg 360deg
+        );
+    background-size: calc(100% / 7) calc(100% / 7);
+    
+    pointer-events: none;
+    z-index: 0;
+    display: block !important;
+}
+
+/* 清除 cell 的默认背景 */
+.board.skin-chess .cell {
+    background: transparent !important;
+}
+
+.board.skin-chess .cell.chess-white,
+.board.skin-chess .cell.chess-black {
+    background: transparent !important;
+}
+
+/* 国际象棋棋盘 - 金色棋线 */
+.board.skin-chess .cell::before {
+    background: linear-gradient(90deg, #8b6914 0%, #d4af37 50%, #8b6914 100%);
+    box-shadow: 0 1px 0 rgba(255, 215, 0, 0.3);
+    height: 2px;
+    z-index: 2;
+}
+
+.board.skin-chess .cell::after {
+    background: linear-gradient(180deg, #8b6914 0%, #d4af37 50%, #8b6914 100%);
+    box-shadow: 1px 0 0 rgba(255, 215, 0, 0.3);
+    width: 2px;
+    z-index: 2;
+}
+
+/* 国际象棋棋盘 - 圆形红宝石星位（更醒目绚丽） */
+.board.skin-chess .cell[data-star="true"] .dot {
+    width: 26%;
+    height: 26%;
+    border-radius: 50%;
+    
+    background: 
+        /* 顶部高光 - 宝石反射 */
+        radial-gradient(ellipse 50% 30% at 35% 25%, 
+            rgba(255, 255, 255, 0.95) 0%, 
+            rgba(255, 255, 255, 0.5) 30%,
+            transparent 60%
+        ),
+        /* 次级高光 */
+        radial-gradient(ellipse 30% 20% at 65% 70%, 
+            rgba(255, 200, 200, 0.5) 0%, 
+            transparent 50%
+        ),
+        /* 红宝石主体 - 更鲜艳的玫红色 */
+        radial-gradient(circle at 45% 45%, 
+            #ff1744 0%, 
+            #f50057 25%,
+            #c51162 50%,
+            #880e4f 75%,
+            #560027 100%
+        );
+    
+    box-shadow: 
+        /* 强烈的红色外发光 - 三层递进 */
+        0 0 10px 2px rgba(245, 0, 87, 0.8),
+        0 0 20px 5px rgba(245, 0, 87, 0.5),
+        0 0 35px 8px rgba(245, 0, 87, 0.3),
+        /* 内部立体感 */
+        inset 2px 2px 4px rgba(255, 255, 255, 0.3),
+        inset -2px -2px 6px rgba(86, 0, 39, 0.6),
+        /* 投影 */
+        0 3px 8px rgba(0, 0, 0, 0.5);
+    
+    /* 闪烁动画 */
+    animation: rubyGlow 2.5s ease-in-out infinite;
+    z-index: 3;
+}
+
+/* 红宝石闪烁动画 - 更明显的脉动 */
+@keyframes rubyGlow {
+    0%, 100% {
+        box-shadow: 
+            0 0 10px 2px rgba(245, 0, 87, 0.8),
+            0 0 20px 5px rgba(245, 0, 87, 0.5),
+            0 0 35px 8px rgba(245, 0, 87, 0.3),
+            inset 2px 2px 4px rgba(255, 255, 255, 0.3),
+            inset -2px -2px 6px rgba(86, 0, 39, 0.6),
+            0 3px 8px rgba(0, 0, 0, 0.5);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 
+            0 0 15px 4px rgba(245, 0, 87, 1),
+            0 0 30px 8px rgba(245, 0, 87, 0.6),
+            0 0 50px 12px rgba(245, 0, 87, 0.4),
+            inset 2px 2px 5px rgba(255, 255, 255, 0.5),
+            inset -2px -2px 6px rgba(86, 0, 39, 0.5),
+            0 3px 8px rgba(0, 0, 0, 0.5);
+        transform: scale(1.05);
+    }
+}
+
+/* === 国际象棋棋盘预览样式 === */
+.chess-preview {
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+    /* 黄金边框 */
+    border: 2px solid #8b6914;
+    box-shadow: 
+        0 0 0 1px #d4af37,
+        inset 1px 1px 3px rgba(0, 0, 0, 0.3);
+    /* 深棕色木纹 */
+    background: linear-gradient(135deg, #5d4037 0%, #3e2723 50%, #4e342e 100%);
+}
+
+.chess-preview::before {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    right: 4px;
+    bottom: 4px;
+    background: 
+        repeating-conic-gradient(
+            from 0deg,
+            #f8f6f0 0deg 90deg,
+            #3a3a42 90deg 180deg,
+            #f8f6f0 180deg 270deg,
+            #3a3a42 270deg 360deg
+        );
+    background-size: 50% 50%;
+}
+
+.chess-preview::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    /* 圆形红宝石预览 */
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ff1744 0%, #c51162 50%, #880e4f 100%);
+    transform: translate(-50%, -50%);
+    box-shadow: 
+        0 0 8px 2px rgba(245, 0, 87, 0.7),
+        0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* === 国际象棋棋盘移动端适配 === */
+@media (max-width: 600px) {
+    .board.skin-chess {
+        border-width: 4px;
+        box-shadow: 
+            0 0 0 1px #d4af37,
+            0 0 0 2px #8b6914,
+            inset 1px 1px 4px rgba(0, 0, 0, 0.3),
+            0 8px 20px rgba(0, 0, 0, 0.25);
+    }
+    
+    /* 移动端 padding = 4px */
+    .board.skin-chess::before {
+        top: calc(4px + (100% - 8px) / 30);
+        left: calc(4px + (100% - 8px) / 30);
+        width: calc((100% - 8px) * 14 / 15);
+        height: calc((100% - 8px) * 14 / 15);
+        background-size: calc(100% / 7) calc(100% / 7);
+    }
+    
+    .board.skin-chess .cell[data-star="true"] .dot {
+        width: 22%;
+        height: 22%;
+        animation: none;
+        box-shadow: 
+            0 0 8px 2px rgba(245, 0, 87, 0.6),
+            inset 1px 1px 2px rgba(255, 255, 255, 0.3),
+            0 2px 4px rgba(0, 0, 0, 0.4);
+    }
+}

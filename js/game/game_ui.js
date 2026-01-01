@@ -666,16 +666,20 @@ function selectBoardSkin(skin) {
 
 // [Alpha 0.7.9.1] 应用棋盘皮肤
 // [Alpha 0.7.9.4] 新增沙滩皮肤支持
+// [Alpha 0.7.9.5] 新增国际象棋皮肤支持
 function applyBoardSkin() {
     const boardEl = document.getElementById('board');
     const wrapperEl = document.querySelector('.board-wrapper');
     if (!boardEl) return;
     
     // 移除所有棋盘皮肤类
-    boardEl.classList.remove('skin-modern', 'skin-beach');
+    boardEl.classList.remove('skin-modern', 'skin-beach', 'skin-chess');
     if (wrapperEl) {
         wrapperEl.classList.remove('skin-beach');
     }
+    
+    // 清除国际象棋格子样式
+    clearChessPattern();
     
     // 应用新皮肤
     if (currentBoardSkin === 'modern') {
@@ -685,8 +689,42 @@ function applyBoardSkin() {
         if (wrapperEl) {
             wrapperEl.classList.add('skin-beach');
         }
+    } else if (currentBoardSkin === 'chess') {
+        boardEl.classList.add('skin-chess');
+        applyChessPattern();
     }
     // classic_wood 是默认样式，不需要额外的类
+}
+
+// [Alpha 0.7.9.5] 应用国际象棋黑白格子图案
+function applyChessPattern() {
+    const boardEl = document.getElementById('board');
+    if (!boardEl) return;
+    
+    const cells = boardEl.querySelectorAll('.cell');
+    cells.forEach(cell => {
+        const r = parseInt(cell.dataset.r);
+        const c = parseInt(cell.dataset.c);
+        
+        // 基于 (row + col) % 2 判断黑白格
+        // 为了视觉效果，让左上角(0,0)为白色
+        if ((r + c) % 2 === 0) {
+            cell.classList.add('chess-white');
+        } else {
+            cell.classList.add('chess-black');
+        }
+    });
+}
+
+// [Alpha 0.7.9.5] 清除国际象棋格子样式
+function clearChessPattern() {
+    const boardEl = document.getElementById('board');
+    if (!boardEl) return;
+    
+    const cells = boardEl.querySelectorAll('.cell');
+    cells.forEach(cell => {
+        cell.classList.remove('chess-white', 'chess-black');
+    });
 }
 
 function updateBoardSelectorUI() {
@@ -699,6 +737,9 @@ function updateBoardSelectorUI() {
         if (el) el.classList.add('active');
     } else if (currentBoardSkin === 'beach') {
         const el = document.getElementById('boardGridBeach');
+        if (el) el.classList.add('active');
+    } else if (currentBoardSkin === 'chess') {
+        const el = document.getElementById('boardGridChess');
         if (el) el.classList.add('active');
     }
 }
@@ -715,6 +756,8 @@ function updateBoardEntryPreview() {
         preview.innerHTML = '<div class="board-mini-preview modern-preview" style="width:100%;height:100%;border-radius:8px;"></div>';
     } else if (currentBoardSkin === 'beach') {
         preview.innerHTML = '<div class="board-mini-preview beach-preview" style="width:100%;height:100%;border-radius:8px;"></div>';
+    } else if (currentBoardSkin === 'chess') {
+        preview.innerHTML = '<div class="board-mini-preview chess-preview" style="width:100%;height:100%;border-radius:8px;"></div>';
     }
 }
 

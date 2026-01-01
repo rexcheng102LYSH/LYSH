@@ -8,44 +8,44 @@
 
 ### Phase 1: Alpha 0.7.9.5 - 国际象棋风格棋盘
 
-- [ ] 1. 实现国际象棋棋盘皮肤
-  - [ ] 1.1 在 style.css 添加 `.board.skin-chess` 基础样式
+- [x] 1. 实现国际象棋棋盘皮肤
+  - [x] 1.1 在 style.css 添加 `.board.skin-chess` 基础样式
     - 定义棋盘边框样式（深色木质/金属边框）
     - 设置棋盘背景色
     - _Requirements: 1.6_
   
-  - [ ] 1.2 实现黑白格子交替样式
+  - [x] 1.2 实现黑白格子交替样式
     - 添加 `.cell.chess-white` 大理石纹理样式
     - 添加 `.cell.chess-black` 黑曜石纹理样式
     - 使用 CSS 渐变模拟材质
     - _Requirements: 1.2, 1.4, 1.5_
   
-  - [ ] 1.3 在 game_render.js 扩展 applyBoardSkin() 函数
+  - [x] 1.3 在 game_render.js 扩展 applyBoardSkin() 函数
     - 添加 'chess' 皮肤分支
     - 实现 applyChessPattern() 函数
     - 基于 (row + col) % 2 为每个 cell 添加对应类
     - _Requirements: 1.2, 1.3_
   
-  - [ ] 1.4 在 game_ui.js 添加棋盘选择器选项
+  - [x] 1.4 在 game_ui.js 添加棋盘选择器选项
     - 在 selectBoardSkin() 添加 'chess' 分支
     - 在 updateBoardSelectorUI() 添加 'chess' 高亮逻辑
     - 在 updateBoardEntryPreview() 添加 'chess' 预览
     - _Requirements: 1.1, 1.7_
   
-  - [ ] 1.5 在 index.html 添加棋盘选择器 UI 元素
+  - [x] 1.5 在 index.html 添加棋盘选择器 UI 元素
     - 添加 boardGridChess 选项卡
     - 添加迷你预览样式
     - _Requirements: 1.1, 1.7_
   
-  - [ ] 1.6 在 lang.js 添加多语言翻译
+  - [x] 1.6 在 lang.js 添加多语言翻译
     - 添加 boardChess 翻译键（繁中/简中/英文）
     - _Requirements: 6.1_
   
-  - [ ] 1.7 添加移动端适配样式
+  - [x] 1.7 添加移动端适配样式
     - 在 @media (max-width: 600px) 添加简化样式
     - _Requirements: 1.8_
 
-- [ ] 2. Checkpoint - 国际象棋棋盘测试
+- [x] 2. Checkpoint - 国际象棋棋盘测试
   - 确保所有测试通过，验证棋盘在各设备上显示正常
   - 如有问题请询问用户
 

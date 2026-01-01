@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>技能五子棋 - Alpha0.7.9.4</title>
+    <title>技能五子棋 - Alpha0.7.9.5</title>
     <script>
         // [恢复Alpha0.7.8.9] 全局致命错误捕获：弹窗提示 + 显示错误来源
         (function() {
@@ -64,8 +64,8 @@
             });
         })();
     </script>
-    <link rel="stylesheet" href="style.css?v=Alpha0.7.9.4">
-    <link rel="stylesheet" href="css/pieces.css?v=Alpha0.7.9.4">
+    <link rel="stylesheet" href="style.css?v=Alpha0.7.9.5">
+    <link rel="stylesheet" href="pieces.css?v=Alpha0.7.9.5">
 </head>
 <body onclick="SoundEngine.init()">
 
@@ -88,8 +88,8 @@
         <div class="glass-panel menu-panel">
             <h1 data-i18n="gameTitle">技能五子棋 <span style="font-size:0.5em">Alpha</span></h1>
             <h2 style="margin-top:-5px; font-size:1.2rem; color:#666;">
-                <span data-i18n="subTitle">Alpha0.7.9.4</span> 
-                <span class="version-tag">Alpha0.7.9.4</span>
+                <span data-i18n="subTitle">Alpha0.7.9.5</span> 
+                <span class="version-tag">Alpha0.7.9.5</span>
             </h2>
             
             <button class="btn primary" onclick="showDifficultyScreen()" data-i18n="btnPvE">人机对战 (PvE)</button>
@@ -462,11 +462,9 @@
                     <div class="board-mini-preview beach-preview"></div>
                     <div class="skin-grid-label" data-i18n="boardBeach">热带沙滩</div>
                 </div>
-                <div class="skin-grid-item disabled">
-                    <div class="board-mini-preview coming-soon">
-                        <span>?</span>
-                    </div>
-                    <div class="skin-grid-label" data-i18n="skinComingSoon">敬请期待</div>
+                <div class="skin-grid-item" id="boardGridChess" onclick="selectBoardSkin('chess')">
+                    <div class="board-mini-preview chess-preview"></div>
+                    <div class="skin-grid-label" data-i18n="boardChess">国际象棋</div>
                 </div>
             </div>
             <button class="btn secondary" onclick="closeBoardSelector()" style="margin-top:20px;" data-i18n="btnBack">返回</button>

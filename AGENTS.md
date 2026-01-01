@@ -12,7 +12,7 @@ NOTE FOR AI: Also read `AGENTS_CONTEXT.md` for the file map and logic overview.
 
 ## 2. 技术偏好 (Tech Stack & Preferences)
 - **核心栈**：原生 JavaScript (Vanilla JS), HTML5, CSS3。
-- **依赖管理**：严禁引入外部框架（如 React/Vue/jQuery）或复杂包管理工具（npm/webpack），除非我明确要求。保持项目轻量、开箱即用。
+- **依赖管理**：严禁引入外部框架（如 React/Vue/jQuery）除非我明确要求。保持项目轻量、开箱即用。
 
 ## 3. 代码风格 (Code Style)
 - **完整性**：输出代码时，严禁使用 `// ... rest of code` 或 `// ... previous code` 省略。
