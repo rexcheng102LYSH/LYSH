@@ -1,4 +1,4 @@
-﻿(function() {
+(function() {
   if (!window.SkillRegistry || typeof SkillRegistry.registerSkill !== 'function') return;
   SkillRegistry.registerSkill('short_battle', {
     activate: function() {

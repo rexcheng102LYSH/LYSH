@@ -13,6 +13,11 @@ Top-level files
 - gamestate.js: GameState source-of-truth + legacy global sync.
 - ai.js: AI turn logic (calls helper functions from js/game/game_ai.js).
 
+Frontend frameworks (Alpha 0.7.9.6)
+- Tailwind CSS: CDN-based utility CSS for rapid UI development (zero-risk, only for new UI).
+- Anime.js: CDN-based animation library for smooth transitions (zero-risk, only for new animations).
+- Safety: Both frameworks are loaded via CDN with automatic fallback detection; use `safeAnime()` wrapper for error handling.
+
 Folder map (short)
 .
 |-- js/

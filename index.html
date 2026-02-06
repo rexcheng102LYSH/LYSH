@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>技能五子棋 - Alpha0.7.9.5</title>
+    <title>技能五子棋 - Alpha0.7.9.6</title>
     <script>
         // [恢复Alpha0.7.8.9] 全局致命错误捕获：弹窗提示 + 显示错误来源
         (function() {
@@ -64,8 +64,57 @@
             });
         })();
     </script>
-    <link rel="stylesheet" href="style.css?v=Alpha0.7.9.5">
-    <link rel="stylesheet" href="pieces.css?v=Alpha0.7.9.5">
+    <link rel="stylesheet" href="style.css?v=Alpha0.7.9.6">
+    <link rel="stylesheet" href="pieces.css?v=Alpha0.7.9.6">
+    
+    <!-- [Alpha 0.7.9.6] 前端框架引入 - Tailwind CSS + Anime.js -->
+    <!-- 用途：Tailwind CSS 用于快速样式开发，Anime.js 用于高性能动画 -->
+    <!-- 安全策略：零干扰原则，仅用于新增 UI 和动画，不触碰核心逻辑 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+    
+    <!-- [安全配置] Tailwind CSS 禁用 Preflight 以避免样式污染 -->
+    <script>
+        tailwind.config = {
+            corePlugins: {
+                preflight: false  // 禁用 Preflight，不重置全局样式，保护原有 CSS
+            }
+        };
+    </script>
+    
+    <!-- [安全机制] 框架加载检测与降级 -->
+    <script>
+        (function() {
+            // 检测 Tailwind CSS 是否加载成功
+            window.tailwindLoaded = typeof window.tailwind !== 'undefined';
+            if (!window.tailwindLoaded) {
+                console.warn('[安全警告] Tailwind CSS 加载失败，将降级到原生 CSS');
+            }
+            
+            // 检测 Anime.js 是否加载成功
+            window.animeLoaded = typeof anime !== 'undefined';
+            if (!window.animeLoaded) {
+                console.warn('[安全警告] Anime.js 加载失败，将降级到原生 CSS 动画');
+            }
+            
+            // 提供安全的 Anime.js 调用包装器
+            window.safeAnime = function(config) {
+                if (!window.animeLoaded) {
+                    console.warn('[安全降级] Anime.js 不可用，跳过动画');
+                    return null;
+                }
+                try {
+                    return anime(config);
+                } catch (e) {
+                    console.error('[安全错误] Anime.js 调用失败:', e);
+                    return null;
+                }
+            };
+            
+            console.log('[框架状态] Tailwind CSS:', window.tailwindLoaded ? '✓' : '✗', 
+                        'Anime.js:', window.animeLoaded ? '✓' : '✗');
+        })();
+    </script>
 </head>
 <body onclick="SoundEngine.init()">
 
@@ -88,8 +137,9 @@
         <div class="glass-panel menu-panel">
             <h1 data-i18n="gameTitle">技能五子棋 <span style="font-size:0.5em">Alpha</span></h1>
             <h2 style="margin-top:-5px; font-size:1.2rem; color:#666;">
-                <span data-i18n="subTitle">Alpha0.7.9.5</span> 
-                <span class="version-tag">Alpha0.7.9.5</span>
+                <!-- 同步版本号到 Alpha0.7.9.6，确保首页展示一致 -->
+                <span data-i18n="subTitle">Alpha0.7.9.6</span> 
+                <span class="version-tag">Alpha0.7.9.6</span>
             </h2>
             
             <button class="btn primary" onclick="showDifficultyScreen()" data-i18n="btnPvE">人机对战 (PvE)</button>
@@ -315,11 +365,15 @@
                     </div>
                     <div class="skin-grid-label" data-i18n="skinNature">自然</div>
                 </div>
-                <div class="skin-grid-item disabled">
-                    <div class="piece-dual-preview coming-soon">
-                        <span>?</span>
+                <!-- [Alpha 0.7.9.6] 冰/火主题选项 -->
+                <!-- [修复] 一级页面冰火棋子预览：统一三个棋子的UI逻辑样式（使用CSS类，与黑白、自然棋子一致），保留分隔线，使用CSS类定义样式，恢复到之前满意的大小（冰32px，火34px） -->
+                <div class="skin-grid-item" id="pieceGridIceFire" onclick="selectPieceSkin('ice_fire')">
+                    <div class="piece-dual-preview">
+                        <div class="piece-half piece-ice" style="width:32px;height:32px;"></div>
+                        <div class="piece-divider"></div>
+                        <div class="piece-half piece-fire" style="width:34px;height:34px;"></div>
                     </div>
-                    <div class="skin-grid-label" data-i18n="skinComingSoon">敬请期待</div>
+                    <div class="skin-grid-label" data-i18n="skinIceFire">冰火</div>
                 </div>
                 <div class="skin-grid-item disabled">
                     <div class="piece-dual-preview coming-soon">
@@ -437,6 +491,66 @@
             </div>
             
             <button class="btn secondary" onclick="closeNatureEffectPanel()" style="margin-top:20px;" data-i18n="btnBack">返回</button>
+        </div>
+    </div>
+
+    <!-- [Alpha 0.7.9.6] 冰/火主题特效调节二级模态框 -->
+    <div id="iceFireEffectModal" class="modal">
+        <div class="modal-content selector-modal-content piece-effect-panel">
+            <h2 style="margin-top:0; margin-bottom:8px;" data-i18n="lblIceFireEffect">特效调试</h2>
+            <p class="piece-effect-subtitle" data-i18n="lblIceFireEffectDesc">自定义"冰火"棋子的落子特效</p>
+            
+            <div class="piece-effect-list">
+                <!-- 落子速度 -->
+                <div class="piece-effect-item">
+                    <div class="piece-effect-info">
+                        <span class="piece-effect-name" data-i18n="lblDropStyle">落子速度</span>
+                        <span class="piece-effect-desc" data-i18n="descDropStyle">调整棋子落下的速度</span>
+                    </div>
+                    <div class="piece-effect-toggle">
+                        <button class="effect-toggle-btn active" id="iceFireDropFast" onclick="changeIceFireDropStyle('fast')" data-i18n="optFast">快</button>
+                        <button class="effect-toggle-btn" id="iceFireDropSlow" onclick="changeIceFireDropStyle('slow')" data-i18n="optSlow">慢</button>
+                    </div>
+                </div>
+                
+                <!-- 棋子回弹 -->
+                <div class="piece-effect-item">
+                    <div class="piece-effect-info">
+                        <span class="piece-effect-name" data-i18n="lblBounceEffect">棋子回弹</span>
+                        <span class="piece-effect-desc" data-i18n="descBounceEffect">落子时的弹跳效果</span>
+                    </div>
+                    <div class="piece-effect-toggle">
+                        <button class="effect-toggle-btn active" id="iceFireBounceOff" onclick="changeIceFireBounce('off')" data-i18n="optOff">关</button>
+                        <button class="effect-toggle-btn" id="iceFireBounceOn" onclick="changeIceFireBounce('on')" data-i18n="optOn">开</button>
+                    </div>
+                </div>
+                
+                <!-- 静态动效 -->
+                <div class="piece-effect-item">
+                    <div class="piece-effect-info">
+                        <span class="piece-effect-name" data-i18n="lblStaticAnim">静态动效</span>
+                        <span class="piece-effect-desc" data-i18n="descStaticAnim">棋子落下后的持续动画</span>
+                    </div>
+                    <div class="piece-effect-toggle">
+                        <button class="effect-toggle-btn" id="iceFireStaticOff" onclick="changeIceFireStaticAnim('off')" data-i18n="optOff">关</button>
+                        <button class="effect-toggle-btn active" id="iceFireStaticOn" onclick="changeIceFireStaticAnim('on')" data-i18n="optOn">开</button>
+                    </div>
+                </div>
+                
+                <!-- 落子特效 -->
+                <div class="piece-effect-item">
+                    <div class="piece-effect-info">
+                        <span class="piece-effect-name" data-i18n="lblDropEffect">落子特效</span>
+                        <span class="piece-effect-desc" data-i18n="descDropEffect">落子瞬间的粒子波纹</span>
+                    </div>
+                    <div class="piece-effect-toggle">
+                        <button class="effect-toggle-btn" id="iceFireEffectOff" onclick="changeIceFireDropEffect('off')" data-i18n="optOff">关</button>
+                        <button class="effect-toggle-btn active" id="iceFireEffectOn" onclick="changeIceFireDropEffect('on')" data-i18n="optOn">开</button>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="btn secondary" onclick="closeIceFireEffectPanel()" style="margin-top:20px;" data-i18n="btnBack">返回</button>
         </div>
     </div>
 
@@ -737,7 +851,7 @@
     <script src="js/skills/swap.js?v=Alpha0.7.9.4"></script>
     <script src="js/game/game_host.js?v=Alpha0.7.9.4"></script>
     <script src="js/game/game_core.js?v=Alpha0.7.9.4"></script>
-    <script src="js/game/game_ui.js?v=Alpha0.7.9.4"></script>
+    <script src="js/game/game_ui.js?v=Alpha0.7.9.6"></script>
     <script src="js/game/game_render.js?v=Alpha0.7.9.4"></script>
     <script src="js/game/game_skills.js?v=Alpha0.7.9.4"></script>
     <script src="js/game/game_ai.js?v=Alpha0.7.9.4"></script>

@@ -1,3 +1,60 @@
+// ================= DOM操作轻量级优化 =================
+// [性能优化] DOM缓存 - 避免重复查询
+const DOMCache = {
+    turnText: null,
+    turnIcon: null,
+    statusBar: null,
+    timer1: null,
+    timer2: null,
+    skillBtn: null,
+    skillScroll: null,
+    skillStatusList: null,
+    
+    // 初始化缓存
+    init() {
+        this.turnText = document.getElementById('turnText');
+        this.turnIcon = document.getElementById('turnIcon');
+        this.statusBar = document.getElementById('statusBar');
+        this.timer1 = document.getElementById('timer1');
+        this.timer2 = document.getElementById('timer2');
+        this.skillBtn = document.getElementById('skillBtn');
+        this.skillScroll = document.getElementById('skillScroll');
+        this.skillStatusList = document.getElementById('skillStatusList');
+    }
+};
+
+// [性能优化] 节流函数 - 限制函数执行频率
+function throttle(func, limit) {
+    let inThrottle;
+    return function() {
+        const args = arguments;
+        const context = this;
+        if (!inThrottle) {
+            func.apply(context, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    };
+}
+
+// [性能优化] 防抖函数 - 延迟执行，避免频繁调用
+function debounce(func, wait) {
+    let timeout;
+    return function() {
+        const context = this;
+        const args = arguments;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            func.apply(context, args);
+        }, wait);
+    };
+}
+
+// 在页面加载时初始化DOM缓存
+window.addEventListener('DOMContentLoaded', function() {
+    DOMCache.init();
+});
+
 // ================= ????? UI =================
 // ================= DJ 底鼓提示灯开关 =================
 // [Alpha 0.7.9.3] 改为使用 GameState.djIndicatorEnabled
@@ -12,6 +69,9 @@ function getIcon(player) {
     let iconData;
     if (currentSkin === 'nature') {
         iconData = (player === MAPLE ? PIECE_ICONS.maple : PIECE_ICONS.sun);
+    } else if (currentSkin === 'ice_fire') {
+        // [Alpha 0.7.9.6] 冰/火主题：冰晶（先手）/ 火焰（后手）
+        iconData = (player === MAPLE ? PIECE_ICONS.ice : PIECE_ICONS.fire);
     } else {
         iconData = (player === MAPLE ? PIECE_ICONS.classic_black : PIECE_ICONS.classic_white);
     }
@@ -332,21 +392,37 @@ function updateTerritoriesUI() {
 
 
 function updateDynamicUI() {
-    // 使用 GameState 確保數據一致性
-    const turnTextEl = document.getElementById('turnText');
+    // [性能优化] 使用缓存的DOM引用，避免重复查询
+    const turnTextEl = DOMCache.turnText || document.getElementById('turnText');
+    const turnIconEl = DOMCache.turnIcon || document.getElementById('turnIcon');
+    const statusBar = DOMCache.statusBar || document.getElementById('statusBar');
+    const t1 = DOMCache.timer1 || document.getElementById('timer1');
+    const t2 = DOMCache.timer2 || document.getElementById('timer2');
+    const btn = DOMCache.skillBtn || document.getElementById('skillBtn');
+    
+    // 缓存未初始化时，尝试更新缓存
+    if (!DOMCache.turnText && turnTextEl) DOMCache.turnText = turnTextEl;
+    if (!DOMCache.turnIcon && turnIconEl) DOMCache.turnIcon = turnIconEl;
+    if (!DOMCache.statusBar && statusBar) DOMCache.statusBar = statusBar;
+    if (!DOMCache.timer1 && t1) DOMCache.timer1 = t1;
+    if (!DOMCache.timer2 && t2) DOMCache.timer2 = t2;
+    if (!DOMCache.skillBtn && btn) DOMCache.skillBtn = btn;
+    
+    if (!turnTextEl || !turnIconEl || !statusBar || !t1 || !t2 || !btn) return;
+    
+    // [性能优化] 只在内容变化时更新turnText
     const newTurnText = t('names')[GameState.currentPlayer === MAPLE ? 1 : 2];
     if (turnTextEl.innerText !== newTurnText) turnTextEl.innerText = newTurnText;
     
-    const turnIconEl = document.getElementById('turnIcon');
-    turnIconEl.innerHTML = getIcon(GameState.currentPlayer);
+    // [性能优化] 只在内容变化时更新turnIcon
+    const newIconHTML = getIcon(GameState.currentPlayer);
+    if (turnIconEl.innerHTML !== newIconHTML) turnIconEl.innerHTML = newIconHTML;
     
-    const statusBar = document.getElementById('statusBar');
+    // [性能优化] 只在className变化时更新statusBar
     const newClass = 'status-pill ' + (GameState.currentPlayer === MAPLE ? 'turn-maple' : 'turn-sun');
     if (statusBar.className !== newClass) statusBar.className = newClass;
     
-    const t1 = document.getElementById('timer1');
-    const t2 = document.getElementById('timer2');
-    
+    // [性能优化] 只在内容变化时更新计时器HTML
     const getTimerHTML = (player, time) => {
         let base = `<span class="inline-icon" style="width:20px;height:20px;margin-right:4px">${getIcon(player)}</span> ${formatTime(time)}`;
         if (GameState.bombTarget === player && typeof SKILL_ICONS !== 'undefined') {
@@ -355,21 +431,27 @@ function updateDynamicUI() {
         }
         return base;
     };
-
-    t1.innerHTML = getTimerHTML(MAPLE, GameState.timeRemaining[MAPLE]);
-    t2.innerHTML = getTimerHTML(SUN, GameState.timeRemaining[SUN]);
     
+    const t1HTML = getTimerHTML(MAPLE, GameState.timeRemaining[MAPLE]);
+    const t2HTML = getTimerHTML(SUN, GameState.timeRemaining[SUN]);
+    if (t1.innerHTML !== t1HTML) t1.innerHTML = t1HTML;
+    if (t2.innerHTML !== t2HTML) t2.innerHTML = t2HTML;
+    
+    // [性能优化] 批量更新className，避免多次classList操作
     const updateTimerVisual = (player, timerEl, time) => {
-        timerEl.className = `timer-pill ${GameState.currentPlayer === player ? 'active' : ''}`;
+        // 一次性设置所有className，避免多次操作
+        const classes = ['timer-pill'];
+        if (GameState.currentPlayer === player) classes.push('active');
         if (GameState.bombTarget === player) {
             if (time < 30) {
-                timerEl.classList.add('timer-critical');
+                classes.push('timer-critical');
             } else {
-                timerEl.classList.add('timer-bomb');
+                classes.push('timer-bomb');
             }
         } else if (time < 30) {
-            timerEl.classList.add('timer-critical-normal');
+            classes.push('timer-critical-normal');
         }
+        timerEl.className = classes.join(' ');
     };
     updateTimerVisual(MAPLE, t1, GameState.timeRemaining[MAPLE]);
     updateTimerVisual(SUN, t2, GameState.timeRemaining[SUN]);
@@ -378,11 +460,11 @@ function updateDynamicUI() {
     
     const ms = playerSkills[currentPlayer];
     const u = skillUsed[currentPlayer];
-    const btn = document.getElementById('skillBtn');
     
     if (!ms) {
         btn.disabled = true;
-        btn.innerHTML = `<span>---</span><small>---</small>`;
+        const emptyContent = `<span>---</span><small>---</small>`;
+        if (btn.innerHTML !== emptyContent) btn.innerHTML = emptyContent;
         return;
     }
     
@@ -413,12 +495,19 @@ function updateDynamicUI() {
         btnContent = `<div class="skill-icon-display">${iconSvg}</div><span>${so.name}</span>`;
     }
     
+    // [性能优化] 只在内容变化时更新技能按钮
     if (btn.innerHTML !== btnContent) btn.innerHTML = btnContent;
 }
 
 function updateSkillScroll() {
-    const scroll = document.getElementById('skillScroll');
-    const list = document.getElementById('skillStatusList');
+    // [性能优化] 使用缓存的DOM引用
+    const scroll = DOMCache.skillScroll || document.getElementById('skillScroll');
+    const list = DOMCache.skillStatusList || document.getElementById('skillStatusList');
+    
+    // 缓存未初始化时，尝试更新缓存
+    if (!DOMCache.skillScroll && scroll) DOMCache.skillScroll = scroll;
+    if (!DOMCache.skillStatusList && list) DOMCache.skillStatusList = list;
+    
     if (!scroll || !list) return;
 
     const items = [];
@@ -477,7 +566,45 @@ function updateSkillScroll() {
     const visibleSlots = isManual ? (GameState.statusScrollOpen ? targetCount : 0) : count;
     scroll.style.setProperty('--scroll-count', visibleSlots);
 
-    const signature = orderedItems.map(item => `${item.key}:${item.value}:${item.target || ''}`).join('|');
+    // [性能优化] 生成新的signature，只在变化时才重建DOM
+    const newSignature = orderedItems.map(item => `${item.key}:${item.value}:${item.target || ''}`).join('|');
+    const oldSignature = GameState.statusScrollLastKey || '';
+    
+    // 如果签名没变且DOM结构正确，就不重建，只更新可见性
+    if (newSignature === oldSignature && list.children.length === targetCount) {
+        // 只更新可见性
+        const slots = Array.from(list.children);
+        slots.forEach((row, idx) => {
+            if (idx >= visibleSlots) row.classList.add('slot-hidden');
+            else row.classList.remove('slot-hidden');
+        });
+        
+        if (!isManual && statusScrollLastCount !== count) {
+            scroll.classList.add('scroll-shake');
+            setTimeout(() => scroll.classList.remove('scroll-shake'), 420);
+        }
+        if (isManual) {
+            scroll.onclick = () => {
+                GameState.statusScrollOpen = !GameState.statusScrollOpen;
+                statusScrollOpen = GameState.statusScrollOpen;
+                scroll.classList.add('scroll-shake');
+                setTimeout(() => scroll.classList.remove('scroll-shake'), 420);
+                updateSkillScroll();
+            };
+            if (GameState.statusScrollOpen) scroll.classList.add('open');
+            else scroll.classList.remove('open');
+        } else {
+            scroll.onclick = null;
+            if (count > 0) scroll.classList.add('open');
+            else scroll.classList.remove('open');
+        }
+        
+        GameState.statusScrollLastCount = count;
+        statusScrollLastCount = GameState.statusScrollLastCount;
+        return;  // 提前返回，避免重建DOM
+    }
+
+    // 签名变化，需要重建DOM
     const rebuildSlots = () => {
         list.innerHTML = '';
         for (let i = 0; i < targetCount; i++) {
@@ -575,7 +702,7 @@ function updateSkillScroll() {
 
     GameState.statusScrollLastCount = count;
     statusScrollLastCount = GameState.statusScrollLastCount;
-    GameState.statusScrollLastKey = signature;
+    GameState.statusScrollLastKey = newSignature;
     statusScrollLastKey = GameState.statusScrollLastKey;
     GameState.statusScrollOrder = nextOrder;
 }
@@ -623,6 +750,10 @@ function updatePieceSelectorUI() {
     } else if (currentSkin === 'nature') {
         const el = document.getElementById('pieceGridNature');
         if (el) el.classList.add('active');
+    } else if (currentSkin === 'ice_fire') {
+        // [Alpha 0.7.9.6] 冰/火主题高亮
+        const el = document.getElementById('pieceGridIceFire');
+        if (el) el.classList.add('active');
     }
 }
 
@@ -639,6 +770,13 @@ function updatePieceEntryPreview() {
         preview.innerHTML = `
             <div class="piece-half piece-maple" style="width:32px;height:32px;"></div>
             <div class="piece-half piece-sun" style="width:32px;height:32px;"></div>
+        `;
+    } else if (currentSkin === 'ice_fire') {
+        // [Alpha 0.7.9.6] 冰/火主题预览 - 使用CSS类定义样式
+        // [修复] 统一三个棋子的UI逻辑样式（与黑白、自然棋子一致，使用CSS类），保留分隔线，使用CSS类定义样式
+        preview.innerHTML = `
+            <div class="piece-half piece-ice"></div>
+            <div class="piece-half piece-fire"></div>
         `;
     }
 }
@@ -1145,4 +1283,192 @@ function changeNatureDropStyle(style) {
     pieceEffectSettings = GameState.pieceEffectSettings; // 同步
     updateNatureEffectUI();
 }
+
+
+
+// ================= [Alpha 0.7.9.6] 冰/火主题选择器与特效调节系统 =================
+
+// 冰火主题长按检测变量
+let iceFireLongPressTimer = null;
+let iceFireLongPressTarget = null;
+
+// 初始化冰火主题长按检测
+function setupIceFireLongPress() {
+    const iceFireItem = document.getElementById('pieceGridIceFire');
+    if (!iceFireItem) return;
+    
+    // 添加长按就绪标记
+    iceFireItem.classList.add('long-press-ready');
+    
+    // 鼠标事件
+    iceFireItem.addEventListener('mousedown', handleIceFireLongPressStart);
+    iceFireItem.addEventListener('mouseup', handleIceFireLongPressEnd);
+    iceFireItem.addEventListener('mouseleave', handleIceFireLongPressEnd);
+    
+    // 触摸事件（移动端）
+    iceFireItem.addEventListener('touchstart', handleIceFireLongPressStart, { passive: true });
+    iceFireItem.addEventListener('touchend', handleIceFireLongPressEnd);
+    iceFireItem.addEventListener('touchcancel', handleIceFireLongPressEnd);
+}
+
+// 清理冰火主题长按检测
+function cleanupIceFireLongPress() {
+    const iceFireItem = document.getElementById('pieceGridIceFire');
+    if (!iceFireItem) return;
+    
+    if (iceFireLongPressTimer) {
+        clearTimeout(iceFireLongPressTimer);
+        iceFireLongPressTimer = null;
+    }
+    
+    iceFireItem.classList.remove('long-pressing', 'long-press-complete');
+    
+    iceFireItem.removeEventListener('mousedown', handleIceFireLongPressStart);
+    iceFireItem.removeEventListener('mouseup', handleIceFireLongPressEnd);
+    iceFireItem.removeEventListener('mouseleave', handleIceFireLongPressEnd);
+    iceFireItem.removeEventListener('touchstart', handleIceFireLongPressStart);
+    iceFireItem.removeEventListener('touchend', handleIceFireLongPressEnd);
+    iceFireItem.removeEventListener('touchcancel', handleIceFireLongPressEnd);
+}
+
+// 冰火主题长按开始
+function handleIceFireLongPressStart(e) {
+    const target = e.currentTarget;
+    iceFireLongPressTarget = target;
+    
+    target.classList.add('long-pressing');
+    
+    iceFireLongPressTimer = setTimeout(() => {
+        target.classList.remove('long-pressing');
+        target.classList.add('long-press-complete');
+        
+        SoundEngine.playPlace();
+        
+        setTimeout(() => {
+            target.classList.remove('long-press-complete');
+            openIceFireEffectPanel();
+        }, 300);
+        
+        iceFireLongPressTimer = null;
+    }, LONG_PRESS_DURATION);
+}
+
+// 冰火主题长按结束
+function handleIceFireLongPressEnd(e) {
+    const target = iceFireLongPressTarget || e.currentTarget;
+    
+    if (iceFireLongPressTimer) {
+        clearTimeout(iceFireLongPressTimer);
+        iceFireLongPressTimer = null;
+    }
+    
+    target.classList.remove('long-pressing');
+    iceFireLongPressTarget = null;
+}
+
+// 打开冰火特效调节面板
+function openIceFireEffectPanel() {
+    document.getElementById('pieceSelectorModal').style.display = 'none';
+    document.getElementById('iceFireEffectModal').style.display = 'flex';
+    updateIceFireEffectUI();
+}
+
+// 关闭冰火特效调节面板
+function closeIceFireEffectPanel() {
+    document.getElementById('iceFireEffectModal').style.display = 'none';
+    document.getElementById('pieceSelectorModal').style.display = 'flex';
+}
+
+// 更新冰火特效UI状态
+function updateIceFireEffectUI() {
+    const settings = GameState.pieceEffectSettings.ice_fire;
+    
+    // 落子速度
+    document.getElementById('iceFireDropFast').classList.remove('active');
+    document.getElementById('iceFireDropSlow').classList.remove('active');
+    if (settings.dropStyle === 'fast') {
+        document.getElementById('iceFireDropFast').classList.add('active');
+    } else {
+        document.getElementById('iceFireDropSlow').classList.add('active');
+    }
+    
+    // 棋子回弹
+    document.getElementById('iceFireBounceOff').classList.remove('active');
+    document.getElementById('iceFireBounceOn').classList.remove('active');
+    if (settings.bounceEnabled) {
+        document.getElementById('iceFireBounceOn').classList.add('active');
+    } else {
+        document.getElementById('iceFireBounceOff').classList.add('active');
+    }
+    
+    // 静态动效
+    document.getElementById('iceFireStaticOff').classList.remove('active');
+    document.getElementById('iceFireStaticOn').classList.remove('active');
+    if (settings.staticAnimEnabled) {
+        document.getElementById('iceFireStaticOn').classList.add('active');
+    } else {
+        document.getElementById('iceFireStaticOff').classList.add('active');
+    }
+    
+    // 落子特效
+    document.getElementById('iceFireEffectOff').classList.remove('active');
+    document.getElementById('iceFireEffectOn').classList.remove('active');
+    if (settings.dropEffectEnabled) {
+        document.getElementById('iceFireEffectOn').classList.add('active');
+    } else {
+        document.getElementById('iceFireEffectOff').classList.add('active');
+    }
+}
+
+// 切换冰火落子速度
+function changeIceFireDropStyle(style) {
+    SoundEngine.playPlace();
+    GameState.pieceEffectSettings.ice_fire.dropStyle = style;
+    pieceEffectSettings = GameState.pieceEffectSettings; // 同步
+    updateIceFireEffectUI();
+}
+
+// 切换冰火棋子回弹
+function changeIceFireBounce(state) {
+    SoundEngine.playPlace();
+    GameState.pieceEffectSettings.ice_fire.bounceEnabled = (state === 'on');
+    pieceEffectSettings = GameState.pieceEffectSettings; // 同步
+    updateIceFireEffectUI();
+}
+
+// 切换冰火静态动效
+function changeIceFireStaticAnim(state) {
+    SoundEngine.playPlace();
+    GameState.pieceEffectSettings.ice_fire.staticAnimEnabled = (state === 'on');
+    pieceEffectSettings = GameState.pieceEffectSettings; // 同步
+    updateIceFireEffectUI();
+}
+
+// 切换冰火落子特效
+function changeIceFireDropEffect(state) {
+    SoundEngine.playPlace();
+    GameState.pieceEffectSettings.ice_fire.dropEffectEnabled = (state === 'on');
+    pieceEffectSettings = GameState.pieceEffectSettings; // 同步
+    updateIceFireEffectUI();
+}
+
+// 扩展 openPieceSelector 以支持冰火主题长按
+(function() {
+    const originalOpenPieceSelector = openPieceSelector;
+    openPieceSelector = function() {
+        originalOpenPieceSelector();
+        // [Alpha 0.7.9.6] 初始化冰火主题长按检测
+        setupIceFireLongPress();
+    };
+})();
+
+// 扩展 closePieceSelector 以清理冰火主题长按
+(function() {
+    const originalClosePieceSelector = closePieceSelector;
+    closePieceSelector = function() {
+        // [Alpha 0.7.9.6] 清理冰火主题长按状态
+        cleanupIceFireLongPress();
+        originalClosePieceSelector();
+    };
+})();
 

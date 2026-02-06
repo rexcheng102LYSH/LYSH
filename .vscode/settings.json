@@ -1,5 +1,67 @@
 {
     "chatgpt.openOnStartup": true,
     "chatgpt.commentCodeLensEnabled": false,
-    "files.encoding": "utf8"
+    "files.encoding": "utf8",
+
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 1000,
+    "files.watcherExclude": {
+        "**/auto_backups/**": true,
+        "**/node_modules/**": true,
+        "**/.git/**": true,
+        "**/backup/**": true,
+        "**/save/**": true,
+        "**/.kiro/**": true
+    },
+
+    "search.exclude": {
+        "**/auto_backups/**": true,
+        "**/node_modules/**": true,
+        "**/backup/**": true,
+        "**/save/**": true
+    },
+
+    "files.exclude": {
+        "**/auto_backups/**": true
+    },
+
+    "terminal.integrated.env.windows": {
+        "PATH": "${env:PATH}"
+    },
+    "terminal.integrated.env.linux": {
+        "PATH": "${env:PATH}"
+    },
+    "terminal.integrated.env.osx": {
+        "PATH": "${env:PATH}"
+    },
+
+    "kilocode.indexing.enabled": true,
+    "kilocode.indexing.autoUpdate": true,
+    "kilocode.indexing.priorityFiles": [
+        "AGENTS.md",
+        "AGENTS_CONTEXT.md",
+        "gamestate.js",
+        "index.html",
+        "js/game/game_core.js",
+        "js/game/game_ui.js",
+        "js/game/game_render.js",
+        "js/game/game_skills.js",
+        "js/skills/registry.js",
+        "server/index.js",
+        "server/gameLogic.js"
+    ],
+    "kilocode.indexing.excludePatterns": [
+        "backup/**",
+        "save/**",
+        ".git/**",
+        ".kiro/**",
+        ".history/**",
+        "node_modules/**",
+        "**/*.mp3",
+        "**/*.m4a",
+        "**/*.png",
+        "**/*.jpg",
+        "**/*.jpeg",
+        "**/*.keystore"
+    ]
 }

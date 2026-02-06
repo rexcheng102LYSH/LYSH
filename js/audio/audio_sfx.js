@@ -1,4 +1,4 @@
-﻿// ================= Audio SFX =================
+// ================= Audio SFX =================
 // ?????DJ??
 
 window.AudioSFX = {
@@ -1676,6 +1676,233 @@ window.AudioSFX = {
         };
         target.playGrandWin = function() { 
             [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => setTimeout(() => this.tone(f, 'square', 0.2, 0.4), i * 120)); 
+        };
+
+        // [Alpha 0.7.9.6] 冰/火主题 - 冰晶落子音效
+        // 设计理念：冰晶碎裂 - 清脆、透亮、寒冷
+        // Requirements: 2.6
+        target.playIceStone = function() {
+            if (this.isMuted || !this.ctx) return;
+            const t = this.ctx.currentTime;
+            
+            // === 第1层：高频正弦波主体（冰晶的清脆感）===
+            const crystal = this.ctx.createOscillator();
+            const crystalGain = this.ctx.createGain();
+            crystal.type = 'sine';
+            crystal.frequency.setValueAtTime(2800, t);
+            crystal.frequency.exponentialRampToValueAtTime(1800, t + 0.08);
+            crystalGain.gain.setValueAtTime(0.35 * this.sfxVolume, t);
+            crystalGain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+            crystal.connect(crystalGain);
+            crystalGain.connect(this.ctx.destination);
+            crystal.start(t);
+            crystal.stop(t + 0.18);
+            
+            // === 第2层：高频泛音（冰晶的透亮感）===
+            const shimmer = this.ctx.createOscillator();
+            const shimmerGain = this.ctx.createGain();
+            shimmer.type = 'sine';
+            shimmer.frequency.setValueAtTime(4200, t);
+            shimmer.frequency.exponentialRampToValueAtTime(3000, t + 0.06);
+            shimmerGain.gain.setValueAtTime(0.2 * this.sfxVolume, t);
+            shimmerGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+            shimmer.connect(shimmerGain);
+            shimmerGain.connect(this.ctx.destination);
+            shimmer.start(t);
+            shimmer.stop(t + 0.12);
+            
+            // === 第3层：玻璃碎裂噪音（冰晶碎裂的质感）===
+            const crackBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.12, this.ctx.sampleRate);
+            const crackData = crackBuffer.getChannelData(0);
+            for (let i = 0; i < crackData.length; i++) {
+                // 模拟玻璃碎裂的不规则噪音
+                const progress = i / crackData.length;
+                const burst = Math.exp(-progress * 8); // 快速衰减
+                // 添加随机脉冲模拟碎裂声
+                const pulse = Math.random() > 0.92 ? 1.5 : 1;
+                crackData[i] = (Math.random() * 2 - 1) * burst * pulse;
+            }
+            const crack = this.ctx.createBufferSource();
+            crack.buffer = crackBuffer;
+            const crackFilter = this.ctx.createBiquadFilter();
+            crackFilter.type = 'highpass';
+            crackFilter.frequency.setValueAtTime(3000, t);
+            const crackGain = this.ctx.createGain();
+            crackGain.gain.setValueAtTime(0.3 * this.sfxVolume, t);
+            crackGain.gain.exponentialRampToValueAtTime(0.01, t + 0.12);
+            crack.connect(crackFilter);
+            crackFilter.connect(crackGain);
+            crackGain.connect(this.ctx.destination);
+            crack.start(t);
+            
+            // === 第4层：冰晶共鸣（寒冷的余韵）===
+            const resonance = this.ctx.createOscillator();
+            const resonanceGain = this.ctx.createGain();
+            const resonanceFilter = this.ctx.createBiquadFilter();
+            resonance.type = 'triangle';
+            resonance.frequency.setValueAtTime(1600, t + 0.03);
+            resonance.frequency.exponentialRampToValueAtTime(1200, t + 0.2);
+            resonanceFilter.type = 'bandpass';
+            resonanceFilter.frequency.setValueAtTime(1400, t);
+            resonanceFilter.Q.value = 8;
+            resonanceGain.gain.setValueAtTime(0.15 * this.sfxVolume, t + 0.03);
+            resonanceGain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+            resonance.connect(resonanceFilter);
+            resonanceFilter.connect(resonanceGain);
+            resonanceGain.connect(this.ctx.destination);
+            resonance.start(t + 0.03);
+            resonance.stop(t + 0.28);
+            
+            // === 第5层：冰霜扩散音（寒气蔓延的感觉）===
+            const frostBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.2, this.ctx.sampleRate);
+            const frostData = frostBuffer.getChannelData(0);
+            for (let i = 0; i < frostData.length; i++) {
+                const progress = i / frostData.length;
+                // 缓慢上升后衰减，模拟霜冻扩散
+                const envelope = Math.sin(progress * Math.PI * 0.5) * Math.exp(-progress * 3);
+                frostData[i] = (Math.random() * 2 - 1) * envelope * 0.5;
+            }
+            const frost = this.ctx.createBufferSource();
+            frost.buffer = frostBuffer;
+            const frostFilter = this.ctx.createBiquadFilter();
+            frostFilter.type = 'bandpass';
+            frostFilter.frequency.setValueAtTime(5000, t);
+            frostFilter.Q.value = 2;
+            const frostGain = this.ctx.createGain();
+            frostGain.gain.setValueAtTime(0.18 * this.sfxVolume, t + 0.05);
+            frostGain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+            frost.connect(frostFilter);
+            frostFilter.connect(frostGain);
+            frostGain.connect(this.ctx.destination);
+            frost.start(t + 0.05);
+        };
+
+        // [Alpha 0.7.9.6] 冰/火主题 - 火焰落子音效
+        // 设计理念：火焰爆发 - 噼啪、炽热、爆裂
+        // Requirements: 2.7
+        target.playFireStone = function() {
+            if (this.isMuted || !this.ctx) return;
+            const t = this.ctx.currentTime;
+            
+            // === 第1层：低频爆发主体（火焰的冲击感）===
+            const burst = this.ctx.createOscillator();
+            const burstGain = this.ctx.createGain();
+            burst.type = 'sawtooth';
+            burst.frequency.setValueAtTime(150, t);
+            burst.frequency.exponentialRampToValueAtTime(60, t + 0.1);
+            burstGain.gain.setValueAtTime(0.45 * this.sfxVolume, t);
+            burstGain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+            burst.connect(burstGain);
+            burstGain.connect(this.ctx.destination);
+            burst.start(t);
+            burst.stop(t + 0.18);
+            
+            // === 第2层：中频火焰核心（燃烧的温暖感）===
+            const core = this.ctx.createOscillator();
+            const coreGain = this.ctx.createGain();
+            const coreFilter = this.ctx.createBiquadFilter();
+            core.type = 'sawtooth';
+            core.frequency.setValueAtTime(280, t);
+            core.frequency.exponentialRampToValueAtTime(180, t + 0.12);
+            coreFilter.type = 'lowpass';
+            coreFilter.frequency.setValueAtTime(600, t);
+            coreFilter.frequency.exponentialRampToValueAtTime(300, t + 0.12);
+            coreGain.gain.setValueAtTime(0.3 * this.sfxVolume, t);
+            coreGain.gain.exponentialRampToValueAtTime(0.01, t + 0.18);
+            core.connect(coreFilter);
+            coreFilter.connect(coreGain);
+            coreGain.connect(this.ctx.destination);
+            core.start(t);
+            core.stop(t + 0.2);
+            
+            // === 第3层：噼啪噪音（火焰燃烧的噼啪声）===
+            const crackleBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.25, this.ctx.sampleRate);
+            const crackleData = crackleBuffer.getChannelData(0);
+            for (let i = 0; i < crackleData.length; i++) {
+                const progress = i / crackleData.length;
+                // 随机脉冲模拟噼啪声
+                const crackle = Math.random() > 0.85 ? (Math.random() * 2 - 1) * 2 : 0;
+                // 基础噪音层
+                const base = (Math.random() * 2 - 1) * 0.3;
+                const envelope = Math.exp(-progress * 4);
+                crackleData[i] = (crackle + base) * envelope;
+            }
+            const crackleSource = this.ctx.createBufferSource();
+            crackleSource.buffer = crackleBuffer;
+            const crackleFilter = this.ctx.createBiquadFilter();
+            crackleFilter.type = 'bandpass';
+            crackleFilter.frequency.setValueAtTime(1500, t);
+            crackleFilter.Q.value = 1;
+            const crackleGain = this.ctx.createGain();
+            crackleGain.gain.setValueAtTime(0.35 * this.sfxVolume, t);
+            crackleGain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+            crackleSource.connect(crackleFilter);
+            crackleFilter.connect(crackleGain);
+            crackleGain.connect(this.ctx.destination);
+            crackleSource.start(t);
+            
+            // === 第4层：爆裂音效（火焰爆发的瞬间）===
+            const popBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.08, this.ctx.sampleRate);
+            const popData = popBuffer.getChannelData(0);
+            for (let i = 0; i < popData.length; i++) {
+                const progress = i / popData.length;
+                // 快速衰减的爆裂声
+                const pop = Math.exp(-progress * 15);
+                popData[i] = (Math.random() * 2 - 1) * pop;
+            }
+            const popSource = this.ctx.createBufferSource();
+            popSource.buffer = popBuffer;
+            const popFilter = this.ctx.createBiquadFilter();
+            popFilter.type = 'lowpass';
+            popFilter.frequency.setValueAtTime(2000, t);
+            const popGain = this.ctx.createGain();
+            popGain.gain.setValueAtTime(0.4 * this.sfxVolume, t);
+            popGain.gain.exponentialRampToValueAtTime(0.01, t + 0.08);
+            popSource.connect(popFilter);
+            popFilter.connect(popGain);
+            popGain.connect(this.ctx.destination);
+            popSource.start(t);
+            
+            // === 第5层：火焰呼啸（热浪的感觉）===
+            const whoosh = this.ctx.createOscillator();
+            const whooshGain = this.ctx.createGain();
+            const whooshFilter = this.ctx.createBiquadFilter();
+            whoosh.type = 'sawtooth';
+            whoosh.frequency.setValueAtTime(100, t + 0.02);
+            whoosh.frequency.exponentialRampToValueAtTime(200, t + 0.1);
+            whoosh.frequency.exponentialRampToValueAtTime(80, t + 0.2);
+            whooshFilter.type = 'bandpass';
+            whooshFilter.frequency.setValueAtTime(400, t);
+            whooshFilter.Q.value = 2;
+            whooshGain.gain.setValueAtTime(0.2 * this.sfxVolume, t + 0.02);
+            whooshGain.gain.exponentialRampToValueAtTime(0.01, t + 0.22);
+            whoosh.connect(whooshFilter);
+            whooshFilter.connect(whooshGain);
+            whooshGain.connect(this.ctx.destination);
+            whoosh.start(t + 0.02);
+            whoosh.stop(t + 0.25);
+            
+            // === 第6层：高频火星（火星飞溅的闪烁）===
+            const sparkBuffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.15, this.ctx.sampleRate);
+            const sparkData = sparkBuffer.getChannelData(0);
+            for (let i = 0; i < sparkData.length; i++) {
+                const progress = i / sparkData.length;
+                // 随机火星闪烁
+                const spark = Math.random() > 0.9 ? Math.random() : 0;
+                sparkData[i] = spark * Math.exp(-progress * 5);
+            }
+            const sparkSource = this.ctx.createBufferSource();
+            sparkSource.buffer = sparkBuffer;
+            const sparkFilter = this.ctx.createBiquadFilter();
+            sparkFilter.type = 'highpass';
+            sparkFilter.frequency.setValueAtTime(4000, t);
+            const sparkGain = this.ctx.createGain();
+            sparkGain.gain.setValueAtTime(0.15 * this.sfxVolume, t + 0.03);
+            sparkGain.gain.exponentialRampToValueAtTime(0.01, t + 0.18);
+            sparkSource.connect(sparkFilter);
+            sparkFilter.connect(sparkGain);
+            sparkGain.connect(this.ctx.destination);
+            sparkSource.start(t + 0.03);
         };
     }
 };

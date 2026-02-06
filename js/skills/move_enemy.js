@@ -1,4 +1,4 @@
-﻿(function() {
+(function() {
   if (!window.SkillRegistry || typeof SkillRegistry.registerSkill !== 'function') return;
   SkillRegistry.registerSkill('move_enemy', {
     activate: function() {

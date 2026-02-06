@@ -10,7 +10,11 @@
 
 .piece-svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3)); }
 .piece-img { width: 100%; height: 100%; object-fit: contain; display: block; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3)); }
+/* [Alpha 0.7.9.6] 自然主题棋子PNG大小 */
 .piece.skin-nature .piece-img { width: 105%; height: 105%; margin: -2.5%; transform: none; }
+
+/* [Alpha 0.7.9.6] 冰/火主题棋子PNG大小 - [修复] 增大PNG图片大小到140%，使冰火棋子更大 */
+.piece.skin-ice-fire .piece-img { width: 140%; height: 140%; margin: -20%; transform: none; }
 
 /* ========================================= */
 /* [Alpha 0.7.9.3] 温润棋子美术 - 低对比度版 */
@@ -902,3 +906,654 @@
         opacity: 0;
     }
 }
+
+/* ========================================= */
+/* [Alpha 0.7.9.6] 冰火静态动效 v2 - Premium  */
+/* 极寒冰华 / 炽焰余烬                        */
+/* ========================================= */
+
+.piece.skin-ice-fire {
+    border-radius: 50%;
+    position: relative;
+    transform-style: preserve-3d;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: visible;
+    isolation: isolate;
+}
+
+.piece.skin-ice-fire.p1,
+.piece.skin-ice-fire.p2 {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+}
+
+.piece.skin-ice-fire.p1::before,
+.piece.skin-ice-fire.p1::after,
+.piece.skin-ice-fire.p2::before,
+.piece.skin-ice-fire.p2::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* === 冰系「冰华之冠」静态动效 === */
+
+/* 冰棋子 ::before - 外层寒光脉冲环 */
+.piece.skin-ice-fire.p1::before {
+    inset: -7px;
+    z-index: 15;
+    background: radial-gradient(
+        circle,
+        rgba(180, 225, 255, 0.08) 40%,
+        rgba(140, 210, 255, 0.25) 65%,
+        rgba(100, 190, 255, 0.15) 80%,
+        transparent 100%
+    );
+    filter: blur(2px);
+    animation: iceSAuraPulse 3s ease-in-out infinite;
+}
+
+/* 冰棋子 ::after - 内层霜纹光环 */
+.piece.skin-ice-fire.p1::after {
+    inset: -4px;
+    z-index: 16;
+    border: 1.5px solid rgba(200, 235, 255, 0.35);
+    box-shadow:
+        0 0 8px rgba(170, 220, 255, 0.3),
+        inset 0 0 6px rgba(200, 240, 255, 0.15);
+    animation: iceSRingBreath 4s ease-in-out infinite;
+}
+
+/* 冰晶轨道容器 - 整体缓慢公转 */
+.ice-s-orbit {
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 20;
+    animation: iceSOrbitSpin 12s linear infinite;
+}
+
+/* 单颗冰晶 - 五边形晶体 */
+.ice-s-crystal {
+    position: absolute;
+    width: 3.5px;
+    height: 5px;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(210, 240, 255, 0.8) 50%,
+        rgba(160, 215, 250, 0.5) 100%
+    );
+    clip-path: polygon(50% 0%, 100% 35%, 80% 100%, 20% 100%, 0% 35%);
+    box-shadow:
+        0 0 4px rgba(200, 235, 255, 0.8),
+        0 0 8px rgba(150, 210, 250, 0.4);
+    animation: iceSCrystalTwinkle 2.5s ease-in-out infinite;
+}
+
+/* 霜尘微粒 */
+.ice-s-dust {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 19;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(220, 245, 255, 0.6) 60%,
+        transparent 100%
+    );
+    box-shadow: 0 0 3px rgba(200, 235, 255, 0.7);
+    animation: iceSDustFloat 3.5s ease-in-out infinite;
+    animation-delay: var(--delay, 0s);
+}
+
+/* 寒雾底层 */
+.ice-s-mist {
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110%;
+    height: 40%;
+    border-radius: 0 0 50% 50%;
+    pointer-events: none;
+    z-index: 13;
+    background: radial-gradient(
+        ellipse 100% 100% at 50% 0%,
+        rgba(200, 240, 255, 0.2) 0%,
+        rgba(170, 225, 255, 0.12) 40%,
+        rgba(140, 210, 250, 0.05) 70%,
+        transparent 100%
+    );
+    filter: blur(2.5px);
+    animation: iceSMistDrift 4.5s ease-in-out infinite;
+}
+
+/* === 火系「炽焰余烬」静态动效 === */
+
+/* 火棋子 ::before - 外层焰冠脉冲 */
+.piece.skin-ice-fire.p2::before {
+    inset: -7px;
+    z-index: 15;
+    background: radial-gradient(
+        circle,
+        rgba(255, 200, 100, 0.1) 30%,
+        rgba(255, 150, 50, 0.22) 55%,
+        rgba(255, 100, 20, 0.15) 75%,
+        transparent 100%
+    );
+    filter: blur(2.5px);
+    mix-blend-mode: screen;
+    animation: fireSAuraPulse 2s ease-in-out infinite;
+}
+
+/* 火棋子 ::after - 内层焰环 */
+.piece.skin-ice-fire.p2::after {
+    inset: -4px;
+    z-index: 16;
+    border: 1.5px solid rgba(255, 180, 80, 0.3);
+    box-shadow:
+        0 0 8px rgba(255, 150, 50, 0.35),
+        0 0 16px rgba(255, 100, 20, 0.15),
+        inset 0 0 6px rgba(255, 200, 100, 0.1);
+    animation: fireSRingFlicker 1.8s ease-in-out infinite;
+}
+
+/* 上升火星 */
+.fire-s-ember {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 20;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(
+        circle,
+        rgba(255, 255, 230, 0.98) 0%,
+        rgba(255, 210, 100, 0.9) 40%,
+        rgba(255, 150, 30, 0.6) 80%,
+        transparent 100%
+    );
+    box-shadow:
+        0 0 4px rgba(255, 200, 80, 0.9),
+        0 0 8px rgba(255, 130, 20, 0.5);
+    animation: fireSEmberRise 2.2s ease-in-out infinite;
+    animation-delay: var(--delay, 0s);
+}
+
+/* 热浪扰动层 */
+.fire-s-haze {
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 13;
+    background: conic-gradient(
+        from 0deg,
+        rgba(255, 180, 80, 0) 0deg,
+        rgba(255, 160, 50, 0.12) 45deg,
+        rgba(255, 130, 30, 0.08) 90deg,
+        rgba(255, 180, 80, 0) 135deg,
+        rgba(255, 150, 40, 0.1) 225deg,
+        rgba(255, 180, 80, 0) 360deg
+    );
+    filter: blur(2px);
+    animation: fireSHazeSpin 6s linear infinite;
+}
+
+/* 炽光火花（削弱至80%：尺寸/亮度/频率） */
+.fire-s-spark {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 21;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.76);
+    box-shadow:
+        0 0 2.5px rgba(255, 255, 200, 0.72),
+        0 0 5px rgba(255, 200, 80, 0.48);
+    animation: fireSSparkPop 2.25s ease-in-out infinite;
+    animation-delay: var(--delay, 0s);
+}
+
+/* === 冰系动画关键帧 === */
+
+@keyframes iceSAuraPulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.98); }
+    50% { opacity: 0.85; transform: scale(1.04); }
+}
+
+@keyframes iceSRingBreath {
+    0%, 100% { opacity: 0.3; transform: scale(0.97); border-color: rgba(200, 235, 255, 0.25); }
+    50% { opacity: 0.7; transform: scale(1.03); border-color: rgba(200, 235, 255, 0.5); }
+}
+
+@keyframes iceSOrbitSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes iceSCrystalTwinkle {
+    0%, 100% { opacity: 0.2; transform: translate(-50%, -50%) scale(0.65); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+}
+
+@keyframes iceSDustFloat {
+    0%, 100% {
+        opacity: 0.15;
+        transform: translate(-50%, -50%) translate(0, 0) scale(0.6);
+    }
+    50% {
+        opacity: 0.85;
+        transform: translate(-50%, -50%) translate(var(--drift-x, 0px), var(--drift-y, -2px)) scale(1.2);
+    }
+}
+
+@keyframes iceSMistDrift {
+    0%, 100% { opacity: 0.3; transform: translateX(-50%) scaleX(0.9); }
+    50% { opacity: 0.65; transform: translateX(-50%) scaleX(1.1) translateY(2px); }
+}
+
+/* === 火系动画关键帧 === */
+
+@keyframes fireSAuraPulse {
+    0%, 100% { opacity: 0.45; transform: scale(0.98); }
+    35% { opacity: 0.95; transform: scale(1.06); }
+    70% { opacity: 0.65; transform: scale(1.02); }
+}
+
+@keyframes fireSRingFlicker {
+    0%, 100% { opacity: 0.3; transform: scale(0.97); }
+    25% { opacity: 0.75; transform: scale(1.04); }
+    50% { opacity: 0.5; transform: scale(1.01); }
+    75% { opacity: 0.85; transform: scale(1.05); }
+}
+
+@keyframes fireSEmberRise {
+    0%, 100% {
+        opacity: 0.15;
+        transform: translate(-50%, -50%) translate(0, 0) scale(0.5);
+    }
+    30% {
+        opacity: 1;
+        transform: translate(-50%, -50%) translate(var(--sway, 0px), calc(var(--rise, 3px) * -0.4)) scale(1.2);
+    }
+    70% {
+        opacity: 0.7;
+        transform: translate(-50%, -50%) translate(calc(var(--sway, 0px) * -0.5), calc(var(--rise, 3px) * -0.8)) scale(0.9);
+    }
+}
+
+@keyframes fireSHazeSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes fireSSparkPop {
+    0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+    15% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.2); }
+    40% { opacity: 0.64; transform: translate(-50%, -50%) scale(0.85); }
+    60% { opacity: 0; transform: translate(-50%, -50%) scale(0.35); }
+}
+
+/* Keep ice/fire drop animation behavior unchanged */
+.piece.skin-ice-fire.p1.drop-fast,
+.piece.skin-ice-fire.p2.drop-fast {
+    animation: dropFast 0.25s ease-out forwards;
+}
+
+.piece.skin-ice-fire.p1.drop-fast-bounce,
+.piece.skin-ice-fire.p2.drop-fast-bounce {
+    animation: dropFastBounce 0.25s ease-out forwards;
+}
+
+.piece.skin-ice-fire.p1.drop-slow,
+.piece.skin-ice-fire.p2.drop-slow {
+    animation: dropSlow 0.45s ease-out forwards;
+}
+
+.piece.skin-ice-fire.p1.drop-slow-bounce,
+.piece.skin-ice-fire.p2.drop-slow-bounce {
+    animation: dropSlowBounce 0.45s ease-out forwards;
+}
+
+/* Static toggle: completely hide all static effect nodes */
+.piece.skin-ice-fire.p1.no-static-anim::before,
+.piece.skin-ice-fire.p1.no-static-anim::after,
+.piece.skin-ice-fire.p1.no-static-anim .ice-s-orbit,
+.piece.skin-ice-fire.p1.no-static-anim .ice-s-crystal,
+.piece.skin-ice-fire.p1.no-static-anim .ice-s-dust,
+.piece.skin-ice-fire.p1.no-static-anim .ice-s-mist,
+.piece.skin-ice-fire.p2.no-static-anim::before,
+.piece.skin-ice-fire.p2.no-static-anim::after,
+.piece.skin-ice-fire.p2.no-static-anim .fire-s-ember,
+.piece.skin-ice-fire.p2.no-static-anim .fire-s-haze,
+.piece.skin-ice-fire.p2.no-static-anim .fire-s-spark {
+    animation: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* Pause static layers while drop animation is active */
+.piece.skin-ice-fire.p1.drop-fast::before,
+.piece.skin-ice-fire.p1.drop-fast-bounce::before,
+.piece.skin-ice-fire.p1.drop-slow::before,
+.piece.skin-ice-fire.p1.drop-slow-bounce::before,
+.piece.skin-ice-fire.p1.drop-fast::after,
+.piece.skin-ice-fire.p1.drop-fast-bounce::after,
+.piece.skin-ice-fire.p1.drop-slow::after,
+.piece.skin-ice-fire.p1.drop-slow-bounce::after,
+.piece.skin-ice-fire.p1.drop-fast .ice-s-orbit,
+.piece.skin-ice-fire.p1.drop-fast-bounce .ice-s-orbit,
+.piece.skin-ice-fire.p1.drop-slow .ice-s-orbit,
+.piece.skin-ice-fire.p1.drop-slow-bounce .ice-s-orbit,
+.piece.skin-ice-fire.p1.drop-fast .ice-s-dust,
+.piece.skin-ice-fire.p1.drop-fast-bounce .ice-s-dust,
+.piece.skin-ice-fire.p1.drop-slow .ice-s-dust,
+.piece.skin-ice-fire.p1.drop-slow-bounce .ice-s-dust,
+.piece.skin-ice-fire.p1.drop-fast .ice-s-mist,
+.piece.skin-ice-fire.p1.drop-fast-bounce .ice-s-mist,
+.piece.skin-ice-fire.p1.drop-slow .ice-s-mist,
+.piece.skin-ice-fire.p1.drop-slow-bounce .ice-s-mist,
+.piece.skin-ice-fire.p2.drop-fast::before,
+.piece.skin-ice-fire.p2.drop-fast-bounce::before,
+.piece.skin-ice-fire.p2.drop-slow::before,
+.piece.skin-ice-fire.p2.drop-slow-bounce::before,
+.piece.skin-ice-fire.p2.drop-fast::after,
+.piece.skin-ice-fire.p2.drop-fast-bounce::after,
+.piece.skin-ice-fire.p2.drop-slow::after,
+.piece.skin-ice-fire.p2.drop-slow-bounce::after,
+.piece.skin-ice-fire.p2.drop-fast .fire-s-ember,
+.piece.skin-ice-fire.p2.drop-fast-bounce .fire-s-ember,
+.piece.skin-ice-fire.p2.drop-slow .fire-s-ember,
+.piece.skin-ice-fire.p2.drop-slow-bounce .fire-s-ember,
+.piece.skin-ice-fire.p2.drop-fast .fire-s-haze,
+.piece.skin-ice-fire.p2.drop-fast-bounce .fire-s-haze,
+.piece.skin-ice-fire.p2.drop-slow .fire-s-haze,
+.piece.skin-ice-fire.p2.drop-slow-bounce .fire-s-haze,
+.piece.skin-ice-fire.p2.drop-fast .fire-s-spark,
+.piece.skin-ice-fire.p2.drop-fast-bounce .fire-s-spark,
+.piece.skin-ice-fire.p2.drop-slow .fire-s-spark,
+.piece.skin-ice-fire.p2.drop-slow-bounce .fire-s-spark {
+    animation: none !important;
+}
+
+/* Mobile: lighter shadow load for performance */
+@media (max-width: 600px) {
+    .ice-s-crystal {
+        box-shadow:
+            0 0 3px rgba(200, 235, 255, 0.6),
+            0 0 5px rgba(150, 210, 250, 0.3);
+    }
+
+    .fire-s-ember {
+        box-shadow:
+            0 0 3px rgba(255, 200, 80, 0.7),
+            0 0 5px rgba(255, 130, 20, 0.4);
+    }
+}
+
+
+/* =========================================
+   [Alpha 0.7.9.6] 冰火落子特效 v2 - Premium
+   Ice Drop「极寒碎裂」/ Fire Drop「烈焰轰击」
+   ========================================= */
+
+/* 冰爆核心闪光 */
+.ice-d-flash {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 120%; height: 120%;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    pointer-events: none; z-index: 18;
+    background: radial-gradient(circle,
+        rgba(255,255,255,1) 0%, rgba(220,245,255,0.9) 25%,
+        rgba(170,220,255,0.6) 50%, rgba(130,200,250,0.3) 75%, transparent 100%);
+    animation: iceDFlash 0.3s ease-out forwards;
+}
+@keyframes iceDFlash {
+    0%   { transform: translate(-50%,-50%) scale(0);   opacity: 1; }
+    50%  { transform: translate(-50%,-50%) scale(1.2); opacity: 0.85; }
+    100% { transform: translate(-50%,-50%) scale(1.6); opacity: 0; }
+}
+
+/* 霜冻冲击波环 */
+.ice-d-ring {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    transform: translate(-50%,-50%) scale(0.3);
+    pointer-events: none; z-index: 15;
+    border: 2.5px solid rgba(180,225,255,0.9);
+    background: transparent;
+    box-shadow: 0 0 10px rgba(170,220,255,0.6), 0 0 20px rgba(140,200,250,0.3),
+        inset 0 0 6px rgba(200,240,255,0.25);
+    animation: iceDRing 0.55s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+}
+@keyframes iceDRing {
+    0%   { transform: translate(-50%,-50%) scale(0.3); opacity: 1; border-width: 3px; border-color: rgba(210,240,255,0.95); }
+    40%  { transform: translate(-50%,-50%) scale(1.5); opacity: 0.7; border-width: 2px; border-color: rgba(170,220,255,0.75); }
+    100% { transform: translate(-50%,-50%) scale(2.8); opacity: 0; border-width: 1px; }
+}
+
+/* 大冰晶碎片 - 雪白质感(anime.js控制运动) */
+.ice-d-shard {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    pointer-events: none; z-index: 17;
+    background: linear-gradient(135deg,
+        rgba(255,255,255,0.95) 0%, rgba(240,250,255,0.9) 35%,
+        rgba(220,245,255,0.8) 65%, rgba(200,235,255,0.6) 100%);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    box-shadow: 0 0 5px rgba(200,235,255,0.9), 0 0 10px rgba(150,210,250,0.5);
+    opacity: 0;
+}
+
+/* 中冰晶碎片 - 冰蓝碎裂质感，棱角更锐利 */
+.ice-d-shard-m {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    pointer-events: none; z-index: 17;
+    background: linear-gradient(160deg,
+        rgba(190,230,255,0.95) 0%, rgba(140,210,250,0.85) 40%,
+        rgba(100,185,240,0.7) 70%, rgba(70,160,230,0.5) 100%);
+    clip-path: polygon(30% 0%, 80% 0%, 100% 45%, 70% 100%, 10% 80%, 0% 30%);
+    box-shadow: 0 0 3px rgba(140,210,250,0.85), 0 0 7px rgba(100,185,240,0.4);
+    opacity: 0;
+}
+
+/* 小冰晶碎片 - 深冰蓝碎冰质感，更通透 */
+.ice-d-shard-s {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    pointer-events: none; z-index: 17;
+    background: linear-gradient(145deg,
+        rgba(130,200,250,0.9) 0%, rgba(90,170,240,0.8) 45%,
+        rgba(60,140,220,0.65) 100%);
+    clip-path: polygon(50% 0%, 100% 35%, 85% 100%, 15% 100%, 0% 35%);
+    box-shadow: 0 0 2px rgba(100,185,240,0.8), 0 0 5px rgba(70,160,230,0.35);
+    opacity: 0;
+}
+
+/* 寒气雾扩散 */
+.ice-d-mist {
+    position: absolute; top: 50%; left: 50%;
+    width: 140%; height: 140%; border-radius: 50%;
+    transform: translate(-50%,-50%) scale(0.4);
+    pointer-events: none; z-index: 14;
+    background: radial-gradient(circle,
+        rgba(200,240,255,0.45) 0%, rgba(170,225,255,0.3) 30%,
+        rgba(140,210,250,0.15) 55%, transparent 100%);
+    filter: blur(3px);
+    animation: iceDMist 0.65s ease-out forwards;
+}
+@keyframes iceDMist {
+    0%   { transform: translate(-50%,-50%) scale(0.4); opacity: 0; }
+    25%  { transform: translate(-50%,-50%) scale(0.9); opacity: 0.85; }
+    55%  { transform: translate(-50%,-50%) scale(1.3); opacity: 0.6; }
+    100% { transform: translate(-50%,-50%) scale(1.8); opacity: 0; }
+}
+
+/* 火焰核心爆发 */
+.fire-d-flash {
+    position: absolute; top: 50%; left: 50%;
+    width: 130%; height: 130%; border-radius: 50%;
+    transform: translate(-50%,-50%) scale(0);
+    pointer-events: none; z-index: 18;
+    background: radial-gradient(circle,
+        rgba(255,255,255,1) 0%, rgba(255,255,200,0.95) 15%,
+        rgba(255,220,100,0.8) 30%, rgba(255,160,50,0.55) 50%,
+        rgba(255,100,0,0.3) 70%, transparent 100%);
+    animation: fireDFlash 0.35s ease-out forwards;
+}
+@keyframes fireDFlash {
+    0%   { transform: translate(-50%,-50%) scale(0);   opacity: 1; }
+    40%  { transform: translate(-50%,-50%) scale(1.3); opacity: 0.9; }
+    100% { transform: translate(-50%,-50%) scale(1.8); opacity: 0; }
+}
+
+/* 焰环冲击波 */
+.fire-d-ring {
+    position: absolute; top: 50%; left: 50%;
+    width: 100%; height: 100%; border-radius: 50%;
+    transform: translate(-50%,-50%) scale(0.3);
+    pointer-events: none; z-index: 15;
+    border: 2.5px solid rgba(255,160,30,0.9);
+    background: transparent;
+    box-shadow: 0 0 12px rgba(255,150,30,0.7), 0 0 25px rgba(255,100,0,0.4),
+        0 0 40px rgba(255,70,0,0.2), inset 0 0 8px rgba(255,200,80,0.3);
+    animation: fireDRing 0.5s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+}
+@keyframes fireDRing {
+    0%   { transform: translate(-50%,-50%) scale(0.3); opacity: 1; border-width: 3.5px; border-color: rgba(255,220,80,0.95); }
+    35%  { transform: translate(-50%,-50%) scale(1.4); opacity: 0.8; border-width: 2.5px; border-color: rgba(255,170,40,0.8); }
+    100% { transform: translate(-50%,-50%) scale(2.5); opacity: 0; border-width: 1px; }
+}
+
+/* 岩浆皇冠 - 撞击液面隆起的环形冠(CSS动画) */
+.fire-d-crown {
+    position: absolute; top: 50%; left: 50%;
+    width: 110%; height: 110%; border-radius: 50%;
+    transform: translate(-50%,-50%) scale(0.3);
+    pointer-events: none; z-index: 16;
+    border: 3px solid transparent;
+    background: transparent;
+    box-shadow:
+        0 0 8px 2px rgba(255,200,60,0.7),
+        0 0 16px 4px rgba(255,140,20,0.4),
+        inset 0 0 6px 1px rgba(255,220,100,0.5);
+    animation: fireDCrown 0.5s cubic-bezier(0.22,0.61,0.36,1) forwards;
+}
+@keyframes fireDCrown {
+    0%   { transform: translate(-50%,-50%) scale(0.3) translateY(0);
+           opacity: 1; box-shadow: 0 0 10px 3px rgba(255,220,80,0.9), 0 0 20px 6px rgba(255,150,30,0.5), inset 0 0 8px 2px rgba(255,240,120,0.6); }
+    30%  { transform: translate(-50%,-50%) scale(1.2) translateY(-8%);
+           opacity: 0.9; box-shadow: 0 0 14px 4px rgba(255,200,60,0.75), 0 0 28px 8px rgba(255,130,20,0.35), inset 0 0 6px 1px rgba(255,220,100,0.4); }
+    60%  { transform: translate(-50%,-50%) scale(1.8) translateY(-18%);
+           opacity: 0.5; box-shadow: 0 0 10px 2px rgba(255,180,40,0.5), 0 0 20px 5px rgba(255,110,10,0.2); }
+    100% { transform: translate(-50%,-50%) scale(2.4) translateY(-30%);
+           opacity: 0; }
+}
+
+/* Worthington反冲柱 - 撞击后中心垂直反弹的岩浆柱(anime.js控制) */
+/* 使用 margin-left 居中，不依赖 transform translate，防止 anime.js 覆盖偏移 */
+.fire-d-jet {
+    position: absolute;
+    bottom: 50%; left: 50%;
+    width: 14px; height: 30px;
+    margin-left: -7px;
+    background: linear-gradient(to top,
+        rgba(255,255,230,1) 0%, rgba(255,240,150,0.95) 12%,
+        rgba(255,200,70,0.88) 28%, rgba(255,150,30,0.75) 48%,
+        rgba(255,100,10,0.5) 68%, rgba(220,60,0,0.2) 88%, transparent 100%);
+    border-radius: 35% 35% 20% 20% / 45% 45% 25% 25%;
+    transform-origin: bottom center;
+    pointer-events: none; z-index: 19; opacity: 0;
+    filter: blur(0.3px);
+}
+
+/* 熔岩飞溅液滴(anime.js控制运动) */
+.fire-d-splash {
+    position: absolute; top: 50%; left: 50%;
+    border-radius: 50%;
+    transform: translate(-50%,-50%);
+    pointer-events: none; z-index: 17;
+    background: radial-gradient(circle,
+        rgba(255,255,220,1) 0%, rgba(255,220,100,0.95) 35%,
+        rgba(255,170,40,0.8) 65%, rgba(255,110,10,0.5) 100%);
+    box-shadow: 0 0 5px rgba(255,200,70,0.9), 0 0 10px rgba(255,140,20,0.5),
+        0 0 16px rgba(255,80,0,0.25);
+    opacity: 0;
+}
+
+/* 热浪涌动 */
+.fire-d-surge {
+    position: absolute; top: 50%; left: 50%;
+    width: 150%; height: 150%; border-radius: 50%;
+    transform: translate(-50%,-50%) scale(0.4);
+    pointer-events: none; z-index: 14;
+    background: radial-gradient(ellipse 100% 120% at 50% 55%,
+        rgba(255,210,100,0.35) 0%, rgba(255,160,50,0.25) 25%,
+        rgba(255,110,10,0.14) 50%, rgba(255,70,0,0.06) 75%, transparent 100%);
+    filter: blur(3.5px);
+    animation: fireDSurge 0.6s ease-out forwards;
+}
+@keyframes fireDSurge {
+    0%   { transform: translate(-50%,-50%) scale(0.4) translateY(0); opacity: 0; }
+    25%  { transform: translate(-50%,-50%) scale(0.85) translateY(-4%); opacity: 0.8; }
+    55%  { transform: translate(-50%,-50%) scale(1.2) translateY(-10%); opacity: 0.5; }
+    100% { transform: translate(-50%,-50%) scale(1.6) translateY(-20%); opacity: 0; }
+}
+
+/* 冰火落子移动端适配 */
+@media (max-width: 600px) {
+    .ice-d-ring { box-shadow: 0 0 6px rgba(170,220,255,0.5), 0 0 12px rgba(140,200,250,0.2); }
+    .ice-d-shard { box-shadow: 0 0 4px rgba(200,235,255,0.7); }
+    .ice-d-shard-m { box-shadow: 0 0 2px rgba(140,210,250,0.7); }
+    .ice-d-shard-s { box-shadow: 0 0 1.5px rgba(100,185,240,0.6); }
+    .ice-d-mist { filter: blur(2px); }
+    .fire-d-ring { box-shadow: 0 0 8px rgba(255,150,30,0.6), 0 0 16px rgba(255,100,0,0.3); }
+    .fire-d-crown { box-shadow: 0 0 6px 1px rgba(255,200,60,0.5), 0 0 12px 2px rgba(255,140,20,0.3); }
+    .fire-d-jet { filter: blur(0.2px); }
+    .fire-d-splash { box-shadow: 0 0 4px rgba(255,200,70,0.7), 0 0 8px rgba(255,140,20,0.35); }
+    .fire-d-surge { filter: blur(2.5px); }
+}
+
+
+/* ========================================= */
+/* [Alpha 0.7.9.6] 冰/火主题预览样式         */
+/* Ice & Fire Theme Preview Styles           */
+/* 用于棋子选择器中的迷你预览                 */
+/* ========================================= */
+
+/* 冰晶棋子预览 - PNG模型（参照自然风格） */
+/* 修复：移除复杂inset阴影，添加CSS渐变后备，与自然棋子保持一致的视觉效果 */
+.piece-ice-preview {
+    border-radius: 50%;
+    background: url('images/ice.png') center/contain no-repeat, radial-gradient(circle at 30% 30%, #a8d8ff 0%, #6bb3e0 100%);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+/* 火焰棋子预览 - PNG模型（参照自然风格） */
+/* 修复：移除复杂inset阴影，添加CSS渐变后备，与自然棋子保持一致的视觉效果 */
+.piece-fire-preview {
+    border-radius: 50%;
+    background: url('images/fire.png') center/contain no-repeat, radial-gradient(circle at 30% 30%, #ffd700 0%, #ff8c00 100%);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+

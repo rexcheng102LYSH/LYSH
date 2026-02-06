@@ -1,4 +1,4 @@
-﻿// Skill registry for activation and effect dispatch.
+// Skill registry for activation and effect dispatch.
 window.SkillRegistry = window.SkillRegistry || {
   skills: {},
   effects: {},

@@ -1,9 +1,10 @@
-﻿// ================== I18N (语言包独立文件) ==================
+// ================== I18N (语言包独立文件) ==================
 const I18N = {
     'zh-TW': {
         langName: "繁", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "Alpha0.7.9.5", 
+        // 同步版本号到 Alpha0.7.9.6，确保多语言标题一致
+        subTitle: "Alpha0.7.9.6", 
         btnPvE: "人機對戰 (PvE)", 
         btnPvPSingle: "雙人單局 (PvP)", 
         btnPvPBO3: "三番戰 (PvP BO3)", 
@@ -61,6 +62,17 @@ const I18N = {
         boardChess: "國際象棋",
         skinComingSoon: "敬請期待",
 
+        // [Alpha 0.7.9.6] 冰/火主题翻译
+        skinIceFire: "冰火",
+        pieceIce: "冰晶",
+        pieceFire: "火焰",
+        lblIceFireEffect: "特效調試",
+        lblIceFireEffectDesc: "自定義「冰火」棋子的落子特效",
+        lblStaticAnim: "靜態動效",
+        descStaticAnim: "棋子落下後的持續動畫",
+        lblDropEffect: "落子特效",
+        descDropEffect: "落子瞬間的粒子波紋",
+
         // [Alpha 0.7.9.3] 棋子特效调试
         lblPieceEffect: "特效調試",
         lblPieceEffectDesc: "自定義「黑白」棋子的落子特效",
@@ -68,7 +80,7 @@ const I18N = {
         descPieceTexture: "選擇棋子的視覺風格",
         opt3D: "立體",
         optFlat: "扁平",
-        lblRippleEffect: "波紋氣場",
+        lblRippleEffect: "落子特效", // 统一命名：将"波纹气场"改为"落子特效"
         descRippleEffect: "落子時的圓形擴散波紋",
         lblBounceEffect: "棋子回彈",
         descBounceEffect: "落子動畫的彈跳效果",
@@ -79,7 +91,7 @@ const I18N = {
         // [Alpha 0.7.9.3] 自然棋子特效调试
         lblNatureEffect: "特效調試",
         lblNatureEffectDesc: "自定義「自然」棋子的落子特效",
-        lblNatureFx: "自然特效",
+        lblNatureFx: "落子特效", // 统一命名：将"自然特效"改为"落子特效"
         descNatureFx: "落葉飄落與陽光光芒",
 
         // [New] 特效菜单翻译
@@ -134,7 +146,8 @@ const I18N = {
     'zh': {
         langName: "简", 
         gameTitle: "技能五子棋 <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "Alpha0.7.9.5", 
+        // 同步版本号到 Alpha0.7.9.6，确保多语言标题一致
+        subTitle: "Alpha0.7.9.6", 
         btnPvE: "人机对战 (PvE)", 
         btnPvPSingle: "双人单局 (PvP)", 
         btnPvPBO3: "三番战 (PvP BO3)", 
@@ -192,6 +205,17 @@ const I18N = {
         boardChess: "国际象棋",
         skinComingSoon: "敬请期待",
 
+        // [Alpha 0.7.9.6] 冰/火主题翻译
+        skinIceFire: "冰火",
+        pieceIce: "冰晶",
+        pieceFire: "火焰",
+        lblIceFireEffect: "特效调试",
+        lblIceFireEffectDesc: "自定义「冰火」棋子的落子特效",
+        lblStaticAnim: "静态动效",
+        descStaticAnim: "棋子落下后的持续动画",
+        lblDropEffect: "落子特效",
+        descDropEffect: "落子瞬间的粒子波纹",
+
         // [Alpha 0.7.9.3] 棋子特效调试
         lblPieceEffect: "特效调试",
         lblPieceEffectDesc: "自定义「黑白」棋子的落子特效",
@@ -199,7 +223,7 @@ const I18N = {
         descPieceTexture: "选择棋子的视觉风格",
         opt3D: "立体",
         optFlat: "扁平",
-        lblRippleEffect: "波纹气场",
+        lblRippleEffect: "落子特效", // 统一命名：将"波纹气场"改为"落子特效"
         descRippleEffect: "落子时的圆形扩散波纹",
         lblBounceEffect: "棋子回弹",
         descBounceEffect: "落子动画的弹跳效果",
@@ -210,7 +234,7 @@ const I18N = {
         // [Alpha 0.7.9.3] 自然棋子特效调试
         lblNatureEffect: "特效调试",
         lblNatureEffectDesc: "自定义「自然」棋子的落子特效",
-        lblNatureFx: "自然特效",
+        lblNatureFx: "落子特效", // 统一命名：将"自然特效"改为"落子特效"
         descNatureFx: "落叶飘落与阳光光芒",
 
         // [New] 特效菜单翻译
@@ -265,7 +289,8 @@ const I18N = {
     'en': {
         langName: "En", 
         gameTitle: "Skill Gomoku <span style='font-size:0.5em'>Alpha</span>", 
-        subTitle: "Alpha0.7.9.5", 
+        // Sync version to Alpha0.7.9.6 for consistent multilingual subtitle
+        subTitle: "Alpha0.7.9.6", 
         btnPvE: "PvE Mode (AI)", 
         btnPvPSingle: "PvP (Single)", 
         btnPvPBO3: "PvP BO3 Series", 
@@ -323,6 +348,17 @@ const I18N = {
         boardChess: "Chess",
         skinComingSoon: "Coming Soon",
 
+        // [Alpha 0.7.9.6] Ice/Fire Theme Translations
+        skinIceFire: "Ice & Fire",
+        pieceIce: "Ice",
+        pieceFire: "Fire",
+        lblIceFireEffect: "Effect Debug",
+        lblIceFireEffectDesc: "Customize drop effects for Ice & Fire pieces",
+        lblStaticAnim: "Static Animation",
+        descStaticAnim: "Continuous animation after piece drop",
+        lblDropEffect: "Drop Effect",
+        descDropEffect: "Particle ripple on piece drop",
+
         // [Alpha 0.7.9.3] Piece Effect Debug
         lblPieceEffect: "Effect Debug",
         lblPieceEffectDesc: "Customize drop effects for Classic pieces",
@@ -330,7 +366,7 @@ const I18N = {
         descPieceTexture: "Choose piece visual style",
         opt3D: "3D",
         optFlat: "Flat",
-        lblRippleEffect: "Ripple Aura",
+        lblRippleEffect: "Drop Effect", // 统一命名：将"Ripple Aura"改为"Drop Effect"
         descRippleEffect: "Circular ripple on piece drop",
         lblBounceEffect: "Bounce Effect",
         descBounceEffect: "Bouncy drop animation",
@@ -341,7 +377,7 @@ const I18N = {
         // [Alpha 0.7.9.3] Nature Piece Effect Debug
         lblNatureEffect: "Effect Debug",
         lblNatureEffectDesc: "Customize drop effects for Nature pieces",
-        lblNatureFx: "Nature FX",
+        lblNatureFx: "Drop Effect", // 统一命名：将"Nature FX"改为"Drop Effect"
         descNatureFx: "Falling leaves & sunlight glow",
 
         // [New] Effect Menu Translations

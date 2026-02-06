@@ -11,8 +11,29 @@ NOTE FOR AI: Also read `AGENTS_CONTEXT.md` for the file map and logic overview.
 - **当前阶段**：Alpha 阶段，核心逻辑已构建，重点是新增特性时的稳定性，而非重构。
 
 ## 2. 技术偏好 (Tech Stack & Preferences)
-- **核心栈**：原生 JavaScript (Vanilla JS), HTML5, CSS3。
-- **依赖管理**：严禁引入外部框架（如 React/Vue/jQuery）除非我明确要求。保持项目轻量、开箱即用。
+
+### 前端技术栈 (Frontend Stack)
+- **核心语言**：原生 JavaScript (Vanilla JS), HTML5, CSS3
+- **模块化架构**：ES6模块化语法，按功能划分（audio, fx, game, network, skills）
+- **图形渲染**：Canvas API（背景渲染 bgCanvas + 特效渲染 fxCanvas）
+- **动画控制**：requestAnimationFrame + 统一帧率控制器（60fps）
+- **实时通信**：Socket.IO客户端（联网对战功能）
+- **UI 框架**（Alpha 0.7.9.6）：Tailwind CSS（样式）+ Anime.js（动画），仅用于新增 UI，零风险
+
+### 后端技术栈 (Backend Stack)
+- **运行环境**：Node.js
+- **Web框架**：Express.js
+- **实时通信**：Socket.IO服务器
+- **跨域处理**：CORS
+
+### 开发工具 (Development Tools)
+- **本地开发**：VS Code Live Server
+- **编码规范**：UTF-8 编码，确保多语言支持
+
+### 架构设计原则
+- **模块化架构**：遵循单一职责原则，每个模块专注特定功能
+- **状态集中管理**：使用统一对象管理游戏状态，提高代码可维护性
+- **向后兼容性**：保留历史全局变量，确保平滑过渡
 
 ## 3. 代码风格 (Code Style)
 - **完整性**：输出代码时，严禁使用 `// ... rest of code` 或 `// ... previous code` 省略。

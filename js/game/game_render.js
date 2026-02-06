@@ -37,10 +37,35 @@ function placePiece(r, c, p, m=false, chaos=false) {
     if(cell) { 
         renderPieceInCell(cell, p);
         
-        // [Alpha 0.7.9.3] 棋子打击感革命 - 根据皮肤分离音效
-        // 黑白皮肤：黑曜石/白玉音效
-        // 自然皮肤：落叶沙沙/阳光光辉音效
-        if (currentSkin === 'nature') {
+        // [Alpha 0.7.9.6] 根据皮肤分离音效和特效
+        if (currentSkin === 'ice_fire') {
+            // 冰/火主题：冰晶（先手）/ 火焰（后手）
+            if (p === MAPLE) {
+                // 冰晶音效
+                if (typeof SoundEngine.playIceStone === 'function') {
+                    SoundEngine.playIceStone();
+                } else {
+                    SoundEngine.playBlackStone();
+                }
+                // 冰晶特效（检查落子特效开关）
+                // 统一调用方式：与黑白、自然特效保持一致
+                if (isIceFireDropEffectEnabled()) {
+                    createIceEffect(cell);
+                }
+            } else {
+                // 火焰音效
+                if (typeof SoundEngine.playFireStone === 'function') {
+                    SoundEngine.playFireStone();
+                } else {
+                    SoundEngine.playWhiteStone();
+                }
+                // 火焰特效（检查落子特效开关）
+                // 统一调用方式：与黑白、自然特效保持一致
+                if (isIceFireDropEffectEnabled()) {
+                    createFireEffect(cell);
+                }
+            }
+        } else if (currentSkin === 'nature') {
             // 自然皮肤：落叶（先手）/ 太阳（后手）
             if (p === MAPLE) {
                 SoundEngine.playMapleStone();
@@ -49,7 +74,8 @@ function placePiece(r, c, p, m=false, chaos=false) {
             }
             
             // [Alpha 0.7.9.3] 自然特效（落叶飘落/阳光光芒）
-            if (typeof isNatureEffectEnabled === 'function' && isNatureEffectEnabled()) {
+            // 统一调用方式：与黑白、冰火特效保持一致
+            if (isNatureEffectEnabled()) {
                 createNatureEffect(cell, p);
             }
         } else {
@@ -261,7 +287,47 @@ function renderPieceInCell(cell, player) {
             : 'texture-3d';
         
         pieceDiv.className = `piece skin-classic ${player===MAPLE?'p1':'p2'} ${textureClass} ${dropAnimClass}`;
+    } else if (currentSkin === 'ice_fire') {
+        // [Alpha 0.7.9.6] 冰/火主题棋子 - 使用PNG图片（参照自然风格）
+        // 先手(MAPLE) = 冰晶棋子 (p1)
+        // 后手(SUN) = 火焰棋子 (p2)
+        const iceFireDropClass = getIceFireDropAnimationClass();
+        const staticAnimClass = isIceFireStaticAnimEnabled() ? '' : 'no-static-anim';
+        // [Alpha 0.7.9.6] 添加 p1/p2 类，使 CSS 选择器能正确匹配
+        const playerClass = player === MAPLE ? 'p1' : 'p2';
+        pieceDiv.className = `piece skin-ice-fire ${playerClass} ${iceFireDropClass} ${staticAnimClass}`.trim();
+        
+        // 使用PNG图片（参照自然风格的实现方式）
+        const iconData = (player === MAPLE ? PIECE_ICONS.ice : PIECE_ICONS.fire);
+        if (iconData && iconData.type === 'image') {
+            const img = document.createElement('img');
+            img.src = iconData.src;
+            img.alt = iconData.alt;
+            img.className = 'piece-img';
+            pieceDiv.appendChild(img);
+        }
+        
+        // [Alpha 0.7.9.6] 创建静态动效粒子（在棋子外运行，与PNG棋子融为一体）
+        if (isIceFireStaticAnimEnabled()) {
+            if (player === MAPLE) {
+                // 冰晶棋子：创建冰晶闪烁粒子
+                createIceSparkles(pieceDiv);
+            } else {
+                // 火焰棋子：创建火星飘浮粒子
+                createFireEmbers(pieceDiv);
+            }
+        }
+        
+        // [Alpha 0.7.9.6] 落子动画结束后移除动画类，让静态动效生效
+        pieceDiv.addEventListener('animationend', function onDropEnd(e) {
+            // 只处理落子动画，不处理静态动效
+            if (e.animationName.startsWith('drop')) {
+                pieceDiv.classList.remove('drop-fast', 'drop-slow', 'drop-fast-bounce', 'drop-slow-bounce');
+                pieceDiv.removeEventListener('animationend', onDropEnd);
+            }
+        });
     } else {
+        // 自然皮肤 (nature)
         pieceDiv.className = `piece skin-nature ${dropAnimClass}`;
         const iconData = (player === MAPLE ? PIECE_ICONS.maple : PIECE_ICONS.sun);
         if (typeof iconData === 'string') {
@@ -275,6 +341,33 @@ function renderPieceInCell(cell, player) {
         }
     }
     cell.appendChild(pieceDiv);
+}
+
+// [Alpha 0.7.9.6] 获取冰/火主题的落子动画类名
+function getIceFireDropAnimationClass() {
+    const settings = GameState.pieceEffectSettings.ice_fire;
+    const style = settings.dropStyle || 'fast';
+    const bounce = settings.bounceEnabled || false;
+    
+    let result;
+    if (style === 'fast') {
+        result = bounce ? 'drop-fast-bounce' : 'drop-fast';
+    } else {
+        result = bounce ? 'drop-slow-bounce' : 'drop-slow';
+    }
+    return result;
+}
+
+// [Alpha 0.7.9.6] 检查冰/火静态动效是否启用
+function isIceFireStaticAnimEnabled() {
+    const settings = GameState.pieceEffectSettings.ice_fire;
+    return settings.staticAnimEnabled !== false; // 默认开启
+}
+
+// [Alpha 0.7.9.6] 检查冰/火落子特效是否启用
+function isIceFireDropEffectEnabled() {
+    const settings = GameState.pieceEffectSettings.ice_fire;
+    return settings.dropEffectEnabled !== false; // 默认开启
 }
 
 if (window.GameHost && typeof window.GameHost.register === 'function') {
@@ -403,3 +496,334 @@ function createSunGlow(cell) {
     }
 }
 
+
+
+// =========================================
+// [Alpha 0.7.9.6] 冰火落子特效系统 v2 - Premium
+// Ice & Fire Drop Effect System - Complete Redesign
+// 冰系「极寒碎裂」 / 火系「烈焰轰击」
+// =========================================
+
+// [Alpha 0.7.9.6] 冰系落子特效 -「极寒碎裂」
+// 层次：冰爆核心闪光 + 霜冻冲击波 + 冰晶碎片飞射(anime.js) + 寒气雾扩散
+// @param {HTMLElement} cell - 落子的格子元素
+function createIceEffect(cell) {
+    // 1. 冰爆核心闪光 - 中心冰蓝白光瞬间绽放
+    const flash = document.createElement('div');
+    flash.className = 'ice-d-flash';
+    cell.appendChild(flash);
+    flash.addEventListener('animationend', () => flash.remove());
+
+    // 2. 霜冻冲击波 - 2层冰蓝色环形波纹依次扩散
+    for (let i = 0; i < 2; i++) {
+        const ring = document.createElement('div');
+        ring.className = 'ice-d-ring';
+        ring.style.animationDelay = (i * 0.12) + 's';
+        cell.appendChild(ring);
+        ring.addEventListener('animationend', () => ring.remove());
+    }
+
+    // 3. 冰晶碎片飞射 - 三级混合碎片，每颗独立随机轨迹
+    // 先构建配置数组，再 Fisher-Yates 洗牌，确保大中小均匀混合在各方向
+    const cfgs = [];
+    for (let i = 0; i < 12; i++) cfgs.push({ cls: 'ice-d-shard',   minS: 5,   range: 5 });
+    for (let i = 0; i < 14; i++) cfgs.push({ cls: 'ice-d-shard-m', minS: 3.3, range: 3.4 });
+    for (let i = 0; i < 14; i++) cfgs.push({ cls: 'ice-d-shard-s', minS: 1.7, range: 1.6 });
+    // Fisher-Yates 洗牌
+    for (let i = cfgs.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = cfgs[i]; cfgs[i] = cfgs[j]; cfgs[j] = tmp;
+    }
+
+    const shards = [];
+    const motion = []; // 每颗碎片的独立运动参数
+    for (let i = 0; i < cfgs.length; i++) {
+        const c = cfgs[i];
+        const s = document.createElement('div');
+        s.className = c.cls;
+        const sz = c.minS + Math.random() * c.range;
+        s.style.width = sz + 'px';
+        s.style.height = sz + 'px';
+        cell.appendChild(s);
+        shards.push(s);
+        // 每颗碎片完全独立的随机角度、距离、旋转、延迟
+        const angle = Math.random() * Math.PI * 2;
+        const dist  = 18 + Math.random() * 48;
+        motion.push({
+            tx: Math.cos(angle) * dist,
+            ty: Math.sin(angle) * dist,
+            rot: (Math.random() - 0.3) * 520,
+            del: Math.random() * 110
+        });
+    }
+
+    if (typeof window.safeAnime === 'function') {
+        window.safeAnime({
+            targets: shards,
+            translateX: (_, i) => motion[i].tx,
+            translateY: (_, i) => motion[i].ty,
+            rotate: (_, i) => motion[i].rot,
+            scale: [
+                { value: [0.1, 1.1], duration: 140, easing: 'easeOutQuad' },
+                { value: 0, duration: 420, easing: 'easeInQuad' }
+            ],
+            opacity: [
+                { value: [0, 1], duration: 80, easing: 'easeOutQuad' },
+                { value: 0, duration: 480, easing: 'easeInCubic' }
+            ],
+            delay: (_, i) => motion[i].del,
+            duration: 560,
+            easing: 'easeOutExpo',
+            complete: () => shards.forEach(s => s.remove()),
+        });
+    } else {
+        setTimeout(() => shards.forEach(s => s.remove()), 620);
+    }
+
+    // 4. 寒气雾扩散 - 淡蓝色雾气从中心弥散
+    const mist = document.createElement('div');
+    mist.className = 'ice-d-mist';
+    cell.appendChild(mist);
+    mist.addEventListener('animationend', () => mist.remove());
+}
+
+
+// [Alpha 0.7.9.6] 火系落子特效 -「陨星坠岩」
+// 物理模型：小行星垂直砸入岩浆 → 冲击闪光 → 冲击波 → 岩浆皇冠隆起 →
+//           Worthington反冲柱 → 熔岩飞溅 → 热浪涌动
+// @param {HTMLElement} cell - 落子的格子元素
+function createFireEffect(cell) {
+    // 1. 白热冲击闪光 - 撞击瞬间极亮核心爆发
+    const flash = document.createElement('div');
+    flash.className = 'fire-d-flash';
+    cell.appendChild(flash);
+    flash.addEventListener('animationend', () => flash.remove());
+
+    // 2. 冲击波环 - 2层猛烈向外扩散
+    for (let i = 0; i < 2; i++) {
+        const ring = document.createElement('div');
+        ring.className = 'fire-d-ring';
+        ring.style.animationDelay = (i * 0.08) + 's';
+        cell.appendChild(ring);
+        ring.addEventListener('animationend', () => ring.remove());
+    }
+
+    // 3. 岩浆皇冠 - 撞击瞬间液面被挤开向上隆起的环形「水冢」(CSS动画)
+    const crown = document.createElement('div');
+    crown.className = 'fire-d-crown';
+    cell.appendChild(crown);
+    crown.addEventListener('animationend', () => crown.remove());
+
+    // 4. Worthington反冲柱 - 撞击后中心垂直反弹的岩浆柱
+    // 使用 margin-left 居中，避免 anime.js 覆盖 transform 导致偏移
+    const jet = document.createElement('div');
+    jet.className = 'fire-d-jet';
+    cell.appendChild(jet);
+    if (typeof window.safeAnime === 'function') {
+        window.safeAnime({
+            targets: jet,
+            scaleY: [
+                { value: [0, 2.8], duration: 130, easing: 'easeOutQuart' },
+                { value: 0, duration: 430, easing: 'easeInCubic' }
+            ],
+            scaleX: [
+                { value: [0.6, 1.1], duration: 100, easing: 'easeOutQuad' },
+                { value: 0.2, duration: 460, easing: 'easeInQuad' }
+            ],
+            opacity: [
+                { value: [0, 1], duration: 50, easing: 'linear' },
+                { value: 0, duration: 510, easing: 'easeInQuad' }
+            ],
+            delay: 40,
+            duration: 560,
+            easing: 'easeOutCubic',
+            complete: () => jet.remove(),
+        });
+    } else {
+        setTimeout(() => jet.remove(), 620);
+    }
+
+    // 5. 熔岩飞溅 - 岩浆液滴从撞击皇冠边缘向外+上方喷射
+    const splashCnt = 14;
+    const splashes = [];
+    const sData = [];
+    for (let i = 0; i < splashCnt; i++) {
+        const sp = document.createElement('div');
+        sp.className = 'fire-d-splash';
+        const sz = 2 + Math.random() * 3.5;
+        sp.style.width = sz + 'px';
+        sp.style.height = sz + 'px';
+        cell.appendChild(sp);
+        splashes.push(sp);
+        // 每颗液滴独立随机轨迹
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 18 + Math.random() * 42;
+        sData.push({
+            tx: Math.cos(angle) * dist,
+            // 偏向上方：Y轴整体向上偏移，模拟重力反弹喷射
+            ty: Math.sin(angle) * dist * 0.5 - (10 + Math.random() * 20),
+            del: Math.random() * 70
+        });
+    }
+    if (typeof window.safeAnime === 'function') {
+        window.safeAnime({
+            targets: splashes,
+            translateX: (_, i) => sData[i].tx,
+            translateY: (_, i) => sData[i].ty,
+            scale: [
+                { value: [0.2, 1.2], duration: 150, easing: 'easeOutQuad' },
+                { value: 0, duration: 460, easing: 'easeInQuad' }
+            ],
+            opacity: [
+                { value: [0, 1], duration: 90, easing: 'easeOutQuad' },
+                { value: 0, duration: 520, easing: 'easeInCubic' }
+            ],
+            delay: (_, i) => 30 + sData[i].del,
+            duration: 610,
+            easing: 'easeOutExpo',
+            complete: () => splashes.forEach(s => s.remove()),
+        });
+    } else {
+        setTimeout(() => splashes.forEach(s => s.remove()), 700);
+    }
+
+    // 6. 热浪涌动 - 暖色光晕从中心扩散
+    const surge = document.createElement('div');
+    surge.className = 'fire-d-surge';
+    cell.appendChild(surge);
+    surge.addEventListener('animationend', () => surge.remove());
+}
+
+
+// =========================================
+// [Alpha 0.7.9.6] 冰火棋子静态动效系统 v2
+// Ice & Fire Static Animation System - Premium Redesign
+// 全新美学：极寒冰华 / 炽焰余烬
+// =========================================
+
+// [Alpha 0.7.9.6] 冰系静态动效 -「冰华之冠」
+// 层次：底层寒光脉冲(CSS) + 中层冰晶轨道 + 顶层霜尘微粒 + 寒雾
+// @param {HTMLElement} pieceDiv - 棋子容器元素
+function createIceSparkles(pieceDiv) {
+    // 1. 冰晶轨道层（6颗冰晶围绕棋子缓慢公转）
+    const orbitContainer = document.createElement('div');
+    orbitContainer.className = 'ice-s-orbit';
+    const crystalCount = 6;
+    for (let i = 0; i < crystalCount; i++) {
+        const crystal = document.createElement('div');
+        crystal.className = 'ice-s-crystal';
+        const angle = (Math.PI * 2 * i) / crystalCount;
+        const r = 14;
+        crystal.style.left = `calc(50% + ${(Math.cos(angle) * r).toFixed(1)}px)`;
+        crystal.style.top = `calc(50% + ${(Math.sin(angle) * r).toFixed(1)}px)`;
+        crystal.style.animationDelay = `${(i * 0.42).toFixed(2)}s`;
+        orbitContainer.appendChild(crystal);
+    }
+    pieceDiv.appendChild(orbitContainer);
+
+    // 2. 霜尘微粒层（8颗微粒随机位置闪烁漂浮）
+    for (let i = 0; i < 8; i++) {
+        const dust = document.createElement('div');
+        dust.className = 'ice-s-dust';
+        const angle = (Math.PI * 2 * i) / 8 + (Math.random() - 0.5) * 0.5;
+        const r = 10 + Math.random() * 6;
+        dust.style.left = `calc(50% + ${(Math.cos(angle) * r).toFixed(1)}px)`;
+        dust.style.top = `calc(50% + ${(Math.sin(angle) * r).toFixed(1)}px)`;
+        dust.style.setProperty('--delay', `${(Math.random() * 4).toFixed(2)}s`);
+        dust.style.setProperty('--drift-x', `${((Math.random() - 0.5) * 4).toFixed(2)}px`);
+        dust.style.setProperty('--drift-y', `${(-1 - Math.random() * 3).toFixed(2)}px`);
+        pieceDiv.appendChild(dust);
+    }
+
+    // 3. 寒雾底层（棋子下方溢出的冷气）
+    const mist = document.createElement('div');
+    mist.className = 'ice-s-mist';
+    pieceDiv.appendChild(mist);
+
+    // anime.js 驱动入场动画（仅入场，不改主循环动画系统）
+    if (typeof window.safeAnime === 'function' && !pieceDiv.classList.contains('no-static-anim')) {
+        window.safeAnime({
+            targets: pieceDiv.querySelectorAll('.ice-s-crystal'),
+            opacity: [0, 1],
+            scale: [0.2, 1],
+            delay: (_, i) => 300 + i * 80,
+            duration: 700,
+            easing: 'easeOutBack',
+        });
+        window.safeAnime({
+            targets: pieceDiv.querySelectorAll('.ice-s-dust'),
+            opacity: [0, 0.85],
+            scale: [0.4, 1],
+            delay: (_, i) => 450 + i * 55,
+            duration: 850,
+            easing: 'easeOutCubic',
+        });
+        window.safeAnime({
+            targets: pieceDiv.querySelector('.ice-s-mist'),
+            opacity: [0, 0.6],
+            scaleX: [0.5, 1],
+            delay: 500,
+            duration: 900,
+            easing: 'easeOutQuad',
+        });
+    }
+}
+
+// [Alpha 0.7.9.6] 火系静态动效 -「炽焰余烬」
+// 层次：底层焰冠脉冲(CSS) + 中层上升火星 + 热浪扰动 + 炽光火花
+// @param {HTMLElement} pieceDiv - 棋子容器元素
+function createFireEmbers(pieceDiv) {
+    // 1. 上升火星层（10颗火星持续上浮消散）
+    for (let i = 0; i < 10; i++) {
+        const ember = document.createElement('div');
+        ember.className = 'fire-s-ember';
+        const angle = (Math.PI * 2 * i) / 10 + (Math.random() - 0.5) * 0.4;
+        const r = 9 + Math.random() * 7;
+        ember.style.left = `calc(50% + ${(Math.cos(angle) * r).toFixed(1)}px)`;
+        ember.style.top = `calc(50% + ${(Math.sin(angle) * r).toFixed(1)}px)`;
+        ember.style.setProperty('--delay', `${(Math.random() * 3).toFixed(2)}s`);
+        ember.style.setProperty('--rise', `${(3 + Math.random() * 5).toFixed(2)}px`);
+        ember.style.setProperty('--sway', `${((Math.random() - 0.5) * 4).toFixed(2)}px`);
+        const size = 1.5 + Math.random() * 2.5;
+        ember.style.width = `${size.toFixed(1)}px`;
+        ember.style.height = `${size.toFixed(1)}px`;
+        pieceDiv.appendChild(ember);
+    }
+
+    // 2. 热浪扰动层（棋子周围空气扭曲感）
+    const haze = document.createElement('div');
+    haze.className = 'fire-s-haze';
+    pieceDiv.appendChild(haze);
+
+    // 3. 炽光闪烁层（5颗随机位置亮白火花，密度削弱至80%）
+    for (let i = 0; i < 5; i++) {
+        const spark = document.createElement('div');
+        spark.className = 'fire-s-spark';
+        const angle = Math.random() * Math.PI * 2;
+        const r = 8 + Math.random() * 8;
+        spark.style.left = `calc(50% + ${(Math.cos(angle) * r).toFixed(1)}px)`;
+        spark.style.top = `calc(50% + ${(Math.sin(angle) * r).toFixed(1)}px)`;
+        spark.style.setProperty('--delay', `${(Math.random() * 2.5).toFixed(2)}s`);
+        pieceDiv.appendChild(spark);
+    }
+
+    // anime.js 驱动入场动画（仅入场，不改主循环动画系统）
+    if (typeof window.safeAnime === 'function' && !pieceDiv.classList.contains('no-static-anim')) {
+        window.safeAnime({
+            targets: pieceDiv.querySelectorAll('.fire-s-ember'),
+            opacity: [0, 1],
+            scale: [0.3, 1],
+            delay: (_, i) => 280 + i * 48,
+            duration: 650,
+            easing: 'easeOutBack',
+        });
+        window.safeAnime({
+            targets: pieceDiv.querySelectorAll('.fire-s-spark'),
+            opacity: [0, 0.9],
+            scale: [0.2, 1],
+            delay: (_, i) => 380 + i * 65,
+            duration: 750,
+            easing: 'easeOutCubic',
+        });
+    }
+}

@@ -316,6 +316,12 @@ function initGame() {
 
     updateStaticText(); updateDynamicUI(); renderBoard();
 
+    // [性能优化] 使用节流版本的updateDynamicUI，避免频繁DOM操作
+    // 节流间隔设置为16ms（约60fps），确保UI更新流畅但不过度消耗性能
+    const throttledUpdateDynamicUI = (typeof throttle === 'function') 
+        ? throttle(updateDynamicUI, 16) 
+        : updateDynamicUI;
+
     GameState.gameTicker = setInterval(() => {
         if(!GameState.gameActive) return;
         GameState.timeRemaining[GameState.currentPlayer]--;
@@ -328,7 +334,8 @@ function initGame() {
             SoundEngine.setCritical(false);
         }
 
-        updateDynamicUI(); 
+        // [性能优化] 使用节流版本，减少不必要的DOM操作
+        throttledUpdateDynamicUI();
         if(GameState.timeRemaining[GameState.currentPlayer] <= 0) { 
             if (GameState.bombTarget === GameState.currentPlayer) triggerExplosion();
             else { showToast(t('timeOut', 'toast')); handleMatchEnd(GameState.currentPlayer === MAPLE ? SUN : MAPLE); }

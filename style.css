@@ -610,6 +610,25 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .piece-maple { background: url('images/maple.png') center/contain no-repeat, radial-gradient(circle at 30% 30%, #8B4513 0%, #5D3A1A 100%); box-shadow: 0 3px 6px rgba(0,0,0,0.3); }
 .piece-sun { background: url('images/sun.png') center/contain no-repeat, radial-gradient(circle at 30% 30%, #FFD700 0%, #FFA500 100%); box-shadow: 0 3px 6px rgba(0,0,0,0.2); }
 
+/* [修复] 冰/火主题棋子预览 - 统一UI逻辑样式（与黑白、自然棋子一致），通过background-size放大到1.5倍 */
+.piece-ice {
+    background: transparent;
+    box-shadow: none;
+    background-image: url('images/ice.png');
+    background-size: 150%;  /* 放大到1.5倍 */
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.piece-fire {
+    background: transparent;
+    box-shadow: none;
+    background-image: url('images/fire.png');
+    background-size: 150%;  /* 放大到1.5倍 */
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
 /* 迷你棋盘预览 */
 .board-mini-preview { width: 100%; height: 60px; border-radius: 8px; position: relative; overflow: hidden; }
 
@@ -682,45 +701,42 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 .modern-preview .corner-decor.bl { bottom: 3px; left: 3px; }
 .modern-preview .corner-decor.br { bottom: 3px; right: 3px; }
 
-/* [Alpha 0.7.9.4] 沙滩预览 - 海水环绕 + 金色沙滩 */
+/* [Alpha 0.7.9.5] 沙滩预览 - 树枝划痕棋线 */
 .beach-preview {
-    /* 继承基础尺寸 */
-    width: 100%;
-    height: 60px;
-    position: relative;
-    background: 
-        /* 海水层 */
-        linear-gradient(180deg, #87ceeb 0%, #5bb5d6 100%);
+    /* 海水背景 */
+    background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 30%, #0ea5e9 70%, #0284c7 100%);
+    border: 3px solid #0284c7;
     border-radius: 6px;
-    overflow: hidden;
-}
-.beach-preview::before {
-    content: '';
-    position: absolute;
-    top: 12%;
-    left: 10%;
-    right: 10%;
-    bottom: 12%;
-    background: 
-        /* 沙滩主体 */
-        radial-gradient(ellipse at 30% 30%, #f5e6c8 0%, transparent 50%),
-        linear-gradient(to bottom, #b8a070 0%, #e8d4a8 20%, #e8d4a8 80%, #b8a070 100%);
-    border-radius: 4px;
-    border: 2px solid #8b7355;
-}
-.beach-preview::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 4px;
-    height: 4px;
-    background: radial-gradient(circle, #c0c0c0 0%, #909090 100%);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
     box-shadow: 
-        -8px -8px 0 2px rgba(250, 240, 230, 0.8),
-        8px 8px 0 1px rgba(180, 180, 180, 0.6);
+        inset 0 0 8px rgba(255, 255, 255, 0.3),
+        0 3px 6px rgba(0, 80, 120, 0.25);
+}
+/* 沙滩内盘 + 树枝划痕（粗线、大间距） */
+.beach-preview::before {
+    content: ''; position: absolute; inset: 6px;
+    background: 
+        /* 树枝划痕 - 横线（棕色、粗、稀疏） */
+        repeating-linear-gradient(0deg, 
+            transparent 0px, transparent 10px, 
+            rgba(101, 67, 33, 0.4) 10px, rgba(101, 67, 33, 0.4) 12px),
+        /* 树枝划痕 - 竖线 */
+        repeating-linear-gradient(90deg, 
+            transparent 0px, transparent 10px, 
+            rgba(101, 67, 33, 0.4) 10px, rgba(101, 67, 33, 0.4) 12px),
+        /* 沙滩高光 */
+        radial-gradient(ellipse 50% 40% at 25% 30%, rgba(255, 240, 180, 0.4) 0%, transparent 60%),
+        /* 沙滩主体 */
+        linear-gradient(145deg, #f5d060 0%, #e8c040 30%, #d4a830 60%, #c09020 100%);
+    border-radius: 3px;
+    border: 2px solid #6a4a20;
+}
+/* 鹅卵石星位 */
+.beach-preview::after {
+    content: ''; position: absolute; top: 50%; left: 50%; width: 5px; height: 5px;
+    background: radial-gradient(ellipse at 35% 30%, #d0d0d0 0%, #a0a0a0 60%, #808080 100%);
+    border-radius: 45% 55% 50% 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* 敬请期待样式 */
@@ -921,46 +937,45 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 }
 
 /* === 第一层：流动的海水波纹 === */
+/* [Alpha 0.7.9.5] 性能优化：使用 transform 代替 background-position */
 .board-wrapper.skin-beach::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
+    /* 扩展尺寸以实现无缝循环 */
+    top: 0; left: -100%; 
+    width: 200%; height: 100%;
     border-radius: 12px;
     pointer-events: none;
     z-index: 0;
     
-    /* 流动波纹 - 多层叠加 */
+    /* 波纹渐变 - 使用固定渐变，通过 transform 移动 */
     background: 
-        /* 波浪层1 - 大波 */
         repeating-linear-gradient(
-            110deg,
-            transparent 0%,
-            rgba(255, 255, 255, 0.15) 2%,
-            transparent 4%,
-            transparent 10%
+            105deg,
+            transparent 0px,
+            rgba(255, 255, 255, 0.08) 15px,
+            transparent 30px,
+            transparent 60px,
+            rgba(255, 255, 255, 0.05) 75px,
+            transparent 90px
         ),
-        /* 波浪层2 - 中波 */
         repeating-linear-gradient(
             95deg,
-            transparent 0%,
-            rgba(200, 240, 255, 0.12) 1.5%,
-            transparent 3%,
-            transparent 7%
-        ),
-        /* 波浪层3 - 细波 */
-        repeating-linear-gradient(
-            100deg,
-            transparent 0%,
-            rgba(255, 255, 255, 0.08) 1%,
-            transparent 2%,
-            transparent 5%
+            transparent 0px,
+            rgba(200, 240, 255, 0.06) 20px,
+            transparent 40px,
+            transparent 80px
         );
     
-    background-size: 200% 200%, 150% 150%, 100% 100%;
-    animation: waterFlow 4s linear infinite;
+    /* GPU 加速 */
+    will-change: transform;
+    
+    /* 使用 transform 动画 - 更流畅，无跳跃 */
+    animation: waterFlowTransform 20s linear infinite;
 }
 
 /* === 第二层：浪花泡沫（靠近棋盘边缘） === */
+/* [Alpha 0.7.9.5] 简化为静态效果，移除动画 */
 .board-wrapper.skin-beach::after {
     content: '';
     position: absolute;
@@ -969,45 +984,24 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
     pointer-events: none;
     z-index: 1;
     
-    /* 内边缘浪花 - 模拟水拍打沙滩 */
+    /* 静态浪花效果 - 无动画 */
     box-shadow:
         /* 浪花白沫 - 内圈 */
-        inset 0 0 8px 3px rgba(255, 255, 255, 0.4),
-        inset 0 0 15px 5px rgba(200, 240, 255, 0.25),
+        inset 0 0 10px 4px rgba(255, 255, 255, 0.3),
+        inset 0 0 20px 8px rgba(200, 240, 255, 0.15),
         /* 水的光泽 */
-        inset 0 -3px 10px rgba(255, 255, 255, 0.2),
-        inset 0 3px 10px rgba(0, 60, 100, 0.15);
-    
-    animation: foamPulse 3s ease-in-out infinite;
+        inset 0 -3px 10px rgba(255, 255, 255, 0.12),
+        inset 0 3px 10px rgba(0, 60, 100, 0.08);
 }
 
 /* === 海水流动动画 === */
-@keyframes waterFlow {
+/* [Alpha 0.7.9.5] 优化版：使用 transform 实现无缝循环 */
+@keyframes waterFlowTransform {
     0% {
-        background-position: 0% 0%, 0% 0%, 0% 0%;
+        transform: translateX(0%);
     }
     100% {
-        background-position: 200% 50%, 150% 30%, 100% 20%;
-    }
-}
-
-/* === 浪花脉动动画 === */
-@keyframes foamPulse {
-    0%, 100% {
-        box-shadow:
-            inset 0 0 8px 3px rgba(255, 255, 255, 0.4),
-            inset 0 0 15px 5px rgba(200, 240, 255, 0.25),
-            inset 0 -3px 10px rgba(255, 255, 255, 0.2),
-            inset 0 3px 10px rgba(0, 60, 100, 0.15);
-        opacity: 1;
-    }
-    50% {
-        box-shadow:
-            inset 0 0 12px 5px rgba(255, 255, 255, 0.55),
-            inset 0 0 20px 7px rgba(200, 240, 255, 0.35),
-            inset 0 -4px 12px rgba(255, 255, 255, 0.3),
-            inset 0 4px 12px rgba(0, 60, 100, 0.1);
-        opacity: 0.95;
+        transform: translateX(50%);
     }
 }
 
@@ -2210,53 +2204,50 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
     }
 }
 
-/* === 国际象棋棋盘预览样式 === */
+/* === [Alpha 0.7.9.5] 国际象棋棋盘预览样式 === */
 .chess-preview {
-    width: 100%;
-    height: 100%;
-    border-radius: 6px;
-    position: relative;
-    overflow: hidden;
-    /* 黄金边框 */
-    border: 2px solid #8b6914;
+    /* 深棕色木纹边框 */
+    background: linear-gradient(135deg, #6d4c41 0%, #5d4037 50%, #4e342e 100%);
+    border: 4px solid #8b6914;
+    border-radius: 4px;
     box-shadow: 
         0 0 0 1px #d4af37,
-        inset 1px 1px 3px rgba(0, 0, 0, 0.3);
-    /* 深棕色木纹 */
-    background: linear-gradient(135deg, #5d4037 0%, #3e2723 50%, #4e342e 100%);
+        inset 1px 1px 3px rgba(0, 0, 0, 0.3),
+        0 3px 6px rgba(0, 0, 0, 0.25);
 }
-
+/* 黑白格子内盘 - 真正的棋盘格（6x3） */
 .chess-preview::before {
-    content: '';
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    right: 4px;
-    bottom: 4px;
+    content: ''; position: absolute; inset: 5px;
+    border-radius: 2px;
+    /* 黑白交替格子 */
     background: 
-        repeating-conic-gradient(
-            from 0deg,
-            #f8f6f0 0deg 90deg,
-            #3a3a42 90deg 180deg,
-            #f8f6f0 180deg 270deg,
-            #3a3a42 270deg 360deg
+        linear-gradient(90deg, 
+            #f8f6f0 0%, #f8f6f0 16.66%, 
+            #3a3a42 16.66%, #3a3a42 33.33%,
+            #f8f6f0 33.33%, #f8f6f0 50%,
+            #3a3a42 50%, #3a3a42 66.66%,
+            #f8f6f0 66.66%, #f8f6f0 83.33%,
+            #3a3a42 83.33%, #3a3a42 100%
+        ),
+        linear-gradient(0deg,
+            #3a3a42 0%, #3a3a42 33.33%,
+            #f8f6f0 33.33%, #f8f6f0 66.66%,
+            #3a3a42 66.66%, #3a3a42 100%
         );
-    background-size: 50% 50%;
+    background-blend-mode: difference;
+    box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.5);
 }
-
+/* 红宝石星位 */
 .chess-preview::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 10px;
-    height: 10px;
-    /* 圆形红宝石预览 */
+    content: ''; position: absolute; top: 50%; left: 50%; width: 8px; height: 8px;
+    background: 
+        radial-gradient(ellipse 50% 30% at 35% 25%, rgba(255, 255, 255, 0.7) 0%, transparent 50%),
+        radial-gradient(circle at 45% 45%, #ff1744 0%, #f50057 35%, #c51162 65%, #880e4f 100%);
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #ff1744 0%, #c51162 50%, #880e4f 100%);
     transform: translate(-50%, -50%);
     box-shadow: 
-        0 0 8px 2px rgba(245, 0, 87, 0.7),
+        0 0 6px 2px rgba(245, 0, 87, 0.5),
+        inset 1px 1px 2px rgba(255, 255, 255, 0.4),
         0 1px 3px rgba(0, 0, 0, 0.4);
 }
 

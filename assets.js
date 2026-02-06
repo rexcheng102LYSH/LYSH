@@ -8,17 +8,31 @@
 // 1. 棋子皮肤库 (Piece Skins)
 const PIECE_ICONS = {
     // 🍁 落叶：引用本地 images 文件夹中的 PNG
-    maple: { 
-        type: 'image', 
-        src: 'images/maple.png', 
-        alt: 'Maple' 
+    maple: {
+        type: 'image',
+        src: 'images/maple.png',
+        alt: 'Maple'
     },
     
     // ☀️ 生辉：引用本地 images 文件夹中的 PNG
-    sun: { 
-        type: 'image', 
-        src: 'images/sun.png', 
-        alt: 'Sun' 
+    sun: {
+        type: 'image',
+        src: 'images/sun.png',
+        alt: 'Sun'
+    },
+    
+    // [Alpha 0.7.9.6] 冰晶：引用本地 images 文件夹中的 PNG
+    ice: {
+        type: 'image',
+        src: 'images/ice.png',
+        alt: 'Ice'
+    },
+    
+    // [Alpha 0.7.9.6] 火焰：引用本地 images 文件夹中的 PNG
+    fire: {
+        type: 'image',
+        src: 'images/fire.png',
+        alt: 'Fire'
     },
 
     // ⚫ 经典黑子 (保留 SVG 以确保经典模式的清晰度)
