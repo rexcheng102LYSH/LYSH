@@ -1,7 +1,10 @@
 {
     "chatgpt.openOnStartup": true,
     "chatgpt.commentCodeLensEnabled": false,
+    "task.allowAutomaticTasks": "on",
     "files.encoding": "utf8",
+    "workbench.localHistory.enabled": true,
+    "workbench.localHistory.maxFileEntries": 200,
 
     "files.autoSave": "afterDelay",
     "files.autoSaveDelay": 1000,
@@ -35,33 +38,8 @@
         "PATH": "${env:PATH}"
     },
 
-    "kilocode.indexing.enabled": true,
-    "kilocode.indexing.autoUpdate": true,
-    "kilocode.indexing.priorityFiles": [
-        "AGENTS.md",
-        "AGENTS_CONTEXT.md",
-        "gamestate.js",
-        "index.html",
-        "js/game/game_core.js",
-        "js/game/game_ui.js",
-        "js/game/game_render.js",
-        "js/game/game_skills.js",
-        "js/skills/registry.js",
-        "server/index.js",
-        "server/gameLogic.js"
-    ],
-    "kilocode.indexing.excludePatterns": [
-        "backup/**",
-        "save/**",
-        ".git/**",
-        ".kiro/**",
-        ".history/**",
-        "node_modules/**",
-        "**/*.mp3",
-        "**/*.m4a",
-        "**/*.png",
-        "**/*.jpg",
-        "**/*.jpeg",
-        "**/*.keystore"
-    ]
+    // KiloCode 索引配置（通过扩展 UI 配置，此处仅保留有效的 VS Code 配置项）
+    // 如需配置索引功能，请打开 Kilo Code 扩展面板 → 点击 "Codebase Indexing" 按钮
+    "kilo-code.codeIndex.embeddingBatchSize": 60,
+    "kilo-code.maximumIndexedFilesForFileSearch": 10000
 }

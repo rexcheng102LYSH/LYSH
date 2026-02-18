@@ -1,0 +1,14 @@
+{
+  "name": "project-lysh-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "tailwind:build": "tailwindcss -c tailwind.config.js -i ./tailwind.input.css -o ./tailwind.generated.css --minify",
+    "tailwind:watch": "tailwindcss -c tailwind.config.js -i ./tailwind.input.css -o ./tailwind.generated.css --watch",
+    "codex:stamp": "node ./scripts/codex_stamp.js",
+    "codex:autostamp": "node ./scripts/codex_autostamp.js"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17"
+  }
+}

@@ -55,25 +55,5 @@
       "debounceMs": 1000
     }
   },
-  "mcpServers": {
-    "enabled": true,
-    "servers": [
-      {
-        "name": "web-search-prime",
-        "description": "网络搜索功能"
-      },
-      {
-        "name": "zai-mcp-server",
-        "description": "图像和视频分析"
-      },
-      {
-        "name": "web-reader",
-        "description": "网页内容读取"
-      },
-      {
-        "name": "zread",
-        "description": "GitHub 仓库搜索"
-      }
-    ]
-  }
+  "mcpServers": {}
 }

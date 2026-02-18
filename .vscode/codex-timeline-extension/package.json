@@ -1,0 +1,76 @@
+{
+  "name": "codex-timeline",
+  "displayName": "Codex Timeline",
+  "description": "Show Codex stamp logs in VS Code file timeline.",
+  "version": "0.1.1",
+  "publisher": "local",
+  "repository": {
+    "type": "git",
+    "url": "local"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "files": [
+    "extension.js",
+    "package.json",
+    "LICENSE",
+    "resources/*.svg"
+  ],
+  "categories": [
+    "Other"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "codexHistoryView",
+          "name": "Codex 历史",
+          "icon": {
+            "light": "resources/history-light.svg",
+            "dark": "resources/history-dark.svg"
+          }
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "codexHistory.refresh",
+        "title": "Codex 历史: 刷新"
+      },
+      {
+        "command": "codexHistory.showAll",
+        "title": "Codex 历史: 查看全部"
+      },
+      {
+        "command": "codexHistory.showCurrentFile",
+        "title": "Codex 历史: 查看当前文件"
+      },
+      {
+        "command": "codexHistory.openEntry",
+        "title": "Codex 历史: 打开记录"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "codexHistory.refresh",
+          "when": "view == codexHistoryView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "codexHistory.openEntry",
+          "when": "view == codexHistoryView && viewItem == codexHistoryItem",
+          "group": "inline"
+        }
+      ]
+    }
+  },
+  "license": "UNLICENSED"
+}

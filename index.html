@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>技能五子棋 - Alpha0.7.9.6</title>
+    <title>技能五子棋 - Alpha0.7.9.7</title>
     <script>
         // [恢复Alpha0.7.8.9] 全局致命错误捕获：弹窗提示 + 显示错误来源
         (function() {
@@ -64,29 +64,61 @@
             });
         })();
     </script>
-    <link rel="stylesheet" href="style.css?v=Alpha0.7.9.6">
-    <link rel="stylesheet" href="pieces.css?v=Alpha0.7.9.6">
+    <link rel="stylesheet" href="style.css?v=Alpha0.7.9.7">
+    <link rel="stylesheet" href="pieces.css?v=Alpha0.7.9.7">
+    <!-- [Alpha 0.7.9.6+] 技能视觉特效模块 -->
+    <link rel="stylesheet" href="css/skills/voodoo.css?v=Alpha0.7.9.7">
+    <style>
+        /* ============================================
+           [Alpha 0.7.9.6] Demo 测试版胶囊 - 终端风格
+           设计理念：黑底绿字 + 简洁边框 + 黑体字体适配繁简
+           ============================================ */
+        .demo-badge {
+            display: inline-block;
+            padding: 4px 11px;      /* 缩小20%: 5px14px → 4px11px */
+            border-radius: 3px;
+            font-size: 0.62em;      /* 缩小20%: 0.78em → 0.62em */
+            font-weight: 700;  /* 黑体风格：加粗 */
+            /* 使用系统黑体字体，适配繁简中文 */
+            font-family:
+                'Microsoft YaHei',      /* 简体：微软雅黑 */
+                'Microsoft JhengHei',   /* 繁体：微軟正黑體 */
+                'PingFang SC',          /* macOS 简体 */
+                'PingFang TC',          /* macOS 繁体 */
+                'Noto Sans SC',         /* 思源黑体简体 */
+                'Noto Sans TC',         /* 思源黑体繁体 */
+                'Heiti SC',             /* 黑体-简 */
+                'Heiti TC',             /* 黑体-繁 */
+                sans-serif;
+            letter-spacing: 0.4px;  /* 缩小20%: 0.5px → 0.4px */
+            color: #00ff88;
+            background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+            border: 1px solid #00ff88;
+            box-shadow:
+                0 0 8px rgba(0, 255, 136, 0.15),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        /* 移除所有伪元素 */
+        .demo-badge::before,
+        .demo-badge::after {
+            display: none;
+        }
+    </style>
     
     <!-- [Alpha 0.7.9.6] 前端框架引入 - Tailwind CSS + Anime.js -->
     <!-- 用途：Tailwind CSS 用于快速样式开发，Anime.js 用于高性能动画 -->
     <!-- 安全策略：零干扰原则，仅用于新增 UI 和动画，不触碰核心逻辑 -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- [Alpha 0.7.9.6+] 变更原因：改为本地静态 Tailwind，减少 CDN 运行时注入开销 -->
+    <link rel="stylesheet" href="tailwind.generated.css?v=Alpha0.7.9.7">
     <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
-    
-    <!-- [安全配置] Tailwind CSS 禁用 Preflight 以避免样式污染 -->
-    <script>
-        tailwind.config = {
-            corePlugins: {
-                preflight: false  // 禁用 Preflight，不重置全局样式，保护原有 CSS
-            }
-        };
-    </script>
     
     <!-- [安全机制] 框架加载检测与降级 -->
     <script>
         (function() {
-            // 检测 Tailwind CSS 是否加载成功
-            window.tailwindLoaded = typeof window.tailwind !== 'undefined';
+            // 变更原因：本地静态 Tailwind 无 window.tailwind，全改为样式表加载检测
+            const twLink = document.querySelector('link[href*="tailwind.generated.css"]');
+            window.tailwindLoaded = !!(twLink && twLink.sheet);
             if (!window.tailwindLoaded) {
                 console.warn('[安全警告] Tailwind CSS 加载失败，将降级到原生 CSS');
             }
@@ -135,11 +167,13 @@
 
     <div id="mainMenu" class="screen active">
         <div class="glass-panel menu-panel">
+            <!-- [Alpha 0.7.9.6] 极简主标题：标题 + Demo胶囊 + 版本号 -->
             <h1 data-i18n="gameTitle">技能五子棋 <span style="font-size:0.5em">Alpha</span></h1>
             <h2 style="margin-top:-5px; font-size:1.2rem; color:#666;">
-                <!-- 同步版本号到 Alpha0.7.9.6，确保首页展示一致 -->
-                <span data-i18n="subTitle">Alpha0.7.9.6</span> 
-                <span class="version-tag">Alpha0.7.9.6</span>
+                <!-- Demo胶囊 -->
+                <span class="demo-badge" data-i18n="demoBadge">Demo测试版</span>
+                <!-- 版本号胶囊 -->
+                <span class="version-tag">Alpha0.7.9.7</span>
             </h2>
             
             <button class="btn primary" onclick="showDifficultyScreen()" data-i18n="btnPvE">人机对战 (PvE)</button>

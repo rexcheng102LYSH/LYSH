@@ -1,1 +1,7 @@
 .history/
+node_modules/
+
+# Codex auto-stamp runtime files
+.vscode/codex-heartbeat.txt
+.vscode/codex-timeline.log
+.vscode/codex-snapshots/

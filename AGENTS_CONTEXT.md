@@ -1,4 +1,4 @@
-# Project Lysh - File Map and Logic Overview (Alpha 0.7.8.9)
+# Project Lysh - File Map and Logic Overview (Alpha 0.7.9.7)
 
 Purpose
 - This file gives a fast, accurate map of how the project is structured and how the core logic flows.
@@ -14,16 +14,16 @@ Top-level files
 - ai.js: AI turn logic (calls helper functions from js/game/game_ai.js).
 
 Frontend frameworks (Alpha 0.7.9.6)
-- Tailwind CSS: CDN-based utility CSS for rapid UI development (zero-risk, only for new UI).
-- Anime.js: CDN-based animation library for smooth transitions (zero-risk, only for new animations).
-- Safety: Both frameworks are loaded via CDN with automatic fallback detection; use `safeAnime()` wrapper for error handling.
+- Tailwind CSS: local static build output (`tailwind.generated.css`) for stable loading and lower runtime overhead.
+- Anime.js: CDN-based animation library for smooth transitions (used by new visual effects).
+- Safety: `preflight: false`, fallback detection kept, and `safeAnime()` wrapper remains for error handling.
+- Recent stable update (?): switched Tailwind from CDN runtime injection to local build + added conservative safelist.
 
 Folder map (short)
 .
 |-- js/
 |   |-- audio/
 |   |   |-- audio_host.js   # AudioHost (Host + Plugins)
-|   |   |-- audio_hub.js    # SoundEngine core state + BGM control
 |   |   |-- audio_sfx.js    # Synth SFX + DJ audio logic (install target)
 |   |   |-- audio_assets.js # MP3 assets (install target)
 |   |
