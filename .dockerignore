@@ -15,8 +15,4 @@ server/node_modules/
 *.keystore
 LYSH.keystore
 
-# 大音频文件（游戏通过 CDN 或本地加载，不放进 Docker 镜像）
-# 如果 Zeabur 需要音频，删除下面这些行
-bgm*.mp3
-bgs*.mp3
-shot.m4a
+# 音频文件已保留在镜像中，游戏播放需要

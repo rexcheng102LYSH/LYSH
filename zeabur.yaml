@@ -4,12 +4,10 @@
 
 services:
   - name: lysh-server
-    type: web
+    type: git
     # 从项目根目录部署（包含前端文件 + server/ 子目录）
+    # Zeabur 会自动检测根目录的 Dockerfile 并使用它构建
     root: .
-    # 使用 Dockerfile 构建
-    build:
-      dockerfile: Dockerfile
     # 健康检查
     healthCheck:
       path: /api/status
