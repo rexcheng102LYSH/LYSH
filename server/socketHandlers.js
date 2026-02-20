@@ -430,6 +430,114 @@ function setupSocketHandlers(io, roomManager) {
             setupRPSTimeout(io, roomManager, room.id);
         });
         
+        // ========== 公共大厅 ==========
+        
+        // 获取大厅房间列表
+        socket.on('client:lobby_list', () => {
+            const rooms = roomManager.getLobbyRooms();
+            socket.emit('server:lobby_list', { rooms });
+        });
+        
+        // 创建大厅房间（支持回调确认）
+        socket.on('client:lobby_create', (data, callback) => {
+            const { nickname, rule, enabledSkills, hasPassword, password } = data;
+            
+            try {
+                const room = roomManager.createLobbyRoom(socket.id, nickname, {
+                    rule: rule || 'single',
+                    enabledSkills: enabledSkills || [],
+                    hasPassword: hasPassword || false,
+                    password: password || ''
+                });
+                
+                // 加入 Socket.IO 房间
+                socket.join(room.id);
+                
+                const responseData = {
+                    roomId: room.id,
+                    playerId: socket.id,
+                    role: 'host'
+                };
+                
+                // 通知创建者（事件方式，兼容旧客户端）
+                socket.emit('server:lobby_room_created', responseData);
+                
+                // 回调确认（新客户端用这个判断是否成功）
+                if (typeof callback === 'function') {
+                    callback({ success: true, ...responseData });
+                }
+                
+                // 广播大厅更新给所有在线客户端
+                io.emit('server:lobby_update', {
+                    rooms: roomManager.getLobbyRooms()
+                });
+                
+            } catch (error) {
+                if (typeof callback === 'function') {
+                    callback({ success: false, message: error.message });
+                }
+                socket.emit('server:error', {
+                    action: 'lobby_create',
+                    message: error.message
+                });
+            }
+        });
+        
+        // 加入大厅房间
+        socket.on('client:lobby_join', (data) => {
+            const { roomId, nickname, password } = data;
+            
+            const result = roomManager.joinLobbyRoom(roomId, socket.id, nickname, password);
+            
+            if (!result.success) {
+                socket.emit('server:lobby_join_failed', {
+                    reason: result.reason
+                });
+                return;
+            }
+            
+            const room = result.room;
+            
+            // 加入 Socket.IO 房间
+            socket.join(roomId);
+            
+            // 通知加入者
+            socket.emit('server:join_success', {
+                roomId: room.id,
+                playerId: socket.id,
+                role: 'guest',
+                opponent: {
+                    nickname: room.players.host.nickname,
+                    pieceStyle: room.players.host.pieceStyle
+                }
+            });
+            
+            // 通知房主
+            socket.to(roomId).emit('room:player_joined', {
+                nickname: room.players.guest.nickname,
+                pieceStyle: room.players.guest.pieceStyle,
+                playerId: socket.id
+            });
+            
+            // 广播大厅更新（房间已满，从列表消失）
+            io.emit('server:lobby_update', {
+                rooms: roomManager.getLobbyRooms()
+            });
+            
+            // 开始猜拳
+            io.to(roomId).emit('room:rps_start', {
+                timeout: config.rps.timeout,
+                round: 1
+            });
+            
+            setupRPSTimeout(io, roomManager, roomId);
+        });
+        
+        // 离开大厅（只是取消监听，不做特殊处理）
+        socket.on('client:lobby_leave', () => {
+            // 前端离开大厅页面时调用，目前无需特殊处理
+        });
+        
         // ========== 断线处理 ==========
         
         socket.on('disconnect', () => {
@@ -450,6 +558,11 @@ function setupSocketHandlers(io, roomManager) {
                     // 设置断线超时
                     setupDisconnectTimeout(io, roomManager, result.roomId, socket.id);
                 }
+                
+                // 广播大厅更新（房间可能被删除或状态变化）
+                io.emit('server:lobby_update', {
+                    rooms: roomManager.getLobbyRooms()
+                });
             }
         });
         

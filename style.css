@@ -2281,3 +2281,682 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 }
 
 /* [Voodoo Skill] 激活阶段样式已拆分至 css/skills/voodoo.css */
+
+/* ============================================
+   公共大厅 UI 样式（亮色主题，白色玻璃面板+深色文字，参考 playok 简约美观设计）
+   ============================================ */
+
+/* 大厅面板 */
+.lobby-panel {
+    max-width: 520px;
+    width: 92vw;
+    padding: 24px 20px 20px;
+    text-align: left;
+}
+
+.lobby-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.lobby-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    text-align: left;
+}
+
+.lobby-create-btn {
+    padding: 8px 18px;
+    background: #2d3436;
+    border: none;
+    border-radius: 20px;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(45, 52, 54, 0.25);
+}
+
+.lobby-create-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(45, 52, 54, 0.35);
+}
+
+/* 房间列表 */
+.lobby-room-list {
+    min-height: 180px;
+    max-height: 340px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.03);
+    padding: 6px;
+}
+
+.lobby-room-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.lobby-room-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 2px;
+}
+
+.lobby-empty {
+    text-align: center;
+    color: #999;
+    padding: 50px 20px;
+    font-size: 0.9rem;
+}
+
+/* 房间卡片 */
+.lobby-room-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 10px;
+    margin-bottom: 5px;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.lobby-room-card:hover {
+    border-color: rgba(45, 52, 54, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.lobby-room-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.lobby-room-name {
+    color: #2d3436;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lobby-room-tags {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.lobby-tag {
+    padding: 1px 7px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    background: #eef1f5;
+    color: #636e72;
+}
+
+.lobby-tag.skill {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.lobby-tag.lock {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.lobby-room-players {
+    color: #636e72;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    font-weight: 500;
+    padding: 0 6px;
+}
+
+/* 加入按钮 */
+.lobby-join-btn {
+    padding: 5px 14px;
+    background: #2d3436;
+    border: none;
+    border-radius: 16px;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.lobby-join-btn:hover:not(:disabled) {
+    background: #444;
+}
+
+.lobby-join-btn.full,
+.lobby-join-btn:disabled {
+    background: #ddd;
+    color: #999;
+    cursor: not-allowed;
+}
+
+/* 底部操作 */
+.lobby-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+}
+
+.lobby-footer .btn {
+    width: auto;
+    display: inline-block;
+    margin: 0;
+    padding: 10px 28px;
+    font-size: 0.95rem;
+}
+
+/* ============================================
+   创建房间弹窗内的设置组（亮色主题，白色玻璃面板+深色文字，参考 playok 简约美观设计）
+   ============================================ */
+.lobby-setting-group {
+    margin-bottom: 16px;
+}
+
+.lobby-setting-label {
+    display: block;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+/* 胶囊选择器 */
+.lobby-capsule-selector {
+    display: flex;
+    gap: 8px;
+}
+
+.lobby-capsule {
+    flex: 1;
+    padding: 9px 14px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.lobby-capsule:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+.lobby-capsule.active {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: transparent;
+    color: #2d3436;
+    font-weight: 700;
+}
+
+/* 技能选择网格 */
+.lobby-skill-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    margin-bottom: 6px;
+}
+
+.lobby-skill-btn {
+    padding: 7px 3px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+
+.lobby-skill-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.lobby-skill-btn.active {
+    background: rgba(76, 175, 80, 0.25);
+    border-color: rgba(76, 175, 80, 0.5);
+    color: #a5d6a7;
+    font-weight: 600;
+}
+
+.lobby-skill-hint {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.45);
+    text-align: center;
+    margin-top: 4px;
+}
+
+/* 密码设置 */
+.lobby-password-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.lobby-password-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+}
+
+.lobby-password-input {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1.2rem;
+    text-align: center;
+    letter-spacing: 10px;
+    font-family: monospace;
+    box-sizing: border-box;
+}
+
+.lobby-password-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.lobby-password-input::placeholder {
+    color: rgba(255, 255, 255, 0.25);
+    letter-spacing: 2px;
+    font-size: 0.85rem;
+}
+
+/* 开关样式 */
+.lobby-toggle {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.lobby-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.lobby-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 22px;
+    transition: 0.3s;
+}
+
+.lobby-toggle-slider::before {
+    content: '';
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.lobby-toggle input:checked + .lobby-toggle-slider {
+    background: #4caf50;
+}
+
+.lobby-toggle input:checked + .lobby-toggle-slider::before {
+    transform: translateX(20px);
+}
+
+/* 移动端适配 */
+@media (max-width: 480px) {
+    .lobby-panel {
+        padding: 16px 14px;
+    }
+    
+    .lobby-skill-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px;
+    }
+    
+    .lobby-skill-btn {
+        padding: 5px 2px;
+        font-size: 0.7rem;
+    }
+    
+    .lobby-room-card {
+        padding: 8px 10px;
+    }
+    
+    .lobby-footer .btn {
+        padding: 8px 20px;
+        font-size: 0.85rem;
+    }
+}
+
+/* ============================================
+   虚拟小键盘组件（用于房间号/密码输入）
+   ============================================ */
+
+/* 小键盘专用面板宽度约束 */
+.numpad-panel {
+    min-width: 260px !important;
+    max-width: 300px !important;
+    padding: 20px 16px !important;
+}
+
+/* 可见文本输入框（键盘+小键盘双模式） */
+.numpad-text-input {
+    width: 100%;
+    max-width: 240px;
+    padding: 12px 16px;
+    margin: 0 auto 16px;
+    display: block;
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-family: monospace;
+    text-align: center;
+    letter-spacing: 8px;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.numpad-text-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.9rem;
+    font-weight: 400;
+    letter-spacing: 1px;
+}
+
+.numpad-text-input:focus {
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* 小键盘网格 3x4 */
+.numpad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    max-width: 240px;
+    margin: 0 auto;
+}
+
+.numpad-key {
+    padding: 12px 0;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    text-align: center;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.numpad-key:active {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(0.95);
+}
+
+/* 删除键 */
+.numpad-del {
+    background: rgba(231, 76, 60, 0.2);
+    border-color: rgba(231, 76, 60, 0.3);
+    color: #e74c3c;
+    font-size: 1.3rem;
+}
+
+.numpad-del:active {
+    background: rgba(231, 76, 60, 0.4);
+}
+
+/* 确认键 */
+.numpad-confirm {
+    background: rgba(46, 204, 113, 0.2);
+    border-color: rgba(46, 204, 113, 0.3);
+    color: #2ecc71;
+    font-size: 1.3rem;
+}
+
+.numpad-confirm:active {
+    background: rgba(46, 204, 113, 0.4);
+}
+
+/* ============================================
+   等待房间 - PlayOK 风格
+   ============================================ */
+
+.waiting-panel {
+    min-width: 340px !important;
+    max-width: 400px !important;
+    padding: 0 !important;
+    overflow: hidden;
+}
+
+.waiting-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.waiting-header .online-title {
+    font-size: 1.15rem;
+}
+
+.waiting-room-tag {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.45);
+    background: rgba(255,255,255,0.06);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-family: monospace;
+}
+
+.waiting-room-tag span {
+    color: rgba(255,255,255,0.7);
+    font-weight: 600;
+}
+
+/* 双方玩家槽位 */
+.waiting-players {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px 20px;
+}
+
+.player-slot {
+    flex: 1;
+    text-align: center;
+    padding: 16px 8px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: all 0.3s ease;
+}
+
+.player-host {
+    border-color: rgba(100,140,255,0.3);
+    background: rgba(100,140,255,0.06);
+}
+
+.player-slot-icon {
+    font-size: 1.8rem;
+    margin-bottom: 6px;
+    color: #648cff;
+}
+
+.guest-icon {
+    color: rgba(255,255,255,0.25);
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.player-slot-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.player-guest .player-slot-name {
+    color: rgba(255,255,255,0.4);
+    font-weight: 400;
+}
+
+.player-slot-status {
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.4);
+}
+
+.player-slot-status.ready {
+    color: #4ade80;
+}
+
+.player-slot-status.joined {
+    color: #648cff;
+}
+
+.waiting-vs {
+    font-size: 1rem;
+    font-weight: 800;
+    color: rgba(255,255,255,0.2);
+    flex-shrink: 0;
+    letter-spacing: 2px;
+}
+
+/* 等待脉冲动画 */
+.waiting-pulse {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 50%;
+    animation: waitPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes waitPulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); background: #648cff; }
+}
+
+/* 对手加入后的样式 */
+.player-guest.joined {
+    border-color: rgba(74,222,128,0.3);
+    background: rgba(74,222,128,0.06);
+}
+
+.player-guest.joined .guest-icon {
+    color: #4ade80;
+}
+
+.player-guest.joined .player-slot-name {
+    color: #fff;
+    font-weight: 600;
+}
+
+/* 游戏信息 */
+.waiting-info {
+    padding: 0 20px 12px;
+}
+
+.waiting-info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.info-label {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.4);
+}
+
+.info-value {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.75);
+    font-weight: 500;
+}
+
+/* 分享按钮 */
+.waiting-share {
+    display: flex;
+    gap: 8px;
+    padding: 0 20px 16px;
+}
+
+.share-btn {
+    flex: 1;
+    padding: 8px 0;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.7);
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.share-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+}
+
+.share-btn.primary {
+    background: rgba(100,140,255,0.15);
+    border-color: rgba(100,140,255,0.3);
+    color: #648cff;
+}
+
+.share-btn.primary:hover {
+    background: rgba(100,140,255,0.25);
+}
+
+/* 底部 */
+.waiting-footer {
+    padding: 12px 20px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    text-align: center;
+}
+
+.waiting-footer .online-back-btn {
+    width: 100%;
+}

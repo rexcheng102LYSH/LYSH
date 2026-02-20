@@ -1,0 +1,16 @@
+# Zeabur 部署配置文件
+# 单一服务：Node.js 服务器同时托管前端静态文件 + WebSocket 后端
+# 玩家只需访问 https://lysh-server.zeabur.app 即可游玩
+
+services:
+  - name: lysh-server
+    type: web
+    # 从项目根目录部署（包含前端文件 + server/ 子目录）
+    root: .
+    # 使用 Dockerfile 构建
+    build:
+      dockerfile: Dockerfile
+    # 健康检查
+    healthCheck:
+      path: /api/status
+      interval: 30s

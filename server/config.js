@@ -7,15 +7,35 @@ module.exports = {
     port: process.env.PORT || 3000,
     
     // CORS 允许的域名
-    allowedOrigins: [
-        'http://localhost:5500',      // VS Code Live Server
-        'http://127.0.0.1:5500',
-        'http://localhost:8080',
-        'http://127.0.0.1:8080',
-        'http://localhost:3000',
-        // 生产环境域名（部署时添加）
-        // 'https://your-domain.com'
-    ],
+    // 支持从环境变量读取生产域名（逗号分隔）
+    getAllowedOrigins: function() {
+        // 基础开发环境域名
+        const origins = [
+            'http://localhost:5500',      // VS Code Live Server
+            'http://127.0.0.1:5500',
+            'http://localhost:8080',
+            'http://127.0.0.1:8080',
+            'http://localhost:3000',
+        ];
+        
+        // 从环境变量添加生产域名
+        if (process.env.ALLOWED_ORIGINS) {
+            const prodOrigins = process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim());
+            origins.push(...prodOrigins);
+        }
+        
+        // Zeabur 自动分配的域名（通过 ZEABUR_DOMAIN 环境变量）
+        if (process.env.ZEABUR_DOMAIN) {
+            origins.push(`https://${process.env.ZEABUR_DOMAIN}`);
+        }
+        
+        return origins;
+    },
+    
+    // 兼容旧代码：保留 allowedOrigins 属性
+    get allowedOrigins() {
+        return this.getAllowedOrigins();
+    },
     
     // 房间设置
     room: {

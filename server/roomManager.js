@@ -12,7 +12,7 @@ class RoomManager {
     // ========== 房间号生成 ==========
     
     /**
-     * 生成 6 位纯数字房间号
+     * 生成 4 位纯数字房间号
      */
     generateRoomId() {
         let id;
@@ -20,8 +20,8 @@ class RoomManager {
         const maxAttempts = 100;
         
         do {
-            // 生成 100000 ~ 999999 的随机数
-            id = String(Math.floor(100000 + Math.random() * 900000));
+            // 生成 1000 ~ 9999 的随机数
+            id = String(Math.floor(1000 + Math.random() * 9000));
             attempts++;
             
             if (attempts >= maxAttempts) {
@@ -305,6 +305,144 @@ class RoomManager {
         }
         
         return cleaned;
+    }
+    
+    // ========== 公共大厅 ==========
+    
+    /**
+     * 创建大厅房间（带规则/技能/密码设置）
+     * @param {string} hostSocketId - 房主的 Socket ID
+     * @param {string} nickname - 房主昵称
+     * @param {object} options - 房间设置
+     * @param {string} options.rule - 'single' | 'bo3'
+     * @param {string[]} options.enabledSkills - 启用的技能ID列表
+     * @param {boolean} options.hasPassword - 是否有密码
+     * @param {string} options.password - 4位数字密码
+     */
+    createLobbyRoom(hostSocketId, nickname, options = {}) {
+        const roomId = this.generateRoomId();
+        const rule = options.rule || 'single';
+        const enabledSkills = options.enabledSkills || [];
+        const hasPassword = options.hasPassword || false;
+        const password = options.password || '';
+        
+        const room = {
+            id: roomId,
+            status: 'waiting',
+            isLobbyRoom: true,  // 标记为大厅房间
+            
+            players: {
+                host: {
+                    id: hostSocketId,
+                    nickname: nickname || 'Player 1',
+                    connected: true,
+                    disconnectTime: null,
+                    pieceStyle: 'classic'
+                },
+                guest: null,
+                black: null,
+                white: null
+            },
+            
+            rps: {
+                hostChoice: null,
+                guestChoice: null,
+                winner: null,
+                round: 1
+            },
+            
+            game: null,
+            
+            match: {
+                mode: rule,
+                scores: { host: 0, guest: 0 },
+                currentGame: 1
+            },
+            
+            createdAt: Date.now(),
+            settings: {
+                timeLimit: 0,
+                skillsEnabled: enabledSkills.length >= 2,
+                enabledSkills: enabledSkills,
+                hasPassword: hasPassword,
+                password: hasPassword ? password : ''
+            }
+        };
+        
+        this.rooms.set(roomId, room);
+        console.log(`[Lobby] Room created: ${roomId} by ${nickname} (rule=${rule}, skills=${enabledSkills.length}, pwd=${hasPassword})`);
+        
+        return room;
+    }
+    
+    /**
+     * 获取公共大厅房间列表（只返回等待中的大厅房间）
+     */
+    getLobbyRooms() {
+        const list = [];
+        for (const [roomId, room] of this.rooms) {
+            // 只显示大厅房间 + 等待中的状态
+            if (!room.isLobbyRoom) continue;
+            if (room.status !== 'waiting') continue;
+            
+            list.push({
+                roomId: roomId,
+                hostName: room.players.host ? room.players.host.nickname : '未知',
+                rule: room.match.mode,
+                enabledSkills: room.settings.enabledSkills || [],
+                hasPassword: room.settings.hasPassword || false,
+                playerCount: room.players.guest ? 2 : 1,
+                createdAt: room.createdAt
+            });
+        }
+        // 按创建时间倒序排列（最新的在前）
+        list.sort((a, b) => b.createdAt - a.createdAt);
+        return list;
+    }
+    
+    /**
+     * 加入大厅房间（带密码验证）
+     * @param {string} roomId - 房间号
+     * @param {string} socketId - 加入者的 Socket ID
+     * @param {string} nickname - 加入者昵称
+     * @param {string|null} password - 密码（如果房间有密码）
+     */
+    joinLobbyRoom(roomId, socketId, nickname, password = null) {
+        const room = this.rooms.get(roomId);
+        
+        if (!room) {
+            return { success: false, reason: '房间不存在' };
+        }
+        
+        if (room.status !== 'waiting') {
+            return { success: false, reason: '房间已开始游戏' };
+        }
+        
+        if (room.players.guest !== null) {
+            return { success: false, reason: '房间已满' };
+        }
+        
+        // 密码验证
+        if (room.settings.hasPassword) {
+            if (!password || password !== room.settings.password) {
+                return { success: false, reason: '密码错误' };
+            }
+        }
+        
+        // 加入房间
+        room.players.guest = {
+            id: socketId,
+            nickname: nickname || 'Player 2',
+            connected: true,
+            disconnectTime: null,
+            pieceStyle: 'classic'
+        };
+        
+        room.status = 'rps';
+        
+        console.log(`[Lobby] ${roomId}: ${nickname} joined`);
+        
+        return { success: true, room };
     }
     
     // ========== 统计 ==========

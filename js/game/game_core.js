@@ -182,6 +182,8 @@ function goToMenu() {
     showScreen('main'); 
     // [Fix] 返回菜单时清空特效，防止 DJ 鼓点或烟花残留
     if (typeof VisualFX !== 'undefined') VisualFX.clear();
+    // [Fix] 清除连珠特效Canvas，防止返回主菜单后特效残留
+    if (typeof FxHost !== 'undefined' && FxHost.clear) FxHost.clear();
 }
 
 function confirmExit() { if(confirm(t('confirmExit'))) goToMenu(); }
@@ -249,7 +251,7 @@ function enterTurnSelection(mode, diff) {
     document.querySelector('.turn-card.maple .icon').innerHTML = getIcon(MAPLE);
     document.querySelector('.turn-card.sun .icon').innerHTML = getIcon(SUN);
 }
-function goBackFromTurn() { SoundEngine.playPlace(); if (gameMode === 'pve') { showScreen('diff'); } else { goToMenu(); } }
+function goBackFromTurn() { SoundEngine.playPlace(); if (gameMode === 'pve') { showScreen('diff'); } else { showScreen('localMenu'); } }
 function handleTurnChoice(c) {
     SoundEngine.playPlace();
     if (gameMode === 'pve') {

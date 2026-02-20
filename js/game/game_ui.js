@@ -87,6 +87,10 @@ function getIcon(player) {
 // ================= 界面控制 =================
 const screens = { 
     main: document.getElementById('mainMenu'), 
+    localMenu: document.getElementById('localMenuScreen'),
+    onlineMenu: document.getElementById('onlineMenuScreen'),
+    roomCode: document.getElementById('roomCodeScreen'),
+    lobby: document.getElementById('lobbyScreen'),
     diff: document.getElementById('difficultyScreen'), 
     turn: document.getElementById('turnSelectScreen'), 
     draft: document.getElementById('skillSelectScreen'), 
@@ -112,6 +116,10 @@ function showScreen(n) {
         setTimeout(() => {
             if (typeof VisualFX !== 'undefined') VisualFX.init();
         }, 100);
+    }
+    // 进入公共大厅时自动连接服务器并获取房间列表
+    if (n === 'lobby') {
+        if (typeof OnlineUI !== 'undefined') OnlineUI.enterLobby();
     }
 }
 
@@ -299,10 +307,10 @@ function closeLyshPanel() {
     document.getElementById('lyshModal').style.display = 'none';
 }
 
-// [联网对战] 打开联网对战测试入口
+// [联网对战] 打开联网对战入口
 function openOnlineTest() {
     closeLyshPanel();
-    OnlineUI.showOnlineMenu();
+    showScreen('onlineMenu');
 }
 
 // [Alpha 0.7.9.3] DJ 提示器开关（从原 FPS 设置迁移）

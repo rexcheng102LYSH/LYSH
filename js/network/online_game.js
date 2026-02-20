@@ -21,10 +21,15 @@ const OnlineGame = {
     rpsPhase: false,
     myRpsChoice: null,
     
+    // 防止重复初始化
+    _initialized: false,
+    
     /**
      * 初始化联网游戏模块
      */
     init: function() {
+        if (this._initialized) return;
+        this._initialized = true;
         this.setupEventListeners();
         console.log('[OnlineGame] Initialized');
     },
@@ -78,6 +83,12 @@ const OnlineGame = {
         
         // 错误处理
         socket.on('server:error', this.onServerError.bind(this));
+        
+        // 公共大厅事件
+        socket.on('server:lobby_list', this.onLobbyList.bind(this));
+        socket.on('server:lobby_room_created', this.onLobbyRoomCreated.bind(this));
+        socket.on('server:lobby_join_failed', this.onLobbyJoinFailed.bind(this));
+        socket.on('server:lobby_update', this.onLobbyUpdate.bind(this));
     },
     
     // ========== 房间操作 ==========
@@ -114,6 +125,11 @@ const OnlineGame = {
         this.resetState();
         OnlineUI.hideAllModals();
         OnlineUI.showToast('已离开房间');
+        // 清除特效，防止连珠/烟花残留
+        if (typeof FxHost !== 'undefined' && FxHost.clear) FxHost.clear();
+        if (typeof VisualFX !== 'undefined' && VisualFX.clear) VisualFX.clear();
+        // 返回主菜单
+        if (typeof showScreen === 'function') showScreen('main');
     },
     
     // ========== 房间事件处理 ==========
@@ -123,8 +139,8 @@ const OnlineGame = {
         this.roomId = data.roomId;
         this.role = 'host';
         
-        // 显示等待界面
-        OnlineUI.showWaitingRoom(data.roomId);
+        // 显示等待界面（房间号连线）
+        OnlineUI.showWaitingRoom(data.roomId, { source: '房间号连线' });
     },
     
     onJoinSuccess: function(data) {
@@ -154,8 +170,14 @@ const OnlineGame = {
         this.opponentNickname = data.nickname;
         this.opponentPieceStyle = data.pieceStyle;
         
-        OnlineUI.hideWaitingRoom();
+        // 先更新等待房间中对手槽位，让房主看到对手已加入
+        OnlineUI.updateWaitingGuest(data.nickname);
         OnlineUI.showToast(data.nickname + ' 加入了房间');
+        
+        // 短暂延迟后隐藏等待房间（让用户看到"已加入"状态）
+        setTimeout(function() {
+            OnlineUI.hideWaitingRoom();
+        }, 800);
     },
     
     onHostLeft: function() {
@@ -539,6 +561,51 @@ const OnlineGame = {
         SocketClient.emit('client:accept_rematch', {});
     },
     
+    // ========== 公共大厅事件处理 ==========
+    
+    /**
+     * 收到大厅房间列表
+     */
+    onLobbyList: function(data) {
+        console.log('[OnlineGame] Lobby list:', data);
+        if (typeof OnlineUI !== 'undefined') {
+            OnlineUI.renderRoomList(data.rooms || []);
+        }
+    },
+    
+    /**
+     * 大厅房间创建成功（复用现有的等待房间流程）
+     */
+    onLobbyRoomCreated: function(data) {
+        console.log('[OnlineGame] Lobby room created:', data);
+        this.roomId = data.roomId;
+        this.role = 'host';
+        // 清除创建超时定时器
+        if (OnlineUI._createTimeout) {
+            clearTimeout(OnlineUI._createTimeout);
+            OnlineUI._createTimeout = null;
+        }
+        OnlineUI.showWaitingRoom(data.roomId, { source: '公共大厅' });
+    },
+    
+    /**
+     * 大厅房间加入失败
+     */
+    onLobbyJoinFailed: function(data) {
+        console.log('[OnlineGame] Lobby join failed:', data);
+        OnlineUI.showToast(data.reason || '加入房间失败');
+    },
+    
+    /**
+     * 大厅房间列表更新（有人创建/加入/离开时自动推送）
+     */
+    onLobbyUpdate: function(data) {
+        console.log('[OnlineGame] Lobby update:', data);
+        if (typeof OnlineUI !== 'undefined') {
+            OnlineUI.renderRoomList(data.rooms || []);
+        }
+    },
+    
     // ========== 工具方法 ==========
     
     /**
@@ -565,6 +632,9 @@ const OnlineGame = {
         this.opponentUndoUsed = false;
         this.rpsPhase = false;
         this.myRpsChoice = null;
+        
+        // 重置初始化标记，确保下次连接时重新注册事件监听
+        this._initialized = false;
         
         // 重置 GameState 的联网状态
         if (GameState.online) {

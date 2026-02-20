@@ -176,11 +176,136 @@
                 <span class="version-tag">Alpha0.7.9.7</span>
             </h2>
             
-            <button class="btn primary" onclick="showDifficultyScreen()" data-i18n="btnPvE">人机对战 (PvE)</button>
-            <button class="btn secondary" onclick="startPvPFlow('single')" data-i18n="btnPvPSingle">双人单局 (PvP)</button>
-            <button class="btn bo3-btn" onclick="startPvPFlow('bo3')" data-i18n="btnPvPBO3">三番战 (PvP BO3)</button>
+            <button class="btn primary" onclick="showDifficultyScreen()" data-i18n="btnPvE">人机对战</button>
+            <button class="btn secondary" onclick="showScreen('onlineMenu')" data-i18n="btnOnline">联网对战</button>
+            <button class="btn bo3-btn" onclick="showScreen('localMenu')" data-i18n="btnLocal">本地对战</button>
             
             <p style="margin-top:30px; font-size:0.8rem; color:#888; opacity:0.7;" data-i18n="hintSound">点击任意处开启沉浸音效</p>
+        </div>
+    </div>
+
+    <!-- 本地对战子菜单 -->
+    <div id="localMenuScreen" class="screen">
+        <div class="glass-panel menu-panel">
+            <h1 data-i18n="titleLocal">本地对战</h1>
+            <div style="height:20px"></div>
+            <button class="btn secondary" onclick="startPvPFlow('single')" data-i18n="btnPvPSingle">双人单局</button>
+            <button class="btn bo3-btn" onclick="startPvPFlow('bo3')" data-i18n="btnPvPBO3">三番战 (BO3)</button>
+            <button class="btn secondary" onclick="showScreen('main')" style="margin-top:20px" data-i18n="btnBack">返回</button>
+        </div>
+    </div>
+
+    <!-- 联网对战子菜单 -->
+    <div id="onlineMenuScreen" class="screen">
+        <div class="glass-panel menu-panel">
+            <h1 data-i18n="titleOnline">联网对战</h1>
+            <div style="height:20px"></div>
+            <button class="btn primary" onclick="showScreen('lobby')" data-i18n="btnLobby">公共大厅</button>
+            <button class="btn secondary" onclick="showScreen('roomCode')" data-i18n="btnRoomCode">房间号连线</button>
+            <button class="btn secondary" onclick="showScreen('main')" style="margin-top:20px" data-i18n="btnBack">返回</button>
+        </div>
+    </div>
+
+    <!-- 房间号连线（继承原有联网逻辑） -->
+    <div id="roomCodeScreen" class="screen">
+        <div class="glass-panel menu-panel">
+            <h1 data-i18n="titleRoomCode">房间号连线</h1>
+            <div style="height:20px"></div>
+            <button class="btn primary" onclick="OnlineUI.showCreateRoom()">创建房间</button>
+            <button class="btn secondary" onclick="OnlineUI.showJoinRoom()">加入房间</button>
+            <button class="btn secondary" onclick="showScreen('onlineMenu')" style="margin-top:20px" data-i18n="btnBack">返回</button>
+        </div>
+    </div>
+
+    <!-- 公共大厅 -->
+    <div id="lobbyScreen" class="screen">
+        <div class="glass-panel menu-panel lobby-panel">
+            <div class="lobby-header">
+                <h1 data-i18n="titleLobby">公共大厅</h1>
+                <button class="lobby-create-btn" onclick="OnlineUI.showCreateLobbyRoom()" data-i18n="btnCreateRoom">+ 创建房间</button>
+            </div>
+            <div class="lobby-room-list" id="lobbyRoomList">
+                <div class="lobby-empty" id="lobbyEmpty">暂无房间，快来创建一个吧！</div>
+            </div>
+            <div class="lobby-footer">
+                <button class="btn secondary" onclick="OnlineUI.leaveLobby(); showScreen('onlineMenu')" data-i18n="btnBack">返回</button>
+                <button class="btn secondary" onclick="OnlineUI.refreshLobby()" data-i18n="btnRefresh">刷新</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建大厅房间弹窗 -->
+    <div id="createLobbyRoomModal" class="modal online-modal">
+        <div class="online-panel" style="max-width:400px;">
+            <div class="online-header">
+                <div class="online-title">创建房间</div>
+                <div class="online-subtitle">设置房间规则</div>
+            </div>
+            <div class="online-content">
+                <!-- 规则选择 -->
+                <div class="lobby-setting-group">
+                    <label class="lobby-setting-label">对局规则</label>
+                    <div class="lobby-capsule-selector">
+                        <button class="lobby-capsule active" id="lobbyRuleSingle" onclick="OnlineUI.setLobbyRule('single')">单局</button>
+                        <button class="lobby-capsule" id="lobbyRuleBO3" onclick="OnlineUI.setLobbyRule('bo3')">BO3</button>
+                    </div>
+                </div>
+                <!-- 技能设置 -->
+                <div class="lobby-setting-group">
+                    <label class="lobby-setting-label">技能设置</label>
+                    <div class="lobby-skill-grid" id="lobbySkillGrid">
+                        <!-- 由JS动态生成 -->
+                    </div>
+                    <div class="lobby-skill-hint" id="lobbySkillHint">已启用 10/10 个技能</div>
+                </div>
+                <!-- 密码设置 -->
+                <div class="lobby-setting-group">
+                    <label class="lobby-setting-label">房间密码</label>
+                    <div class="lobby-password-row">
+                        <label class="lobby-toggle">
+                            <input type="checkbox" id="lobbyPasswordToggle" onchange="OnlineUI.toggleLobbyPassword()">
+                            <span class="lobby-toggle-slider"></span>
+                        </label>
+                        <span class="lobby-password-label" id="lobbyPasswordLabel">公开房间</span>
+                    </div>
+                    <input type="text" id="lobbyPasswordInput" class="lobby-password-input" maxlength="4" placeholder="输入4位数字密码" style="display:none;" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                </div>
+            </div>
+            <div class="online-footer">
+                <button class="online-back-btn" onclick="OnlineUI.hideCreateLobbyRoom()">取消</button>
+                <button class="online-btn primary small" onclick="OnlineUI.confirmCreateLobbyRoom()">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加入密码房间弹窗（支持键盘输入+鼠标小键盘双模式） -->
+    <div id="lobbyPasswordModal" class="modal online-modal">
+        <div class="online-panel numpad-panel">
+            <div class="online-header">
+                <div class="online-title">输入密码</div>
+            </div>
+            <div class="online-content center">
+                <!-- 可见输入框：支持键盘直接输入 -->
+                <input type="text" id="lobbyPasswordJoinInput" class="numpad-text-input" maxlength="4" placeholder="4位数字密码" inputmode="numeric" pattern="[0-9]*" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'');" onkeydown="if(event.key==='Enter')OnlineUI.confirmLobbyPassword();">
+                <!-- 虚拟小键盘 -->
+                <div class="numpad-grid">
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('1','lobbyPwd')">1</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('2','lobbyPwd')">2</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('3','lobbyPwd')">3</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('4','lobbyPwd')">4</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('5','lobbyPwd')">5</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('6','lobbyPwd')">6</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('7','lobbyPwd')">7</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('8','lobbyPwd')">8</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('9','lobbyPwd')">9</button>
+                    <button class="numpad-key numpad-del" onclick="OnlineUI.numpadDelete('lobbyPwd')">&times;</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('0','lobbyPwd')">0</button>
+                    <button class="numpad-key numpad-confirm" onclick="OnlineUI.confirmLobbyPassword()">&check;</button>
+                </div>
+            </div>
+            <div class="online-footer" style="justify-content:center;">
+                <button class="online-back-btn" onclick="OnlineUI.hideLobbyPassword()" data-i18n="btnCancel">取消</button>
+            </div>
         </div>
     </div>
 
@@ -645,10 +770,10 @@
                 </div>
                 <div class="lysh-section">
                     <div class="lysh-section-title">更多功能</div>
-                    <div class="lysh-item" onclick="openOnlineTest()">
+                    <div class="lysh-item" onclick="closeLyshPanel(); showScreen('onlineMenu');">
                         <div class="lysh-item-info">
-                            <span class="lysh-item-name">联网对战 (测试)</span>
-                            <span class="lysh-item-desc">房间制联网对战功能测试入口</span>
+                            <span class="lysh-item-name">联网对战</span>
+                            <span class="lysh-item-desc">公共大厅 / 房间号连线</span>
                         </div>
                         <div class="lysh-item-arrow">></div>
                     </div>
@@ -669,65 +794,90 @@
 
     <!-- ========== 联网对战 UI 弹窗 (独立于 lyshModal) ========== -->
     
-    <!-- 联网对战主菜单 -->
-    <div id="onlineMenuModal" class="modal online-modal">
-        <div class="online-panel">
-            <div class="online-header">
-                <div class="online-title">联网对战</div>
-                <div class="online-subtitle">Online Battle (Test)</div>
-            </div>
-            <div class="online-content">
-                <button class="online-btn primary" onclick="OnlineUI.showCreateRoom()">
-                    <span class="btn-icon">+</span>
-                    <span class="btn-text">创建房间</span>
-                </button>
-                <button class="online-btn" onclick="OnlineUI.showJoinRoom()">
-                    <span class="btn-icon">#</span>
-                    <span class="btn-text">加入房间</span>
-                </button>
-            </div>
-            <div class="online-footer">
-                <button class="online-back-btn" onclick="OnlineUI.hideOnlineMenu()">返回</button>
-            </div>
-        </div>
-    </div>
+    <!-- [已迁移] 联网对战主菜单已改为 onlineMenuScreen + roomCodeScreen -->
     
-    <!-- 加入房间弹窗 -->
+    <!-- 加入房间弹窗（支持键盘输入+鼠标小键盘双模式） -->
     <div id="joinRoomModal" class="modal online-modal">
-        <div class="online-panel small">
+        <div class="online-panel numpad-panel">
             <div class="online-header">
                 <div class="online-title">加入房间</div>
             </div>
-            <div class="online-content">
-                <div class="input-group">
-                    <label>请输入6位房间号</label>
-                    <input type="text" id="roomIdInput" maxlength="6" placeholder="000000" class="room-input">
+            <div class="online-content center">
+                <!-- 可见输入框：支持键盘直接输入，也支持小键盘点击 -->
+                <input type="text" id="roomIdInput" class="numpad-text-input" maxlength="6" placeholder="输入房间号" inputmode="numeric" pattern="[0-9]*" autocomplete="off" oninput="this.value=this.value.replace(/[^0-9]/g,'');" onkeydown="if(event.key==='Enter')OnlineUI.confirmJoinRoom();">
+                <!-- 虚拟小键盘（鼠标用户点击输入） -->
+                <div class="numpad-grid">
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('1')">1</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('2')">2</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('3')">3</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('4')">4</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('5')">5</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('6')">6</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('7')">7</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('8')">8</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('9')">9</button>
+                    <button class="numpad-key numpad-del" onclick="OnlineUI.numpadDelete()">&times;</button>
+                    <button class="numpad-key" onclick="OnlineUI.numpadInput('0')">0</button>
+                    <button class="numpad-key numpad-confirm" onclick="OnlineUI.confirmJoinRoom()">&check;</button>
                 </div>
             </div>
-            <div class="online-footer">
-                <button class="online-back-btn" onclick="OnlineUI.hideJoinRoom()">取消</button>
-                <button class="online-btn primary small" onclick="OnlineUI.confirmJoinRoom()">加入</button>
+            <div class="online-footer" style="justify-content:center;">
+                <button class="online-back-btn" onclick="OnlineUI.hideJoinRoom()" data-i18n="btnCancel">取消</button>
             </div>
         </div>
     </div>
     
-    <!-- 等待房间弹窗 -->
+    <!-- 等待房间弹窗（PlayOK 风格） -->
     <div id="waitingRoomModal" class="modal online-modal">
-        <div class="online-panel">
-            <div class="online-header">
-                <div class="online-title">等待对手</div>
+        <div class="online-panel waiting-panel">
+            <!-- 标题 -->
+            <div class="waiting-header">
+                <div class="online-title">对局准备</div>
+                <div class="waiting-room-tag">房间 <span id="waitingRoomId">0000</span></div>
             </div>
-            <div class="online-content center">
-                <div class="room-id-display">
-                    <span class="room-id-label">房间号</span>
-                    <span class="room-id-value" id="waitingRoomId">000000</span>
+
+            <!-- 双方玩家槽位 -->
+            <div class="waiting-players">
+                <div class="player-slot player-host">
+                    <div class="player-slot-icon">&#9679;</div>
+                    <div class="player-slot-name" id="waitingHostName">房主</div>
+                    <div class="player-slot-status ready">已就绪</div>
                 </div>
-                <button class="copy-btn" onclick="OnlineUI.copyRoomId()">复制房间号</button>
-                <div class="waiting-hint">将房间号分享给朋友，等待加入...</div>
-                <div class="waiting-spinner"></div>
+                <div class="waiting-vs">VS</div>
+                <div class="player-slot player-guest" id="waitingGuestSlot">
+                    <div class="player-slot-icon guest-icon">?</div>
+                    <div class="player-slot-name" id="waitingGuestName">等待对手加入...</div>
+                    <div class="player-slot-status" id="waitingGuestStatus">
+                        <span class="waiting-pulse"></span>
+                    </div>
+                </div>
             </div>
-            <div class="online-footer">
-                <button class="online-back-btn" onclick="OnlineGame.leaveRoom()">取消</button>
+
+            <!-- 游戏信息 -->
+            <div class="waiting-info">
+                <div class="waiting-info-row">
+                    <span class="info-label">模式</span>
+                    <span class="info-value" id="waitingRuleText">单局制</span>
+                </div>
+                <div class="waiting-info-row">
+                    <span class="info-label">来源</span>
+                    <span class="info-value" id="waitingSourceText">房间号连线</span>
+                </div>
+            </div>
+
+            <!-- 分享区域 -->
+            <div class="waiting-share">
+                <button class="share-btn" onclick="OnlineUI.copyRoomId()">
+                    <span>复制房间号</span>
+                </button>
+                <button class="share-btn primary" onclick="OnlineUI.copyInviteLink()">
+                    <span>复制邀请链接</span>
+                </button>
+            </div>
+
+            <!-- 底部 -->
+            <div class="waiting-footer">
+                <button class="online-back-btn" onclick="OnlineGame.leaveRoom()">离开房间</button>
             </div>
         </div>
     </div>
@@ -893,10 +1043,30 @@
     
     <!-- Socket.IO 客户端 (联网对战) -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <!-- 全端统一服务器配置（内联脚本，不受JS文件缓存影响） -->
+    <script>
+    (function(){
+        // 默认：连接 Zeabur 线上服务器（适用于 file://、exe、网页等所有场景）
+        window.GAME_SERVER_URL = 'https://lysh-server.zeabur.app';
+        window.__FORCE_LOCAL = false;
+
+        // 本地开发覆盖：只有 localhost / 127.0.0.1 / 局域网IP 才连本地服务器
+        var h = window.location.hostname;
+        if (h === 'localhost' || h === '127.0.0.1' || (h && h.indexOf('192.168.') === 0)) {
+            window.GAME_SERVER_URL = 'http://localhost:3000';
+            window.__FORCE_LOCAL = true;
+            console.log('[Config] Dev mode -> http://localhost:3000');
+        } else {
+            console.log('[Config] Online mode -> ' + window.GAME_SERVER_URL);
+        }
+    })();
+    </script>
+    <!-- 联网对战配置 -->
+    <script src="js/network/config.js?v=Alpha0.7.9.8"></script>
     <!-- 联网对战模块 -->
-    <script src="js/network/socket_client.js?v=Alpha0.7.9.4"></script>
-    <script src="js/network/online_game.js?v=Alpha0.7.9.4"></script>
-    <script src="js/network/online_ui.js?v=Alpha0.7.9.4"></script>
+    <script src="js/network/socket_client.js?v=Alpha0.7.9.8"></script>
+    <script src="js/network/online_game.js?v=Alpha0.7.9.8"></script>
+    <script src="js/network/online_ui.js?v=Alpha0.7.9.8"></script>
 
 </body>
 </html>

@@ -5,8 +5,21 @@
 
 const SocketClient = {
     socket: null,
-    serverUrl: 'http://localhost:3000',  // 开发环境，部署时修改
     connected: false,
+    
+    /**
+     * 自动获取服务器地址
+     * 优先级：window.GAME_SERVER_URL > 生产环境自动检测 > 开发环境
+     */
+    getServerUrl: function() {
+        // 使用内联脚本/config.js 设定的全局地址，兜底 Zeabur 线上服务器
+        return window.GAME_SERVER_URL || 'https://lysh-server.zeabur.app';
+    },
+    
+    // 保留 serverUrl 属性以兼容旧代码
+    get serverUrl() {
+        return this.getServerUrl();
+    },
     
     /**
      * 连接到服务器

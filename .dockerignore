@@ -1,0 +1,22 @@
+# Docker 构建排除列表
+.git
+.history
+.vscode
+.kilocode
+.kiro
+backup/
+plans/
+docs/
+screenshot/
+scripts/
+node_modules/
+server/node_modules/
+*.md
+*.keystore
+LYSH.keystore
+
+# 大音频文件（游戏通过 CDN 或本地加载，不放进 Docker 镜像）
+# 如果 Zeabur 需要音频，删除下面这些行
+bgm*.mp3
+bgs*.mp3
+shot.m4a
