@@ -8,3 +8,8 @@ node_modules/
 
 # Screenshots - do not upload to git
 screenshot/
+
+# git-stash tool runtime files
+git-stash/node_modules/
+git-stash/data/
+git-stash/exports/

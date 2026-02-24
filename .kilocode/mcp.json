@@ -32,9 +32,12 @@
       "js/game/game_ui.js",
       "js/game/game_render.js",
       "js/game/game_skills.js",
+      "js/network/online_game.js",
       "js/skills/registry.js",
       "server/index.js",
-      "server/gameLogic.js"
+      "server/gameLogic.js",
+      "server/socketHandlers.js",
+      "server/skillLogic.js"
     ],
     "contextHints": {
       "projectType": "web-game",

@@ -1,4 +1,14 @@
+# [试验版本] Project Lysh - File Map and Logic Overview (DO NOT READ)
+
+警告：
+- 本文件为试验版本，仅供人工对比与回顾。
+- Agent 不应将本文件作为架构事实来源，不应在执行前读取本文件。
+- Agent 只应读取 `AGENTS.md` 与 `AGENTS_CONTEXT.md`。
+
 # Project Lysh - File Map and Logic Overview (Alpha 0.7.9.8)
+
+Last updated: 2026-02-24  
+Owner: Project Lead (Lysh)
 
 Purpose
 - This file is the architecture snapshot for current code.
@@ -8,6 +18,11 @@ Current release posture
 - Frontend version marker in `index.html` is `Alpha0.7.9.8`.
 - Online mode defaults to Zeabur production URL and falls back to localhost in dev.
 - Deployment currently favors single-service hosting (frontend static + backend Socket.IO in one Node service).
+
+Version semantics (must distinguish)
+- Frontend display version (`index.html`): player-facing release marker.
+- Backend protocol/runtime version (`GET /api/status -> version`): online capability/protocol marker.
+- Do not mix these two when stating "current version".
 
 Top-level files (current)
 - `index.html`: main entry, UI structure, script load order, online modal set.
@@ -181,4 +196,11 @@ Notes for future edits
   - network endpoints
   - module load order in `index.html`
 - PowerShell policy: allowed for read/search/test commands, not for direct code-file writes.
-- Mandatory pre-read policy: read `AGENTS.md` and `AGENTS_CONTEXT.md` before every response.
+- Pre-read policy alignment: for each new request read `AGENTS.md` + `AGENTS_CONTEXT.md`; re-read only when either file changes in-session.
+
+Doc maintenance triggers (update this file when changed)
+- Module boundaries or folder ownership.
+- Network event names/payload contracts.
+- Deploy topology, health endpoint, runtime URL logic.
+- Frontend startup load order and global fallback mechanisms.
+- Compatibility rules (e.g., room id length, lobby capability fields).

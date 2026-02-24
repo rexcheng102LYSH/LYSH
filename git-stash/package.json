@@ -1,0 +1,17 @@
+{
+  "name": "git-stash-visual-tool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "可视化 Git Stash 管理工具（与命令行完全同步）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

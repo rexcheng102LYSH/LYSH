@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Git Stash 存档中心</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Git Stash 存档中心</h1>
+      <p id="repoInfo">正在读取仓库信息...</p>
+      <p id="connectInfo" class="connect-info">正在检查连接...</p>
+    </div>
+    <div class="top-actions">
+      <button id="modeSimpleBtn" class="btn primary">极简模式</button>
+      <button id="modeProBtn" class="btn">专业模式</button>
+      <button id="refreshBtn" class="btn">刷新</button>
+    </div>
+  </header>
+
+  <section id="fileProtocolHint" class="file-hint hidden">
+    <h2>你正在用 file:// 方式打开页面</h2>
+    <p>这种方式无法访问后端 API，日志会全部失败。</p>
+    <p>请双击运行 <code>git-stash/start-git-stash.bat</code>，它会自动打开正确地址。</p>
+  </section>
+
+  <main id="simpleMode" class="simple-wrap hidden">
+    <section class="simple-card">
+      <h2>极简模式：像游戏存档一样用</h2>
+      <p>先学 4 个按钮：快存、查看存档、安全读档、恢复分支。</p>
+      <div class="simple-actions">
+        <button id="simpleQuickSaveBtn" class="btn primary">1. 一键快存</button>
+        <button id="simpleRefreshBtn" class="btn">2. 刷新存档列表</button>
+        <button id="simpleSafeLoadBtn" class="btn">3. 安全读档最新</button>
+        <button id="simpleRecoveryBtn" class="btn">4. 创建恢复分支</button>
+      </div>
+      <div class="simple-toggle-row">
+        <button id="simpleRollbackToggleBtn" class="btn">文件回滚：关（保留代码）</button>
+      </div>
+
+      <div class="simple-release">
+        <h3>发布向导</h3>
+        <button id="simpleBatchApplyReleaseBtn" class="btn danger">（可选）先把所有存档合并到当前代码</button>
+        <p>步骤 A：填写发布信息并提交到 Git history</p>
+        <label>Summary（必填）
+          <input type="text" id="simpleReleaseTitle" placeholder="例如：release: Alpha 0.8.0" />
+        </label>
+        <label>Description（可选）
+          <input type="text" id="simpleReleaseDesc" placeholder="例如：完成技能UI与联机回滚修复" />
+        </label>
+        <button id="simplePrepareReleaseBtn" class="btn primary">A. 一键发布提交</button>
+        <p>步骤 B：清除版本提交前的所有 stash</p>
+        <button id="simpleCommitReleaseBtn" class="btn">B. 清除全部 stash</button>
+        <p>步骤 C：可选给这次发布打 Tag（推荐）</p>
+        <label>Tag 名称（可选）
+          <input type="text" id="simpleTagName" placeholder="例如：v0.7.9.82" />
+        </label>
+        <label>Tag 说明（可选）
+          <input type="text" id="simpleTagMessage" placeholder="例如：Alpha 0.7.9.82 发布点" />
+        </label>
+        <button id="simpleCreateTagBtn" class="btn">C. 一键打 Tag</button>
+      </div>
+
+      <div class="simple-tips">
+        <p>小白提示：</p>
+        <p>1. 先点“一键快存”，相当于手动存档。</p>
+        <p>2. 出问题时点“安全读档最新”。</p>
+        <p>3. 不放心就先“创建恢复分支”。</p>
+      </div>
+
+      <h3>当前存档（最新在上）</h3>
+      <ul id="simpleStashList" class="simple-list"></ul>
+
+      <h3>Changes 检查（当前代码 vs 最新存档）</h3>
+      <div class="simple-changes-box">
+        <div class="row">
+          <p id="simpleChangesSummary">正在检查...</p>
+                    <div class="row-right">
+            <select id="simpleChangesMode" class="changes-mode-select">
+              <option value="working">&#24037;&#20316;&#21306;&#27169;&#24335;&#65288;&#21516;&#27493; main&#65289;</option>
+              <option value="stash">Stash &#23545;&#27604;&#27169;&#24335;&#65288;&#20005;&#26684;&#65289;</option>
+            </select>
+            <button id="simpleCheckChangesBtn" class="btn">刷新 Changes</button>
+          </div>
+        </div>
+        <pre id="simpleChangesOutput" class="output safety"></pre>
+      </div>
+
+      <pre id="simpleOutput" class="output safety"></pre>
+    </section>
+  </main>
+
+  <main id="proMode" class="layout">
+    <aside class="panel left">
+      <div class="left-head">
+        <h2>Stash 列表</h2>
+        <input id="filterInput" type="text" placeholder="按 ref / message / commit 搜索" />
+      </div>
+      <ul id="stashList" class="stash-list"></ul>
+    </aside>
+
+    <section class="panel center">
+      <h2>快速存档（push）</h2>
+      <form id="pushForm" class="form">
+        <label>备注 message
+          <input type="text" id="pushMessage" placeholder="例如：wip: 联机技能调试" />
+        </label>
+        <label>路径过滤 pathspec（可选，逗号分隔）
+          <input type="text" id="pushPathspecs" placeholder="例如：js/network,server/socketHandlers.js" />
+        </label>
+        <div class="checks">
+          <label><input type="checkbox" id="pushUntracked" checked /> 包含未跟踪文件(-u)</label>
+          <label><input type="checkbox" id="pushIgnored" /> 包含忽略文件(-a)</label>
+          <label><input type="checkbox" id="pushKeepIndex" /> 保留暂存区(-k)</label>
+          <label><input type="checkbox" id="pushPatch" /> 交互式片段(-p)</label>
+          <label><input type="checkbox" id="pushStaged" /> 仅已暂存(--staged)</label>
+        </div>
+        <button class="btn primary" type="submit">创建 Stash</button>
+      </form>
+
+      <h2>选中存档操作</h2>
+      <div class="actions-grid">
+        <button id="applyBtn" class="btn">apply</button>
+        <button id="popBtn" class="btn">pop</button>
+        <button id="dropBtn" class="btn danger">drop</button>
+        <button id="showBtn" class="btn">show</button>
+        <button id="showPatchBtn" class="btn">show -p</button>
+      </div>
+      <label class="inline"><input type="checkbox" id="reinstateIndex" /> apply/pop 时恢复 index(--index)</label>
+
+      <h2>安全回滚向导</h2>
+      <div class="safety-box">
+        <label>回滚模式
+          <select id="safetyMode">
+            <option value="apply">apply（保留 stash）</option>
+            <option value="pop">pop（删除 stash）</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="autoCheckpoint" checked /> 执行前自动创建安全快照（推荐）</label>
+        <div class="row">
+          <button id="precheckBtn" class="btn">风险预检</button>
+          <button id="safeRollbackBtn" class="btn primary">安全执行回滚</button>
+        </div>
+        <pre id="safetyOutput" class="output safety"></pre>
+      </div>
+
+      <h2>冲突修复向导</h2>
+      <div class="conflict-box">
+        <div class="row">
+          <button id="checkConflictBtn" class="btn">检查冲突状态</button>
+          <button id="createRecoveryBranchBtn" class="btn">创建恢复分支</button>
+          <button id="exportPatchBtn" class="btn">导出当前补丁</button>
+        </div>
+        <label>恢复分支名（可选）
+          <input type="text" id="recoveryBranchName" placeholder="例如：recover/stash-conflict-01" />
+        </label>
+        <label>补丁备注（可选）
+          <input type="text" id="patchNote" placeholder="例如：回滚冲突现场备份" />
+        </label>
+        <pre id="conflictOutput" class="output safety"></pre>
+      </div>
+
+      <h2>存档标签（不影响 Git 原生数据）</h2>
+      <div class="tag-box">
+        <label>标签名
+          <input type="text" id="tagLabel" placeholder="例如：可回滚稳定点" />
+        </label>
+        <label>颜色
+          <input type="color" id="tagColor" value="#4f46e5" />
+        </label>
+        <label>备注
+          <input type="text" id="tagNote" placeholder="例如：联机房间与技能同步正常" />
+        </label>
+        <div class="row">
+          <button id="saveTagBtn" class="btn">保存标签</button>
+          <button id="removeTagBtn" class="btn danger">移除标签</button>
+        </div>
+      </div>
+
+      <h2>高级功能</h2>
+      <div class="advanced">
+        <div class="group">
+          <label>从 stash 创建分支
+            <input type="text" id="branchName" placeholder="例如：recover/skill-ui" />
+          </label>
+          <button id="branchBtn" class="btn">stash branch</button>
+        </div>
+        <div class="group">
+          <label>stash create message（可选）
+            <input type="text" id="createMessage" placeholder="可留空" />
+          </label>
+          <button id="createBtn" class="btn">stash create</button>
+        </div>
+        <div class="group">
+          <label>stash store commit
+            <input type="text" id="storeCommit" placeholder="必须填写 commit id" />
+          </label>
+          <label>store message
+            <input type="text" id="storeMessage" placeholder="可选" />
+          </label>
+          <button id="storeBtn" class="btn">stash store</button>
+        </div>
+        <div class="group">
+          <label>stash export to-ref（可选）
+            <input type="text" id="exportToRef" placeholder="留空则 --print" />
+          </label>
+          <button id="exportBtn" class="btn">stash export</button>
+        </div>
+        <div class="group">
+          <label>stash import commit
+            <input type="text" id="importCommit" placeholder="必须填写 commit id" />
+          </label>
+          <button id="importBtn" class="btn">stash import</button>
+        </div>
+        <div class="group row">
+          <button id="clearBtn" class="btn danger">stash clear（清空所有）</button>
+        </div>
+      </div>
+
+      <h2>原始命令模式（完全兼容）</h2>
+      <p class="tip">输入 <code>stash</code> 后面的参数，示例：<code>push -u -m "wip: hotfix"</code></p>
+      <div class="raw-box">
+        <input type="text" id="rawArgs" placeholder='例如：push -u -m "wip: hotfix"' />
+        <button id="rawRunBtn" class="btn">执行 raw</button>
+      </div>
+    </section>
+
+    <aside class="panel right">
+      <h2>详情输出</h2>
+      <pre id="detailOutput" class="output"></pre>
+      <div class="log-head">
+        <h2>操作日志</h2>
+        <button id="exportLogBtn" class="btn">导出日志</button>
+      </div>
+      <pre id="logOutput" class="output log"></pre>
+    </aside>
+  </main>
+
+  <template id="stashItemTpl">
+    <li class="stash-item">
+      <button class="stash-btn" type="button">
+        <span class="ref"></span>
+        <span class="msg"></span>
+        <span class="meta"></span>
+      </button>
+    </li>
+  </template>
+
+  <script src="./app.js"></script>
+</body>
+</html>

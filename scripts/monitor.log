@@ -305,3 +305,72 @@
 [2026-02-21 02:32:39] [SUCCESS] [2026-02-21 02:32:38] Copied: Screenshot 2026-02-21 023235.png -> Screenshot 2026-02-21 023235.png
 [2026-02-21 03:52:56] [SUCCESS] [2026-02-21 03:52:56] Copied: Screenshot 2026-02-21 035254.png -> Screenshot 2026-02-21 035254.png
 [2026-02-21 03:53:02] [SUCCESS] [2026-02-21 03:53:01] Copied: Screenshot 2026-02-21 035258.png -> Screenshot 2026-02-21 035258.png
+[2026-02-22 00:52:13] [INFO] ========================================
+[2026-02-22 00:52:13] [INFO]   Screenshot Auto Backup v4.0
+[2026-02-22 00:52:13] [INFO] ========================================
+[2026-02-22 00:52:13] [INFO] Source: C:\Users\21518\Pictures\Screenshots
+[2026-02-22 00:52:13] [INFO] Target: C:\Users\21518\Desktop\lysh\scripts\..\screenshot
+[2026-02-22 00:52:13] [INFO] Mode: Real-time FileSystemWatcher
+[2026-02-22 00:52:13] [INFO] 
+[2026-02-22 00:52:13] [INFO] [Init] Creating FileSystemWatcher...
+[2026-02-22 00:52:13] [SUCCESS] [Running] Monitoring started. Waiting for new screenshots...
+[2026-02-22 00:52:13] [INFO] [Running] Press Ctrl+C to stop
+[2026-02-22 00:52:13] [INFO] 
+[2026-02-22 20:28:53] [INFO] ========================================
+[2026-02-22 20:28:53] [INFO]   Screenshot Auto Backup v4.0
+[2026-02-22 20:28:53] [INFO] ========================================
+[2026-02-22 20:28:53] [INFO] Source: C:\Users\21518\Pictures\Screenshots
+[2026-02-22 20:28:53] [INFO] Target: C:\Users\21518\Desktop\lysh\scripts\..\screenshot
+[2026-02-22 20:28:53] [INFO] Mode: Real-time FileSystemWatcher
+[2026-02-22 20:28:53] [INFO] 
+[2026-02-22 20:28:53] [INFO] [Init] Creating FileSystemWatcher...
+[2026-02-22 20:28:53] [SUCCESS] [Running] Monitoring started. Waiting for new screenshots...
+[2026-02-22 20:28:53] [INFO] [Running] Press Ctrl+C to stop
+[2026-02-22 20:28:53] [INFO] 
+[2026-02-23 04:54:57] [INFO] ========================================
+[2026-02-23 04:54:57] [INFO]   Screenshot Auto Backup v4.0
+[2026-02-23 04:54:57] [INFO] ========================================
+[2026-02-23 04:54:57] [INFO] Source: C:\Users\21518\Pictures\Screenshots
+[2026-02-23 04:54:57] [INFO] Target: C:\Users\21518\Desktop\lysh\scripts\..\screenshot
+[2026-02-23 04:54:57] [INFO] Mode: Real-time FileSystemWatcher
+[2026-02-23 04:54:57] [INFO] 
+[2026-02-23 04:54:57] [INFO] [Init] Creating FileSystemWatcher...
+[2026-02-23 04:54:57] [SUCCESS] [Running] Monitoring started. Waiting for new screenshots...
+[2026-02-23 04:54:57] [INFO] [Running] Press Ctrl+C to stop
+[2026-02-23 04:54:57] [INFO] 
+[2026-02-23 05:36:26] [INFO] ========================================
+[2026-02-23 05:36:26] [INFO]   Screenshot Auto Backup v4.0
+[2026-02-23 05:36:26] [INFO] ========================================
+[2026-02-23 05:36:26] [INFO] Source: C:\Users\21518\Pictures\Screenshots
+[2026-02-23 05:36:26] [INFO] Target: C:\Users\21518\Desktop\lysh\scripts\..\screenshot
+[2026-02-23 05:36:26] [INFO] Mode: Real-time FileSystemWatcher
+[2026-02-23 05:36:26] [INFO] 
+[2026-02-23 05:36:26] [INFO] [Init] Creating FileSystemWatcher...
+[2026-02-23 05:36:26] [SUCCESS] [Running] Monitoring started. Waiting for new screenshots...
+[2026-02-23 05:36:26] [INFO] [Running] Press Ctrl+C to stop
+[2026-02-23 05:36:26] [INFO] 
+[2026-02-23 06:53:14] [SUCCESS] [2026-02-23 06:53:14] Copied: Screenshot 2026-02-23 065313.png -> Screenshot 2026-02-23 065313.png
+[2026-02-23 07:25:49] [SUCCESS] [2026-02-23 07:25:48] Copied: Screenshot 2026-02-23 072547.png -> Screenshot 2026-02-23 072547.png
+[2026-02-23 07:55:17] [SUCCESS] [2026-02-23 07:55:17] Copied: Screenshot 2026-02-23 075513.png -> Screenshot 2026-02-23 075513.png
+[2026-02-23 13:33:20] [SUCCESS] [2026-02-23 13:33:20] Copied: Screenshot 2026-02-23 133317.png -> Screenshot 2026-02-23 133317.png
+[2026-02-23 13:33:31] [SUCCESS] [2026-02-23 13:33:30] Copied: Screenshot 2026-02-23 133327.png -> Screenshot 2026-02-23 133327.png
+[2026-02-23 13:44:07] [SUCCESS] [2026-02-23 13:44:07] Copied: Screenshot 2026-02-23 134403.png -> Screenshot 2026-02-23 134403.png
+[2026-02-23 13:52:09] [SUCCESS] [2026-02-23 13:52:08] Copied: Screenshot 2026-02-23 135206.png -> Screenshot 2026-02-23 135206.png
+[2026-02-23 13:54:35] [SUCCESS] [2026-02-23 13:54:34] Copied: Screenshot 2026-02-23 135432.png -> Screenshot 2026-02-23 135432.png
+[2026-02-23 14:35:29] [SUCCESS] [2026-02-23 14:35:29] Copied: Screenshot 2026-02-23 143525.png -> Screenshot 2026-02-23 143525.png
+[2026-02-24 19:36:21] [INFO] ========================================
+[2026-02-24 19:36:21] [INFO]   Screenshot Auto Backup v4.0
+[2026-02-24 19:36:21] [INFO] ========================================
+[2026-02-24 19:36:21] [INFO] Source: C:\Users\21518\Pictures\Screenshots
+[2026-02-24 19:36:21] [INFO] Target: C:\Users\21518\Desktop\lysh\scripts\..\screenshot
+[2026-02-24 19:36:21] [INFO] Mode: Real-time FileSystemWatcher
+[2026-02-24 19:36:21] [INFO] 
+[2026-02-24 19:36:21] [INFO] [Init] Creating FileSystemWatcher...
+[2026-02-24 19:36:21] [SUCCESS] [Running] Monitoring started. Waiting for new screenshots...
+[2026-02-24 19:36:21] [INFO] [Running] Press Ctrl+C to stop
+[2026-02-24 19:36:21] [INFO] 
+[2026-02-25 04:31:26] [SUCCESS] [2026-02-25 04:31:25] Copied: Screenshot 2026-02-25 043123.png -> Screenshot 2026-02-25 043123.png
+[2026-02-25 04:41:17] [SUCCESS] [2026-02-25 04:41:17] Copied: Screenshot 2026-02-25 044112.png -> Screenshot 2026-02-25 044112.png
+[2026-02-25 04:44:58] [SUCCESS] [2026-02-25 04:44:57] Copied: Screenshot 2026-02-25 044455.png -> Screenshot 2026-02-25 044455.png
+[2026-02-25 04:55:54] [SUCCESS] [2026-02-25 04:55:54] Copied: Screenshot 2026-02-25 045553.png -> Screenshot 2026-02-25 045553.png
+[2026-02-25 04:58:50] [SUCCESS] [2026-02-25 04:58:49] Copied: Screenshot 2026-02-25 045845.png -> Screenshot 2026-02-25 045845.png

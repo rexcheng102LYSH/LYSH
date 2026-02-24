@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
+    "prestart": "npm --prefix server ci --omit=dev",
+    "start": "npm --prefix server start",
+    "dev": "npm --prefix server dev",
     "tailwind:build": "tailwindcss -c tailwind.config.js -i ./tailwind.input.css -o ./tailwind.generated.css --minify",
     "tailwind:watch": "tailwindcss -c tailwind.config.js -i ./tailwind.input.css -o ./tailwind.generated.css --watch",
     "codex:stamp": "node ./scripts/codex_stamp.js",
