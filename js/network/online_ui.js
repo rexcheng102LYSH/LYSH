@@ -747,7 +747,7 @@ const OnlineUI = {
                         this._pendingJoinRoomId = room.roomId;
                         this.showLobbyPassword();
                     } else {
-                        this.joinLobbyRoom(room.roomId, null);
+                        this.joinLobbyRoom(room.roomId);
                     }
                 };
             }
@@ -768,12 +768,15 @@ const OnlineUI = {
             this.showToast('未连接到服务器');
             return;
         }
-        
-        SocketClient.emit('client:lobby_join', {
+
+        const payload = {
             roomId: roomId,
-            nickname: nickname,
-            password: password
-        });
+            nickname: nickname
+        };
+        if (typeof password === 'string' && password.trim().length > 0) {
+            payload.password = password.trim();
+        }
+        SocketClient.emit('client:lobby_join', payload);
     },
     
     /**
@@ -1027,8 +1030,9 @@ const OnlineUI = {
             return;
         }
         
+        const roomId = this._pendingJoinRoomId;
         this.hideLobbyPassword();
-        this.joinLobbyRoom(this._pendingJoinRoomId, pwd);
+        this.joinLobbyRoom(roomId, pwd);
     },
     
     /**

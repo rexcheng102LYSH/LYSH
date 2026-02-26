@@ -29,4 +29,23 @@ describe('protocol_contract', () => {
         const result = validateClientPayload('client:unknown_event', { any: 'data' });
         expect(result.valid).toBe(true);
     });
+
+    it('accepts lobby_join payload with null password for backward compatibility', () => {
+        const result = validateClientPayload('client:lobby_join', {
+            roomId: '1234',
+            nickname: 'Guest',
+            password: null
+        });
+        expect(result.valid).toBe(true);
+    });
+
+    it('still rejects lobby_join payload with non-string password', () => {
+        const result = validateClientPayload('client:lobby_join', {
+            roomId: '1234',
+            nickname: 'Guest',
+            password: 1234
+        });
+        expect(result.valid).toBe(false);
+        expect(result.reason).toBe('invalid_password');
+    });
 });

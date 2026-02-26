@@ -148,7 +148,7 @@ function validateLobbyCreate(payload) {
     if (payload.hasPassword !== undefined && typeof payload.hasPassword !== 'boolean') {
         return { valid: false, reason: 'invalid_has_password' };
     }
-    if (payload.password !== undefined && typeof payload.password !== 'string') {
+    if (payload.password !== undefined && payload.password !== null && typeof payload.password !== 'string') {
         return { valid: false, reason: 'invalid_password' };
     }
     return { valid: true };
@@ -162,7 +162,7 @@ function validateLobbyJoin(payload) {
     if (!isObject(payload)) return { valid: false, reason: 'invalid_payload' };
     if (!isNonEmptyString(payload.roomId)) return { valid: false, reason: 'invalid_room_id' };
     if (!isNonEmptyString(payload.nickname)) return { valid: false, reason: 'invalid_nickname' };
-    if (payload.password !== undefined && typeof payload.password !== 'string') {
+    if (payload.password !== undefined && payload.password !== null && typeof payload.password !== 'string') {
         return { valid: false, reason: 'invalid_password' };
     }
     return { valid: true };
