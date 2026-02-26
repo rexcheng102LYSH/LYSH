@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node index.js"
+    "dev": "node index.js",
+    "test": "vitest run --globals"
   },
   "keywords": ["gomoku", "multiplayer", "websocket"],
   "author": "Rexon",
@@ -14,5 +15,8 @@
     "express": "^4.18.2",
     "socket.io": "^4.7.2",
     "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
   }
 }

@@ -272,10 +272,77 @@ const _GameStateRaw = {
 // [Alpha 0.7.9.6] 使用Proxy实现自动同步，消除手动同步错误
 // 原理：拦截GameState的set操作，自动同步到对应的全局变量
 
-// 创建Proxy包装器
+// ================= 状态守卫 (State Guard) =================
+// [Alpha 0.7.9.8] 状态验证系统 - 设计意图说明：
+// - 当前阶段（Alpha）：仅记录诊断数据，不阻止无效值写入
+// - 目的：收集真实场景中的状态异常数据，评估问题严重程度
+// - 未来计划：根据收集的数据决定是否升级为严格模式（抛出异常/拒绝写入）
+// - 注意：所有警告都会记录到 window.LYSH_DIAGNOSTICS 供调试查看
+
+/**
+ * 报告状态守卫警告到控制台和诊断系统
+ * @param {string} prop - 属性名
+ * @param {string} reason - 警告原因
+ * @param {*} value - 无效值
+ */
+function reportStateGuardWarning(prop, reason, value) {
+    console.warn('[GameStateGuard]', prop, reason, value);
+    if (window.LYSH_DIAGNOSTICS && window.LYSH_DIAGNOSTICS.reportStateWarning) {
+        window.LYSH_DIAGNOSTICS.reportStateWarning(prop, reason, value);
+    }
+}
+
+function isValidBoardShape(boardValue) {
+    if (!Array.isArray(boardValue) || boardValue.length !== BOARD_SIZE) return false;
+    for (let r = 0; r < boardValue.length; r++) {
+        if (!Array.isArray(boardValue[r]) || boardValue[r].length !== BOARD_SIZE) return false;
+    }
+    return true;
+}
+
+function isValidLastMove(value) {
+    if (value == null) return true;
+    if (typeof value !== 'object') return false;
+    if (!Number.isInteger(value.r) || !Number.isInteger(value.c)) return false;
+    if (value.player !== MAPLE && value.player !== SUN) return false;
+    return true;
+}
+
+function validateCriticalState(prop, value) {
+    switch (prop) {
+        case 'currentPlayer':
+            if (value !== MAPLE && value !== SUN) {
+                reportStateGuardWarning(prop, 'invalid_current_player', value);
+            }
+            break;
+        case 'board':
+            if (!isValidBoardShape(value)) {
+                reportStateGuardWarning(prop, 'invalid_board_shape', value);
+            }
+            break;
+        case 'timeRemaining':
+            if (!value || typeof value !== 'object' || typeof value[MAPLE] !== 'number' || typeof value[SUN] !== 'number') {
+                reportStateGuardWarning(prop, 'invalid_time_remaining', value);
+            }
+            break;
+        case 'moveCount':
+            if (!Number.isInteger(value) || value < 0) {
+                reportStateGuardWarning(prop, 'invalid_move_count', value);
+            }
+            break;
+        case 'lastMove':
+            if (!isValidLastMove(value)) {
+                reportStateGuardWarning(prop, 'invalid_last_move', value);
+            }
+            break;
+    }
+}
+
 const GameState = new Proxy(_GameStateRaw, {
     // 拦截属性设置操作
     set: function(target, prop, value) {
+        validateCriticalState(prop, value);
+
         // 设置原始值
         target[prop] = value;
         

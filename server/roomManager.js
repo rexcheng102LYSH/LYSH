@@ -4,8 +4,60 @@
 
 const config = require('./config');
 
+/**
+ * @typedef {object} RoomPlayer
+ * @property {string} id
+ * @property {string} nickname
+ * @property {boolean} connected
+ * @property {number|null} disconnectTime
+ * @property {string} pieceStyle
+ */
+
+/**
+ * @typedef {object} RpsState
+ * @property {string|null} hostChoice
+ * @property {string|null} guestChoice
+ * @property {('host'|'guest'|null)} winner
+ * @property {number} round
+ */
+
+/**
+ * @typedef {object} MatchState
+ * @property {string} mode
+ * @property {{host:number, guest:number}} scores
+ * @property {number} currentGame
+ */
+
+/**
+ * @typedef {object} RoomSettings
+ * @property {number} timeLimit
+ * @property {boolean} skillsEnabled
+ * @property {string[]=} enabledSkills
+ * @property {boolean=} hasPassword
+ * @property {string=} password
+ */
+
+/**
+ * @typedef {object} RoomState
+ * @property {string} id
+ * @property {string} status
+ * @property {boolean=} isLobbyRoom
+ * @property {{
+ *  host: RoomPlayer,
+ *  guest: RoomPlayer|null,
+ *  black: RoomPlayer|null,
+ *  white: RoomPlayer|null
+ * }} players
+ * @property {RpsState} rps
+ * @property {any} game
+ * @property {MatchState} match
+ * @property {number} createdAt
+ * @property {RoomSettings} settings
+ */
+
 class RoomManager {
     constructor() {
+        /** @type {Map<string, RoomState>} */
         this.rooms = new Map();
     }
     
@@ -41,6 +93,7 @@ class RoomManager {
      * @param {string} pieceStyle - 房主棋子样式
      * @param {string} matchMode - 对战模式 'single' | 'bo3'
      */
+    /** @returns {RoomState} */
     createRoom(hostSocketId, nickname, pieceStyle = 'classic', matchMode = 'single') {
         const roomId = this.generateRoomId();
         
@@ -99,6 +152,7 @@ class RoomManager {
      * @param {string} nickname - 加入者昵称
      * @param {string} pieceStyle - 加入者棋子样式
      */
+    /** @returns {{success: true, room: RoomState} | {success: false, reason: string}} */
     joinRoom(roomId, socketId, nickname, pieceStyle = 'classic') {
         const room = this.rooms.get(roomId);
         
@@ -170,6 +224,7 @@ class RoomManager {
      * 获取房间
      * @param {string} roomId - 房间号
      */
+    /** @returns {RoomState | undefined} */
     getRoom(roomId) {
         return this.rooms.get(roomId);
     }
@@ -178,6 +233,7 @@ class RoomManager {
      * 通过 Socket ID 查找房间
      * @param {string} socketId - Socket ID
      */
+    /** @returns {{room: RoomState, role: 'host'|'guest'} | null} */
     getRoomBySocketId(socketId) {
         for (const [roomId, room] of this.rooms) {
             if (room.players.host && room.players.host.id === socketId) {
@@ -313,12 +369,13 @@ class RoomManager {
      * 创建大厅房间（带规则/技能/密码设置）
      * @param {string} hostSocketId - 房主的 Socket ID
      * @param {string} nickname - 房主昵称
-     * @param {object} options - 房间设置
-     * @param {string} options.rule - 'single' | 'bo3'
-     * @param {string[]} options.enabledSkills - 启用的技能ID列表
-     * @param {boolean} options.hasPassword - 是否有密码
-     * @param {string} options.password - 4位数字密码
+     * @param {object} [options] - 房间设置
+     * @param {string} [options.rule] - 'single' | 'bo3'
+     * @param {string[]} [options.enabledSkills] - 启用的技能ID列表
+     * @param {boolean} [options.hasPassword] - 是否有密码
+     * @param {string} [options.password] - 4位数字密码
      */
+    /** @returns {RoomState} */
     createLobbyRoom(hostSocketId, nickname, options = {}) {
         const roomId = this.generateRoomId();
         const rule = options.rule || 'single';

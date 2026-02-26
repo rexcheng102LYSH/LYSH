@@ -6,7 +6,102 @@ const config = require('./config');
 const gameLogic = require('./gameLogic');
 const rpsLogic = require('./rpsLogic');
 const skillLogic = require('./skillLogic');
+const { validateClientPayload } = require('./protocol_contract');
 
+/**
+ * @typedef {{ __traceId?: string, __clientTs?: number }} TracePayload
+ * @typedef {'double'|'voodoo'|'move_self'|'move_enemy'|'zone'|'bomb'|'god_hand'|'chaos'|'short_battle'|'swap'} KnownSkillId
+ * @typedef {{ row: number, col: number }} SkillPos
+ * @typedef {{ pos1: SkillPos, pos2: SkillPos }} DoubleSkillTargets
+ * @typedef {{ pos: SkillPos }} SingleSkillTargets
+ * @typedef {{ from: SkillPos, to: SkillPos }} MoveSkillTargets
+ * @typedef {{ own: SkillPos, opponent: SkillPos }} SwapSkillTargets
+ * @typedef {DoubleSkillTargets | SingleSkillTargets | MoveSkillTargets | SwapSkillTargets | Record<string, unknown>} SkillTargets
+ * @typedef {{ nickname: string, pieceStyle?: string, matchMode?: 'single'|'bo3'|string } & TracePayload} CreateRoomPayload
+ * @typedef {{ roomId: string, nickname: string, pieceStyle?: string } & TracePayload} JoinRoomPayload
+ * @typedef {{ choice: 'rock'|'paper'|'scissors' } & TracePayload} RpsChoicePayload
+ * @typedef {{ side: 'black'|'white' } & TracePayload} SideChoicePayload
+ * @typedef {{ row: number, col: number } & TracePayload} PlacePiecePayload
+ * @typedef {{ skillId: KnownSkillId | string, targets?: SkillTargets } & TracePayload} UseSkillPayload
+ * @typedef {{ accept: boolean } & TracePayload} RespondUndoPayload
+ * @typedef {{ nickname: string, rule?: 'single'|'bo3'|string, enabledSkills?: string[], hasPassword?: boolean, password?: string } & TracePayload} LobbyCreatePayload
+ * @typedef {{ roomId: string, nickname: string, password?: string } & TracePayload} LobbyJoinPayload
+ * @typedef {{ roomId: string, oldSocketId: string } & TracePayload} ReconnectPayload
+ * @typedef {{ roomId: string, playerId: string, role: 'host'|'guest' }} RoomCreatedPayload
+ * @typedef {{ roomId: string, playerId: string, role: 'guest', opponent: { nickname: string, pieceStyle?: string } }} JoinSuccessPayload
+ * @typedef {{ nickname: string, pieceStyle?: string, playerId: string }} PlayerJoinedPayload
+ * @typedef {{ timeout: number, round: number }} RpsStartPayload
+ * @typedef {{ row: number, col: number, player: 'black'|'white', pieceValue: number, nextTurn?: 'black'|'white' }} PiecePlacedPayload
+ * @typedef {{ winner: 'black'|'white', winLine?: {row:number, col:number}[], reason: string }} GameOverPayload
+ * @typedef {{ effects: unknown[] }} SkillEffectPayload
+ * @typedef {{ player: 'black'|'white', skillId: string, targets?: SkillTargets, changes: unknown[], specialEffect: unknown, skillUsed: Record<string, boolean> }} SkillUsedPayload
+ * @typedef {{ currentTurn: 'black'|'white' }} TurnChangedPayload
+ * @typedef {{ roomId: string, role: string, boardState: unknown, status: string }} ReconnectSuccessPayload
+ * @typedef {{ blackPlayer: string, whitePlayer: string }} GameStartPayload
+ * @typedef {{ blackPlayer: string, whitePlayer: string, blackSocketId: string, whiteSocketId: string }} SidesDecidedPayload
+ */
+
+/**
+ * @param {TracePayload | null | undefined} data
+ * @returns {string | null}
+ */
+function extractTraceId(data) {
+    return data && typeof data.__traceId === 'string' ? data.__traceId : null;
+}
+
+/**
+ * @param {'warn'|'error'|'info'} level
+ * @param {string} eventName
+ * @param {{id?: string}|null|undefined} socket
+ * @param {string} message
+ * @param {Record<string, unknown> | null | undefined} extra
+ */
+function logSocketEvent(level, eventName, socket, message, extra) {
+    const record = {
+        at: new Date().toISOString(),
+        level,
+        layer: 'socket',
+        event: eventName,
+        socketId: socket && socket.id ? socket.id : null,
+        message,
+        extra: extra || null
+    };
+    const line = `[SocketDiag] ${JSON.stringify(record)}`;
+    if (level === 'error') {
+        console.error(line);
+    } else {
+        console.log(line);
+    }
+}
+
+/**
+ * @param {{ id?: string, emit: (eventName: string, payload: Record<string, unknown>) => void }} socket
+ * @param {string} eventName
+ * @param {TracePayload | undefined} data
+ * @returns {boolean}
+ */
+function validateIncoming(socket, eventName, data) {
+    const validation = validateClientPayload(eventName, data);
+    if (!validation.valid) {
+        const traceId = extractTraceId(data);
+        logSocketEvent('warn', eventName, socket, 'invalid_payload', {
+            reason: validation.reason || 'invalid_payload',
+            traceId
+        });
+        socket.emit('server:error', {
+            action: eventName,
+            message: validation.reason || 'invalid_payload',
+            traceId
+        });
+        return false;
+    }
+    return true;
+}
+
+/**
+ * @param {import('socket.io').Server} io
+ * @param {import('./roomManager')} roomManager
+ */
 function setupSocketHandlers(io, roomManager) {
     
     io.on('connection', (socket) => {
@@ -16,7 +111,11 @@ function setupSocketHandlers(io, roomManager) {
         
         // 创建房间
         socket.on('client:create_room', (data) => {
-            const { nickname, pieceStyle, matchMode } = data;
+            /** @type {CreateRoomPayload} */
+            const payload = data;
+            if (!validateIncoming(socket, 'client:create_room', payload)) return;
+            const { nickname, pieceStyle, matchMode } = payload;
+            const traceId = extractTraceId(payload);
             
             try {
                 const room = roomManager.createRoom(
@@ -29,23 +128,33 @@ function setupSocketHandlers(io, roomManager) {
                 // 加入 Socket.IO 房间
                 socket.join(room.id);
                 
-                socket.emit('server:room_created', {
+                /** @type {RoomCreatedPayload} */
+                const roomCreatedPayload = {
                     roomId: room.id,
                     playerId: socket.id,
                     role: 'host'
-                });
+                };
+                socket.emit('server:room_created', roomCreatedPayload);
                 
             } catch (error) {
+                logSocketEvent('error', 'client:create_room', socket, 'create_room_failed', {
+                    traceId,
+                    error: error && error.message ? error.message : String(error)
+                });
                 socket.emit('server:error', {
                     action: 'create_room',
-                    message: error.message
+                    message: error.message,
+                    traceId
                 });
             }
         });
         
         // 加入房间
         socket.on('client:join_room', (data) => {
-            const { roomId, nickname, pieceStyle } = data;
+            /** @type {JoinRoomPayload} */
+            const payload = data;
+            if (!validateIncoming(socket, 'client:join_room', payload)) return;
+            const { roomId, nickname, pieceStyle } = payload;
             
             const result = roomManager.joinRoom(
                 roomId,
@@ -56,7 +165,7 @@ function setupSocketHandlers(io, roomManager) {
             
             if (!result.success) {
                 socket.emit('server:join_failed', {
-                    reason: result.reason
+                    reason: ('reason' in result) ? result.reason : 'join_failed'
                 });
                 return;
             }
@@ -67,7 +176,8 @@ function setupSocketHandlers(io, roomManager) {
             socket.join(roomId);
             
             // 通知加入者
-            socket.emit('server:join_success', {
+            /** @type {JoinSuccessPayload} */
+            const joinSuccessPayload = {
                 roomId: room.id,
                 playerId: socket.id,
                 role: 'guest',
@@ -75,20 +185,25 @@ function setupSocketHandlers(io, roomManager) {
                     nickname: room.players.host.nickname,
                     pieceStyle: room.players.host.pieceStyle
                 }
-            });
+            };
+            socket.emit('server:join_success', joinSuccessPayload);
             
             // 通知房主
-            socket.to(roomId).emit('room:player_joined', {
+            /** @type {PlayerJoinedPayload} */
+            const playerJoinedPayload = {
                 nickname: room.players.guest.nickname,
                 pieceStyle: room.players.guest.pieceStyle,
                 playerId: socket.id
-            });
+            };
+            socket.to(roomId).emit('room:player_joined', playerJoinedPayload);
             
             // 开始猜拳
-            io.to(roomId).emit('room:rps_start', {
+            /** @type {RpsStartPayload} */
+            const rpsStartPayload = {
                 timeout: config.rps.timeout,
                 round: 1
-            });
+            };
+            io.to(roomId).emit('room:rps_start', rpsStartPayload);
             
             // 设置猜拳超时
             setupRPSTimeout(io, roomManager, roomId);
@@ -98,7 +213,10 @@ function setupSocketHandlers(io, roomManager) {
         
         // 提交猜拳选择
         socket.on('client:rps_choice', (data) => {
-            const { choice } = data;
+            /** @type {RpsChoicePayload} */
+            const payload = data;
+            if (!validateIncoming(socket, 'client:rps_choice', payload)) return;
+            const { choice } = payload;
             
             const found = roomManager.getRoomBySocketId(socket.id);
             if (!found) {
@@ -130,7 +248,10 @@ function setupSocketHandlers(io, roomManager) {
         
         // 提交选边
         socket.on('client:side_choice', (data) => {
-            const { side } = data;
+            /** @type {SideChoicePayload} */
+            const payload = data;
+            if (!validateIncoming(socket, 'client:side_choice', payload)) return;
+            const { side } = payload;
             
             const found = roomManager.getRoomBySocketId(socket.id);
             if (!found) return;
@@ -153,24 +274,31 @@ function setupSocketHandlers(io, roomManager) {
             roomManager.initGame(room.id);
             
             // 广播选边结果和游戏开始
-            io.to(room.id).emit('room:sides_decided', {
+            /** @type {SidesDecidedPayload} */
+            const sidesDecidedPayload = {
                 blackPlayer: result.blackPlayer,
                 whitePlayer: result.whitePlayer,
                 blackSocketId: result.blackSocketId,
                 whiteSocketId: result.whiteSocketId
-            });
+            };
+            io.to(room.id).emit('room:sides_decided', sidesDecidedPayload);
             
-            io.to(room.id).emit('room:game_start', {
+            /** @type {GameStartPayload} */
+            const gameStartPayload = {
                 blackPlayer: result.blackPlayer,
                 whitePlayer: result.whitePlayer
-            });
+            };
+            io.to(room.id).emit('room:game_start', gameStartPayload);
         });
         
         // ========== 游戏流程 ==========
         
         // 落子
         socket.on('client:place_piece', (data) => {
-            const { row, col } = data;
+            /** @type {PlacePiecePayload} */
+            const payload = data;
+            if (!validateIncoming(socket, 'client:place_piece', payload)) return;
+            const { row, col } = payload;
             
             const found = roomManager.getRoomBySocketId(socket.id);
             if (!found) return;
@@ -195,31 +323,39 @@ function setupSocketHandlers(io, roomManager) {
                 // 游戏结束
                 room.status = 'finished';
                 
-                io.to(room.id).emit('room:piece_placed', {
+                /** @type {PiecePlacedPayload} */
+                const piecePlacedPayload = {
                     row, col, player, pieceValue
-                });
+                };
+                io.to(room.id).emit('room:piece_placed', piecePlacedPayload);
                 
-                io.to(room.id).emit('room:game_over', {
+                /** @type {GameOverPayload} */
+                const gameOverPayload = {
                     winner: winResult.winner,
                     winLine: winResult.winLine,
                     reason: 'five_in_row'
-                });
+                };
+                io.to(room.id).emit('room:game_over', gameOverPayload);
             } else {
                 // 处理回合结束效果（炸弹、巫毒等）
                 const turnEffects = skillLogic.processTurnEndEffects(room);
                 if (turnEffects.length > 0) {
-                    io.to(room.id).emit('room:skill_effect', {
+                    /** @type {SkillEffectPayload} */
+                    const skillEffectPayload = {
                         effects: turnEffects
-                    });
+                    };
+                    io.to(room.id).emit('room:skill_effect', skillEffectPayload);
                 }
                 
                 // 切换回合
                 gameLogic.switchTurn(room);
                 
-                io.to(room.id).emit('room:piece_placed', {
+                /** @type {PiecePlacedPayload} */
+                const piecePlacedWithNextTurnPayload = {
                     row, col, player, pieceValue,
                     nextTurn: room.game.currentTurn
-                });
+                };
+                io.to(room.id).emit('room:piece_placed', piecePlacedWithNextTurnPayload);
             }
         });
         
@@ -227,7 +363,10 @@ function setupSocketHandlers(io, roomManager) {
         
         // 使用技能
         socket.on('client:use_skill', (data) => {
-            const { skillId, targets } = data;
+            /** @type {UseSkillPayload} */
+            const payload = data;
+            if (!validateIncoming(socket, 'client:use_skill', payload)) return;
+            const { skillId, targets } = payload;
             
             const found = roomManager.getRoomBySocketId(socket.id);
             if (!found) return;
@@ -245,14 +384,16 @@ function setupSocketHandlers(io, roomManager) {
             const result = skillLogic.executeSkill(room, skillId, targets);
             
             // 广播技能使用
-            io.to(room.id).emit('room:skill_used', {
+            /** @type {SkillUsedPayload} */
+            const skillUsedPayload = {
                 player: result.player,
                 skillId: result.skillId,
                 targets,
                 changes: result.changes,
                 specialEffect: result.specialEffect,
                 skillUsed: room.game.skillUsed
-            });
+            };
+            io.to(room.id).emit('room:skill_used', skillUsedPayload);
             
             // 检查技能是否导致胜利（如双连）
             if (result.changes && result.changes.length > 0) {
@@ -261,11 +402,13 @@ function setupSocketHandlers(io, roomManager) {
                         const winResult = gameLogic.checkWin(room, change.row, change.col);
                         if (winResult) {
                             room.status = 'finished';
-                            io.to(room.id).emit('room:game_over', {
+                            /** @type {GameOverPayload} */
+                            const skillGameOverPayload = {
                                 winner: winResult.winner,
                                 winLine: winResult.winLine,
                                 reason: 'five_in_row'
-                            });
+                            };
+                            io.to(room.id).emit('room:game_over', skillGameOverPayload);
                             return;
                         }
                     }
@@ -275,17 +418,21 @@ function setupSocketHandlers(io, roomManager) {
             // 处理回合结束效果
             const turnEffects = skillLogic.processTurnEndEffects(room);
             if (turnEffects.length > 0) {
-                io.to(room.id).emit('room:skill_effect', {
+                /** @type {SkillEffectPayload} */
+                const turnEndSkillEffectPayload = {
                     effects: turnEffects
-                });
+                };
+                io.to(room.id).emit('room:skill_effect', turnEndSkillEffectPayload);
             }
             
             // 切换回合
             gameLogic.switchTurn(room);
             
-            io.to(room.id).emit('room:turn_changed', {
+            /** @type {TurnChangedPayload} */
+            const turnChangedPayload = {
                 currentTurn: room.game.currentTurn
-            });
+            };
+            io.to(room.id).emit('room:turn_changed', turnChangedPayload);
         });
         
         // ========== 投降与悔棋 ==========
@@ -353,7 +500,10 @@ function setupSocketHandlers(io, roomManager) {
         
         // 回应悔棋
         socket.on('client:respond_undo', (data) => {
-            const { accept } = data;
+            /** @type {RespondUndoPayload} */
+            const payload = data;
+            if (!validateIncoming(socket, 'client:respond_undo', payload)) return;
+            const { accept } = payload;
             
             const found = roomManager.getRoomBySocketId(socket.id);
             if (!found) return;
@@ -440,7 +590,16 @@ function setupSocketHandlers(io, roomManager) {
         
         // 创建大厅房间（支持回调确认）
         socket.on('client:lobby_create', (data, callback) => {
-            const { nickname, rule, enabledSkills, hasPassword, password } = data;
+            /** @type {LobbyCreatePayload} */
+            const payload = data;
+            if (!validateIncoming(socket, 'client:lobby_create', payload)) {
+                if (typeof callback === 'function') {
+                    callback({ success: false, message: 'invalid_payload' });
+                }
+                return;
+            }
+            const { nickname, rule, enabledSkills, hasPassword, password } = payload;
+            const traceId = extractTraceId(payload);
             
             try {
                 const room = roomManager.createLobbyRoom(socket.id, nickname, {
@@ -473,25 +632,33 @@ function setupSocketHandlers(io, roomManager) {
                 });
                 
             } catch (error) {
+                logSocketEvent('error', 'client:lobby_create', socket, 'lobby_create_failed', {
+                    traceId,
+                    error: error && error.message ? error.message : String(error)
+                });
                 if (typeof callback === 'function') {
-                    callback({ success: false, message: error.message });
+                    callback({ success: false, message: error.message, traceId });
                 }
                 socket.emit('server:error', {
                     action: 'lobby_create',
-                    message: error.message
+                    message: error.message,
+                    traceId
                 });
             }
         });
         
         // 加入大厅房间
         socket.on('client:lobby_join', (data) => {
-            const { roomId, nickname, password } = data;
+            /** @type {LobbyJoinPayload} */
+            const payload = data;
+            if (!validateIncoming(socket, 'client:lobby_join', payload)) return;
+            const { roomId, nickname, password } = payload;
             
             const result = roomManager.joinLobbyRoom(roomId, socket.id, nickname, password);
             
             if (!result.success) {
                 socket.emit('server:lobby_join_failed', {
-                    reason: result.reason
+                    reason: ('reason' in result) ? result.reason : 'lobby_join_failed'
                 });
                 return;
             }
@@ -568,7 +735,10 @@ function setupSocketHandlers(io, roomManager) {
         
         // 重连
         socket.on('client:reconnect', (data) => {
-            const { roomId, oldSocketId } = data;
+            /** @type {ReconnectPayload} */
+            const payload = data;
+            if (!validateIncoming(socket, 'client:reconnect', payload)) return;
+            const { roomId, oldSocketId } = payload;
             
             const room = roomManager.getRoom(roomId);
             if (!room) {
@@ -606,12 +776,14 @@ function setupSocketHandlers(io, roomManager) {
             socket.join(roomId);
             
             // 发送重连成功和游戏状态
-            socket.emit('server:reconnect_success', {
+            /** @type {ReconnectSuccessPayload} */
+            const reconnectSuccessPayload = {
                 roomId,
                 role: reconnectedRole,
                 boardState: gameLogic.getBoardState(room),
                 status: room.status
-            });
+            };
+            socket.emit('server:reconnect_success', reconnectSuccessPayload);
             
             // 通知对方
             socket.to(roomId).emit('room:opponent_reconnected', {});
@@ -707,17 +879,21 @@ function setupSideChoiceTimeout(io, roomManager, roomId, winnerSocketId) {
         if (result.success) {
             roomManager.initGame(roomId);
             
-            io.to(roomId).emit('room:sides_decided', {
+            /** @type {SidesDecidedPayload} */
+            const timeoutSidesDecidedPayload = {
                 blackPlayer: result.blackPlayer,
                 whitePlayer: result.whitePlayer,
                 blackSocketId: result.blackSocketId,
                 whiteSocketId: result.whiteSocketId
-            });
+            };
+            io.to(roomId).emit('room:sides_decided', timeoutSidesDecidedPayload);
             
-            io.to(roomId).emit('room:game_start', {
+            /** @type {GameStartPayload} */
+            const timeoutGameStartPayload = {
                 blackPlayer: result.blackPlayer,
                 whitePlayer: result.whitePlayer
-            });
+            };
+            io.to(roomId).emit('room:game_start', timeoutGameStartPayload);
         }
     }, config.rps.sideChoiceTimeout);
 }

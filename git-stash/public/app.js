@@ -465,7 +465,22 @@ async function loadCurrentChanges(options = {}) {
   }
 }
 
+function bindMultilineInputs() {
+  const fields = document.querySelectorAll("textarea.multiline-input");
+  fields.forEach((field) => {
+    field.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.isComposing) return;
+      event.preventDefault();
+      const start = Number.isInteger(field.selectionStart) ? field.selectionStart : field.value.length;
+      const end = Number.isInteger(field.selectionEnd) ? field.selectionEnd : start;
+      field.value = `${field.value.slice(0, start)}\n${field.value.slice(end)}`;
+      field.selectionStart = field.selectionEnd = start + 1;
+    });
+  });
+}
+
 function bindEvents() {
+  bindMultilineInputs();
   if (el.simpleChangesMode) {
     const initialMode = state.changesMode === "stash" ? "stash" : "working";
     state.changesMode = initialMode;

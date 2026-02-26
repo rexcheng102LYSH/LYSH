@@ -3,6 +3,27 @@
 // 联网对战游戏逻辑
 // ============================================
 
+/**
+ * @typedef {{ nickname: string, pieceStyle?: string, playerId: string }} RoomPlayerJoinedPayload
+ * @typedef {{ timeout: number, round: number }} RoomRpsStartPayload
+ * @typedef {{ hostChoice: 'rock'|'paper'|'scissors', guestChoice: 'rock'|'paper'|'scissors', result: 'tie'|'decided', winner?: 'host'|'guest' }} RoomRpsResultPayload
+ * @typedef {{ timeout: number }} RoomChooseSidePayload
+ * @typedef {{ blackPlayer: string, whitePlayer: string, blackSocketId: string, whiteSocketId: string }} RoomSidesDecidedPayload
+ * @typedef {{ blackPlayer: string, whitePlayer: string }} RoomGameStartPayload
+ * @typedef {{ row: number, col: number, player: 'black'|'white', pieceValue: number, nextTurn?: 'black'|'white' }} RoomPiecePlacedPayload
+ * @typedef {{ winner: 'black'|'white', winLine?: { row: number, col: number }[], reason: 'five_in_row'|'surrender'|'disconnect_timeout'|string }} RoomGameOverPayload
+ * @typedef {{ currentTurn: 'black'|'white' }} RoomTurnChangedPayload
+ * @typedef {{ row: number, col: number, value?: number }} RoomSkillChange
+ * @typedef {{ player: 'black'|'white', skillId: string, targets?: Record<string, unknown>, changes?: RoomSkillChange[], specialEffect?: unknown, skillUsed?: Record<string, boolean> }} RoomSkillUsedPayload
+ * @typedef {{ type: 'bomb_explode', row: number, col: number, explosions: { row: number, col: number, was: number }[] } | { type: 'voodoo_expire', row: number, col: number } | Record<string, unknown>} RoomSkillEffectItem
+ * @typedef {{ effects?: RoomSkillEffectItem[] }} RoomSkillEffectPayload
+ * @typedef {{ player: string, socketId: string }} RoomPlayerSurrenderedPayload
+ * @typedef {{ fromPlayer: 'black'|'white' }} RoomUndoRequestedPayload
+ * @typedef {{ accepted: boolean, byPlayer: 'black'|'white', undoUsed?: Record<'black'|'white', boolean> }} RoomUndoResponsePayload
+ * @typedef {{ undoneMove?: { row: number, col: number }, currentTurn: 'black'|'white', undoUsed?: Record<'black'|'white', boolean> }} RoomUndoExecutedPayload
+ * @typedef {{ timeout: number }} RoomOpponentDisconnectedPayload
+ * @typedef {{ fromPlayer: 'host'|'guest' }} RoomRematchRequestPayload
+ */
 const OnlineGame = {
     // 状态
     roomId: null,
@@ -165,6 +186,7 @@ const OnlineGame = {
         OnlineUI.showToast(message);
     },
     
+    /** @param {RoomPlayerJoinedPayload} data */
     onPlayerJoined: function(data) {
         console.log('[OnlineGame] Player joined:', data);
         this.opponentNickname = data.nickname;
@@ -188,6 +210,7 @@ const OnlineGame = {
     
     // ========== 猜拳事件处理 ==========
     
+    /** @param {RoomRpsStartPayload} data */
     onRpsStart: function(data) {
         console.log('[OnlineGame] RPS start:', data);
         this.rpsPhase = true;
@@ -200,6 +223,7 @@ const OnlineGame = {
         OnlineUI.updateRpsOpponentStatus(true);
     },
     
+    /** @param {RoomRpsResultPayload} data */
     onRpsResult: function(data) {
         console.log('[OnlineGame] RPS result:', data);
         this.rpsPhase = false;
@@ -210,11 +234,13 @@ const OnlineGame = {
         OnlineUI.showRpsResult(myChoice, opponentChoice, data.result, data.winner === this.role);
     },
     
+    /** @param {RoomChooseSidePayload} data */
     onChooseSide: function(data) {
         console.log('[OnlineGame] Choose side:', data);
         OnlineUI.showSideChoiceModal(data.timeout);
     },
     
+    /** @param {RoomSidesDecidedPayload} data */
     onSidesDecided: function(data) {
         console.log('[OnlineGame] Sides decided:', data);
         
@@ -230,6 +256,7 @@ const OnlineGame = {
     
     // ========== 游戏事件处理 ==========
     
+    /** @param {RoomGameStartPayload} data */
     onGameStart: function(data) {
         console.log('[OnlineGame] Game start:', data);
         
@@ -260,6 +287,7 @@ const OnlineGame = {
         OnlineUI.updateGameUI();
     },
     
+    /** @param {RoomPiecePlacedPayload} data */
     onPiecePlaced: function(data) {
         console.log('[OnlineGame] Piece placed:', data);
         
@@ -293,6 +321,7 @@ const OnlineGame = {
         OnlineUI.showToast('无效落子: ' + data.reason);
     },
     
+    /** @param {RoomGameOverPayload} data */
     onGameOver: function(data) {
         console.log('[OnlineGame] Game over:', data);
         
@@ -321,6 +350,7 @@ const OnlineGame = {
         OnlineUI.showGameOverModal(iWon, message);
     },
     
+    /** @param {RoomTurnChangedPayload} data */
     onTurnChanged: function(data) {
         console.log('[OnlineGame] Turn changed:', data);
         GameState.currentPlayer = data.currentTurn === 'black' ? 1 : 2;
@@ -331,6 +361,7 @@ const OnlineGame = {
     
     // ========== 技能事件处理 ==========
     
+    /** @param {RoomSkillUsedPayload} data */
     onSkillUsed: function(data) {
         console.log('[OnlineGame] Skill used:', data);
         
@@ -369,6 +400,7 @@ const OnlineGame = {
         OnlineUI.showToast('技能使用无效: ' + data.reason);
     },
     
+    /** @param {RoomSkillEffectPayload} data */
     onSkillEffect: function(data) {
         console.log('[OnlineGame] Skill effect:', data);
         
@@ -396,16 +428,19 @@ const OnlineGame = {
     
     // ========== 投降悔棋处理 ==========
     
+    /** @param {RoomPlayerSurrenderedPayload} data */
     onPlayerSurrendered: function(data) {
         console.log('[OnlineGame] Player surrendered:', data);
         // game_over 事件会处理后续
     },
     
+    /** @param {RoomUndoRequestedPayload} data */
     onUndoRequested: function(data) {
         console.log('[OnlineGame] Undo requested:', data);
         OnlineUI.showUndoRequestModal();
     },
     
+    /** @param {RoomUndoResponsePayload} data */
     onUndoResponse: function(data) {
         console.log('[OnlineGame] Undo response:', data);
         
@@ -422,6 +457,7 @@ const OnlineGame = {
         }
     },
     
+    /** @param {RoomUndoExecutedPayload} data */
     onUndoExecuted: function(data) {
         console.log('[OnlineGame] Undo executed:', data);
         
@@ -449,6 +485,7 @@ const OnlineGame = {
     
     // ========== 断线重连处理 ==========
     
+    /** @param {RoomOpponentDisconnectedPayload} data */
     onOpponentDisconnected: function(data) {
         console.log('[OnlineGame] Opponent disconnected:', data);
         OnlineUI.showDisconnectWarning(data.timeout);
@@ -479,6 +516,7 @@ const OnlineGame = {
     
     // ========== 再来一局 ==========
     
+    /** @param {RoomRematchRequestPayload} data */
     onRematchRequest: function(data) {
         console.log('[OnlineGame] Rematch request:', data);
         OnlineUI.showRematchRequestModal();

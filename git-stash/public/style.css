@@ -217,6 +217,7 @@ p {
 }
 
 input[type="text"],
+textarea,
 input[type="color"],
 select {
   width: 100%;
@@ -226,6 +227,12 @@ select {
   padding: 8px 10px;
   font-size: 13px;
   background: #fff;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 72px;
+  line-height: 1.4;
 }
 
 input[type="color"] {

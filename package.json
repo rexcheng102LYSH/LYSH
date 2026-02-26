@@ -6,12 +6,17 @@
     "prestart": "npm --prefix server ci --omit=dev",
     "start": "npm --prefix server start",
     "dev": "npm --prefix server dev",
+    "test:server": "npm --prefix server test",
+    "typecheck": "tsc -p tsconfig.typecheck.json",
+    "verify": "npm run test:server && npm run typecheck",
     "tailwind:build": "tailwindcss -c tailwind.config.js -i ./tailwind.input.css -o ./tailwind.generated.css --minify",
     "tailwind:watch": "tailwindcss -c tailwind.config.js -i ./tailwind.input.css -o ./tailwind.generated.css --watch",
     "codex:stamp": "node ./scripts/codex_stamp.js",
     "codex:autostamp": "node ./scripts/codex_autostamp.js"
   },
   "devDependencies": {
-    "tailwindcss": "3.4.17"
+    "tailwindcss": "3.4.17",
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.2"
   }
 }

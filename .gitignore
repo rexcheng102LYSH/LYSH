@@ -13,3 +13,4 @@ screenshot/
 git-stash/node_modules/
 git-stash/data/
 git-stash/exports/
+scripts/monitor.log

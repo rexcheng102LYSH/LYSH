@@ -1,4 +1,7 @@
-# Project Lysh - File Map and Logic Overview (Alpha 0.7.9.8)
+﻿# Project Lysh - File Map and Logic Overview (Alpha 0.7.9.8)
+
+Last updated: 2026-02-25  
+Owner: Project Lead (Lysh)
 
 Purpose
 - This file is the architecture snapshot for current code.
@@ -8,6 +11,11 @@ Current release posture
 - Frontend version marker in `index.html` is `Alpha0.7.9.8`.
 - Online mode defaults to Zeabur production URL and falls back to localhost in dev.
 - Deployment currently favors single-service hosting (frontend static + backend Socket.IO in one Node service).
+
+Version semantics (must distinguish)
+- Frontend display version (`index.html`): player-facing release marker.
+- Backend protocol/runtime version (`GET /api/status -> version`): online capability/protocol marker.
+- Do not mix these two when stating "current version".
 
 Top-level files (current)
 - `index.html`: main entry, UI structure, script load order, online modal set.
@@ -20,6 +28,9 @@ Top-level files (current)
 - `background.js`: background canvas effects.
 - `gamestate.js`: `GameState` source-of-truth + legacy global sync.
 - `ai.js`: AI turn orchestration (with helpers in `js/game/game_ai.js`).
+- `js/resource_pack.js`: optional user-triggered resource predownload entry (registers SW + triggers prefetch).
+- `sw.js`: Service Worker for cache-first static asset fetch and resource-pack prefetch handling.
+  - **Cache version**: `lysh-user-pack-v1` (update this when resources change significantly)
 - `zeabur.yaml`: Zeabur service config (health check path `/api/status`).
 - `Dockerfile` (root): full-stack container for Zeabur single-service deploy.
 
@@ -53,6 +64,8 @@ Folder map (short)
 |   |   |-- socket_client.js
 |   |   |-- online_game.js
 |   |   |-- online_ui.js
+|   |
+|   |-- resource_pack.js
 |   |
 |   |-- skills/
 |       |-- registry.js
@@ -103,16 +116,36 @@ Core contracts and global single sources
 
 Frontend startup flow (actual)
 1) `index.html` loads base CSS + Tailwind output + Anime.js (with safe fallback wrappers).
-2) Loads core modules in order: assets/audio/lang/background/fx/gamestate/skills/game/ai.
-3) Loads Socket.IO CDN and online modules (`js/network/*`).
-4) Inline config sets `window.GAME_SERVER_URL`:
+2) Loads core modules in order: assets/audio/lang/background/fx/gamestate/skills/game/ai + `js/resource_pack.js`.
+3) `js/resource_pack.js` registers `sw.js` (HTTP/HTTPS only), exposing user-triggered predownload entry from main menu.
+4) Loads Socket.IO CDN and online modules (`js/network/*`).
+5) Inline config sets `window.GAME_SERVER_URL`:
    - non-localhost defaults to `https://lysh-server.zeabur.app`
    - localhost/127.0.0.1/192.168.* forces `http://localhost:3000`
-5) Runtime enters menu flow; online mode uses `SocketClient` + `OnlineGame` + `OnlineUI`.
+6) Runtime enters menu flow; online mode uses `SocketClient` + `OnlineGame` + `OnlineUI`.
+
+Script load order dependencies (critical)
+- `js/diagnostics.js` MUST load before `gamestate.js` to ensure `window.LYSH_DIAGNOSTICS` is available for state guard warnings.
+- `gamestate.js` MUST load before any game modules that depend on `GameState` or legacy globals.
+- Do not reorder script tags in `index.html` without verifying dependency chain.
 
 Runtime safety and diagnostics (game-relevant additions)
 - `index.html` includes global runtime guards: `window.error` / `window.unhandledrejection` and a fatal fallback UI (`fatalErrorOverlay`).
 - Startup safety wrappers already exist around new UI animation calls (Anime.js) to avoid hard-crash in degraded environments.
+- `js/diagnostics.js` provides a lightweight in-browser diagnostics buffer (`window.LYSH_DIAGNOSTICS`) with trace-id generation and network/state warning capture.
+- `js/network/socket_client.js` now attaches `__traceId`/`__clientTs` on object payloads and records incoming/outgoing network diagnostics.
+- `server/index.js` adds API trace IDs (`x-trace-id` header and `traceId` in `/api/status` & `/api/rooms`) plus structured server diagnostics for API timing and process-level crashes.
+- `gamestate.js` keeps behavior unchanged but adds warning-only guard checks for critical state writes (`currentPlayer`, `board`, `timeRemaining`, `moveCount`, `lastMove`).
+
+Type-check and test baseline (current)
+- Type-check entry is `tsconfig.typecheck.json` with `allowJs + checkJs + noEmit`.
+- Current low-risk checked files include:
+  - `server/config.js`, `server/index.js`, `server/roomManager.js`, `server/gameLogic.js`, `server/rpsLogic.js`, `server/skillLogic.js`, `server/protocol_contract.js`, `server/socketHandlers.js`
+  - `js/network/config.js`, `js/network/socket_client.js`
+  - global declarations from `types/globals.d.ts`
+- Server tests are running with Vitest (`npm --prefix server test`) and currently cover:
+  - `gameLogic`, `rpsLogic`, `skillLogic`, `protocol_contract`, `roomManager`
+- `server/socketHandlers.js` now contains payload-level JSDoc typedefs for key `client:*` inbound events and core `room:*` outbound payloads to stabilize checkJs feedback without changing runtime behavior.
 
 Online multiplayer flow (current)
 - Room IDs are 4-digit numeric IDs (not 6-digit).
@@ -169,6 +202,8 @@ UI behavior deltas worth remembering
 - `js/game/game_ui.js` contains long-press secondary tuning flows for multiple skins (classic / nature / ice_fire); this is part of gameplay feel, not only cosmetics.
 - Status panel supports scroll mode switching (`auto` / `manual`) with state mirrored in `GameState.statusScrollMode`.
 - LYSH developer area and DJ indicator toggle (keyboard `L` shortcut) are active control surfaces used during testing.
+- Top-right controls include a resource-download SVG button (next to appearance/skin) with arrow-fill and circular progress UI driven by `js/resource_pack.js`.
+- Under `file://` direct-open mode, resource download action is blocked by click-time prompt; project test entry should be `http://localhost:3000` or deployed HTTPS URL.
 
 Notes for future edits
 - Keep `GameState` as source-of-truth; sync legacy globals when modifying state.
@@ -181,4 +216,11 @@ Notes for future edits
   - network endpoints
   - module load order in `index.html`
 - PowerShell policy: allowed for read/search/test commands, not for direct code-file writes.
-- Mandatory pre-read policy: read `AGENTS.md` and `AGENTS_CONTEXT.md` before every response.
+- Pre-read policy alignment: for each new request read `AGENTS.md` + `AGENTS_CONTEXT.md`; re-read only when either file changes in-session.
+
+Doc maintenance triggers (update this file when changed)
+- Module boundaries or folder ownership.
+- Network event names/payload contracts.
+- Deploy topology, health endpoint, runtime URL logic.
+- Frontend startup load order and global fallback mechanisms.
+- Compatibility rules (e.g., room id length, lobby capability fields).

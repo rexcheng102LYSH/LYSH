@@ -5,41 +5,95 @@
 const config = require('./config');
 
 /**
- * 验证技能使用是否合法
- * @param {object} room - 房间对象
- * @param {string} socketId - 使用者的 Socket ID
- * @param {string} skillId - 技能 ID
- * @param {object} targets - 技能目标参数
+ * @typedef {'black' | 'white'} PlayerColor
+ * @typedef {'double'|'voodoo'|'move_self'|'move_enemy'|'zone'|'bomb'|'god_hand'|'chaos'|'short_battle'|'swap'} KnownSkillId
+ * @typedef {KnownSkillId | string} SkillId
+ * @typedef {{ row: number, col: number }} CellPos
+ * @typedef {{ id: string, nickname?: string }} RoomPlayer
+ * @typedef {{ black: boolean, white: boolean }} UsageState
+ * @typedef {{ row: number, col: number, player: PlayerColor, turnsLeft: number }} BombState
+ * @typedef {{ row: number, col: number, player: PlayerColor }} ZoneState
+ * @typedef {{ row: number, col: number, turnsLeft: number }} VoodooState
+ * @typedef {{ row: number, col: number, player: PlayerColor, time?: number, skillId?: SkillId }} MoveRecord
+ * @typedef {{
+ *   board: number[][],
+ *   currentTurn: PlayerColor,
+ *   skillUsed: UsageState,
+ *   moveHistory: MoveRecord[],
+ *   activeEffect: string | null,
+ *   bombs: BombState[],
+ *   zones: ZoneState[],
+ *   voodoo: VoodooState[],
+ *   lastMoveTime: number
+ * }} RoomGameState
+ * @typedef {{
+ *   players: {
+ *     [role: string]: RoomPlayer | undefined,
+ *     black?: RoomPlayer,
+ *     white?: RoomPlayer
+ *   },
+ *   game?: RoomGameState
+ * }} RoomState
+ * @typedef {RoomState & { game: RoomGameState }} RoomWithGame
+ * @typedef {{ pos: CellPos }} SingleTarget
+ * @typedef {{ pos1: CellPos, pos2: CellPos }} DoubleTarget
+ * @typedef {{ from: CellPos, to: CellPos }} MoveTarget
+ * @typedef {{ own: CellPos, opponent: CellPos }} SwapTarget
+ * @typedef {SingleTarget | DoubleTarget | MoveTarget | SwapTarget | Record<string, unknown>} SkillTargets
+ * @typedef {{ valid: boolean, reason?: string }} SkillValidationResult
+ * @typedef {{ row: number, col: number, value?: number, effect?: string, turnsLeft?: number, removed?: number }} SkillChange
+ * @typedef {{ type: string, [key: string]: unknown }} SkillSpecialEffect
+ * @typedef {{ skillId: SkillId, player: PlayerColor, changes: SkillChange[], specialEffect: SkillSpecialEffect | null }} ExecuteSkillResult
+ * @typedef {{
+ *   type: 'voodoo_expire',
+ *   row: number,
+ *   col: number
+ * } | {
+ *   type: 'bomb_explode',
+ *   row: number,
+ *   col: number,
+ *   explosions: { row: number, col: number, was: number }[]
+ * }} TurnEndEffect
+ */
+
+/**
+ * Validate whether the player can use a skill now.
+ * @param {RoomState | null | undefined} room
+ * @param {string} socketId
+ * @param {SkillId} skillId
+ * @param {SkillTargets | undefined} targets
+ * @returns {SkillValidationResult}
  */
 function isValidSkill(room, socketId, skillId, targets) {
     if (!room || !room.game) {
         return { valid: false, reason: 'game_not_started' };
     }
-    
+
     const game = room.game;
-    
-    // 检查是否轮到该玩家
+
     const currentPlayer = room.players[game.currentTurn];
     if (!currentPlayer || currentPlayer.id !== socketId) {
         return { valid: false, reason: 'not_your_turn' };
     }
-    
-    // 检查是否已使用过技能
+
     if (game.skillUsed[game.currentTurn]) {
         return { valid: false, reason: 'skill_already_used' };
     }
-    
-    // 根据技能类型验证目标
-    const validation = validateSkillTargets(room, skillId, targets);
+
+    const validation = validateSkillTargets(/** @type {RoomWithGame} */ (room), skillId, targets);
     if (!validation.valid) {
         return validation;
     }
-    
+
     return { valid: true };
 }
 
 /**
- * 验证技能目标参数
+ * Validate target payload based on skill type.
+ * @param {RoomWithGame} room
+ * @param {SkillId} skillId
+ * @param {SkillTargets | undefined} targets
+ * @returns {SkillValidationResult}
  */
 function validateSkillTargets(room, skillId, targets) {
     const game = room.game;
@@ -48,117 +102,112 @@ function validateSkillTargets(room, skillId, targets) {
     const currentTurn = game.currentTurn;
     const currentPiece = currentTurn === 'black' ? 1 : 2;
     const opponentPiece = currentTurn === 'black' ? 2 : 1;
-    
+
     switch (skillId) {
-        case 'double':
-            // 双连：需要两个空位置
-            if (!targets || !targets.pos1 || !targets.pos2) {
+        case 'double': {
+            const target = /** @type {DoubleTarget | undefined} */ (targets);
+            if (!target || !target.pos1 || !target.pos2) {
                 return { valid: false, reason: 'missing_targets' };
             }
-            if (!isEmptyCell(board, targets.pos1, size) || !isEmptyCell(board, targets.pos2, size)) {
+            if (!isEmptyCell(board, target.pos1, size) || !isEmptyCell(board, target.pos2, size)) {
                 return { valid: false, reason: 'cell_not_empty' };
             }
             break;
-            
-        case 'voodoo':
-            // 巫毒腐蚀：需要一个对方棋子位置
-            if (!targets || !targets.pos) {
+        }
+
+        case 'voodoo': {
+            const target = /** @type {SingleTarget | undefined} */ (targets);
+            if (!target || !target.pos) {
                 return { valid: false, reason: 'missing_target' };
             }
-            if (!isOpponentPiece(board, targets.pos, opponentPiece, size)) {
+            if (!isOpponentPiece(board, target.pos, opponentPiece, size)) {
                 return { valid: false, reason: 'not_opponent_piece' };
             }
             break;
-            
-        case 'move_self':
-            // 移花接木：需要己方棋子位置和目标空位
-            if (!targets || !targets.from || !targets.to) {
+        }
+
+        case 'move_self': {
+            const target = /** @type {MoveTarget | undefined} */ (targets);
+            if (!target || !target.from || !target.to) {
                 return { valid: false, reason: 'missing_targets' };
             }
-            if (!isOwnPiece(board, targets.from, currentPiece, size)) {
+            if (!isOwnPiece(board, target.from, currentPiece, size)) {
                 return { valid: false, reason: 'not_own_piece' };
             }
-            if (!isEmptyCell(board, targets.to, size)) {
+            if (!isEmptyCell(board, target.to, size)) {
                 return { valid: false, reason: 'target_not_empty' };
             }
             break;
-            
-        case 'move_enemy':
-            // 乾坤大挪移：需要对方棋子位置和目标空位
-            if (!targets || !targets.from || !targets.to) {
+        }
+
+        case 'move_enemy': {
+            const target = /** @type {MoveTarget | undefined} */ (targets);
+            if (!target || !target.from || !target.to) {
                 return { valid: false, reason: 'missing_targets' };
             }
-            if (!isOpponentPiece(board, targets.from, opponentPiece, size)) {
+            if (!isOpponentPiece(board, target.from, opponentPiece, size)) {
                 return { valid: false, reason: 'not_opponent_piece' };
             }
-            if (!isEmptyCell(board, targets.to, size)) {
+            if (!isEmptyCell(board, target.to, size)) {
                 return { valid: false, reason: 'target_not_empty' };
             }
             break;
-            
+        }
+
         case 'zone':
-            // 领地：需要一个空位置
-            if (!targets || !targets.pos) {
+        case 'bomb': {
+            const target = /** @type {SingleTarget | undefined} */ (targets);
+            if (!target || !target.pos) {
                 return { valid: false, reason: 'missing_target' };
             }
-            if (!isEmptyCell(board, targets.pos, size)) {
+            if (!isEmptyCell(board, target.pos, size)) {
                 return { valid: false, reason: 'cell_not_empty' };
             }
             break;
-            
-        case 'bomb':
-            // 时间炸弹：需要一个空位置
-            if (!targets || !targets.pos) {
+        }
+
+        case 'god_hand': {
+            const target = /** @type {SingleTarget | undefined} */ (targets);
+            if (!target || !target.pos) {
                 return { valid: false, reason: 'missing_target' };
             }
-            if (!isEmptyCell(board, targets.pos, size)) {
-                return { valid: false, reason: 'cell_not_empty' };
-            }
-            break;
-            
-        case 'god_hand':
-            // 上帝之手：需要一个有棋子的位置
-            if (!targets || !targets.pos) {
-                return { valid: false, reason: 'missing_target' };
-            }
-            if (isEmptyCell(board, targets.pos, size)) {
+            if (isEmptyCell(board, target.pos, size)) {
                 return { valid: false, reason: 'cell_empty' };
             }
             break;
-            
+        }
+
         case 'chaos':
-            // 混沌干扰：无需目标，随机效果
-            break;
-            
         case 'short_battle':
-            // 短兵相接：无需目标，限制落子范围
             break;
-            
-        case 'swap':
-            // 交换：需要己方和对方各一个棋子
-            if (!targets || !targets.own || !targets.opponent) {
+
+        case 'swap': {
+            const target = /** @type {SwapTarget | undefined} */ (targets);
+            if (!target || !target.own || !target.opponent) {
                 return { valid: false, reason: 'missing_targets' };
             }
-            if (!isOwnPiece(board, targets.own, currentPiece, size)) {
+            if (!isOwnPiece(board, target.own, currentPiece, size)) {
                 return { valid: false, reason: 'not_own_piece' };
             }
-            if (!isOpponentPiece(board, targets.opponent, opponentPiece, size)) {
+            if (!isOpponentPiece(board, target.opponent, opponentPiece, size)) {
                 return { valid: false, reason: 'not_opponent_piece' };
             }
             break;
-            
+        }
+
         default:
             return { valid: false, reason: 'unknown_skill' };
     }
-    
+
     return { valid: true };
 }
 
 /**
- * 执行技能效果
- * @param {object} room - 房间对象
- * @param {string} skillId - 技能 ID
- * @param {object} targets - 技能目标参数
+ * Execute skill effects and mutate game state.
+ * @param {RoomWithGame} room
+ * @param {SkillId} skillId
+ * @param {SkillTargets | undefined} targets
+ * @returns {ExecuteSkillResult}
  */
 function executeSkill(room, skillId, targets) {
     const game = room.game;
@@ -166,145 +215,151 @@ function executeSkill(room, skillId, targets) {
     const currentTurn = game.currentTurn;
     const currentPiece = currentTurn === 'black' ? 1 : 2;
     const opponentPiece = currentTurn === 'black' ? 2 : 1;
-    
+
+    /** @type {ExecuteSkillResult} */
     let result = {
         skillId,
         player: currentTurn,
         changes: [],
         specialEffect: null
     };
-    
+
     switch (skillId) {
-        case 'double':
-            // 双连：放置两个棋子
-            board[targets.pos1.row][targets.pos1.col] = currentPiece;
-            board[targets.pos2.row][targets.pos2.col] = currentPiece;
+        case 'double': {
+            const target = /** @type {DoubleTarget} */ (targets);
+            board[target.pos1.row][target.pos1.col] = currentPiece;
+            board[target.pos2.row][target.pos2.col] = currentPiece;
             result.changes = [
-                { row: targets.pos1.row, col: targets.pos1.col, value: currentPiece },
-                { row: targets.pos2.row, col: targets.pos2.col, value: currentPiece }
+                { row: target.pos1.row, col: target.pos1.col, value: currentPiece },
+                { row: target.pos2.row, col: target.pos2.col, value: currentPiece }
             ];
-            // 记录到历史
-            game.moveHistory.push({ row: targets.pos1.row, col: targets.pos1.col, player: currentTurn, skillId });
-            game.moveHistory.push({ row: targets.pos2.row, col: targets.pos2.col, player: currentTurn, skillId });
+            game.moveHistory.push({ row: target.pos1.row, col: target.pos1.col, player: currentTurn, skillId });
+            game.moveHistory.push({ row: target.pos2.row, col: target.pos2.col, player: currentTurn, skillId });
             break;
-            
-        case 'voodoo':
-            // 巫毒腐蚀：标记棋子，3回合后消失
+        }
+
+        case 'voodoo': {
+            const target = /** @type {SingleTarget} */ (targets);
             game.voodoo.push({
-                row: targets.pos.row,
-                col: targets.pos.col,
+                row: target.pos.row,
+                col: target.pos.col,
                 turnsLeft: 3
             });
             result.changes = [
-                { row: targets.pos.row, col: targets.pos.col, effect: 'voodoo', turnsLeft: 3 }
+                { row: target.pos.row, col: target.pos.col, effect: 'voodoo', turnsLeft: 3 }
             ];
             break;
-            
-        case 'move_self':
-            // 移花接木：移动己方棋子
-            board[targets.from.row][targets.from.col] = 0;
-            board[targets.to.row][targets.to.col] = currentPiece;
+        }
+
+        case 'move_self': {
+            const target = /** @type {MoveTarget} */ (targets);
+            board[target.from.row][target.from.col] = 0;
+            board[target.to.row][target.to.col] = currentPiece;
             result.changes = [
-                { row: targets.from.row, col: targets.from.col, value: 0 },
-                { row: targets.to.row, col: targets.to.col, value: currentPiece }
+                { row: target.from.row, col: target.from.col, value: 0 },
+                { row: target.to.row, col: target.to.col, value: currentPiece }
             ];
             break;
-            
-        case 'move_enemy':
-            // 乾坤大挪移：移动对方棋子
-            board[targets.from.row][targets.from.col] = 0;
-            board[targets.to.row][targets.to.col] = opponentPiece;
+        }
+
+        case 'move_enemy': {
+            const target = /** @type {MoveTarget} */ (targets);
+            board[target.from.row][target.from.col] = 0;
+            board[target.to.row][target.to.col] = opponentPiece;
             result.changes = [
-                { row: targets.from.row, col: targets.from.col, value: 0 },
-                { row: targets.to.row, col: targets.to.col, value: opponentPiece }
+                { row: target.from.row, col: target.from.col, value: 0 },
+                { row: target.to.row, col: target.to.col, value: opponentPiece }
             ];
             break;
-            
-        case 'zone':
-            // 领地：放置领地标记（3=黑方领地，4=白方领地）
+        }
+
+        case 'zone': {
+            const target = /** @type {SingleTarget} */ (targets);
             const zoneValue = currentTurn === 'black' ? 3 : 4;
-            board[targets.pos.row][targets.pos.col] = zoneValue;
+            board[target.pos.row][target.pos.col] = zoneValue;
             game.zones.push({
-                row: targets.pos.row,
-                col: targets.pos.col,
+                row: target.pos.row,
+                col: target.pos.col,
                 player: currentTurn
             });
             result.changes = [
-                { row: targets.pos.row, col: targets.pos.col, value: zoneValue, effect: 'zone' }
+                { row: target.pos.row, col: target.pos.col, value: zoneValue, effect: 'zone' }
             ];
             break;
-            
-        case 'bomb':
-            // 时间炸弹：放置炸弹，3回合后爆炸
-            board[targets.pos.row][targets.pos.col] = 5;  // 5 = 炸弹
+        }
+
+        case 'bomb': {
+            const target = /** @type {SingleTarget} */ (targets);
+            board[target.pos.row][target.pos.col] = 5;
             game.bombs.push({
-                row: targets.pos.row,
-                col: targets.pos.col,
+                row: target.pos.row,
+                col: target.pos.col,
                 player: currentTurn,
                 turnsLeft: 3
             });
             result.changes = [
-                { row: targets.pos.row, col: targets.pos.col, value: 5, effect: 'bomb', turnsLeft: 3 }
+                { row: target.pos.row, col: target.pos.col, value: 5, effect: 'bomb', turnsLeft: 3 }
             ];
             break;
-            
-        case 'god_hand':
-            // 上帝之手：移除任意棋子
-            const removedValue = board[targets.pos.row][targets.pos.col];
-            board[targets.pos.row][targets.pos.col] = 0;
+        }
+
+        case 'god_hand': {
+            const target = /** @type {SingleTarget} */ (targets);
+            const removedValue = board[target.pos.row][target.pos.col];
+            board[target.pos.row][target.pos.col] = 0;
             result.changes = [
-                { row: targets.pos.row, col: targets.pos.col, value: 0, removed: removedValue }
+                { row: target.pos.row, col: target.pos.col, value: 0, removed: removedValue }
             ];
             break;
-            
+        }
+
         case 'chaos':
-            // 混沌干扰：随机效果
             result.specialEffect = executeChaos(room);
             break;
-            
+
         case 'short_battle':
-            // 短兵相接：下一回合对方只能在最后落子点周围落子
             game.activeEffect = 'short_battle';
             result.specialEffect = {
                 type: 'short_battle',
-                center: game.moveHistory.length > 0 
+                center: game.moveHistory.length > 0
                     ? game.moveHistory[game.moveHistory.length - 1]
                     : { row: 7, col: 7 }
             };
             break;
-            
-        case 'swap':
-            // 交换：交换己方和对方的一个棋子
-            board[targets.own.row][targets.own.col] = opponentPiece;
-            board[targets.opponent.row][targets.opponent.col] = currentPiece;
+
+        case 'swap': {
+            const target = /** @type {SwapTarget} */ (targets);
+            board[target.own.row][target.own.col] = opponentPiece;
+            board[target.opponent.row][target.opponent.col] = currentPiece;
             result.changes = [
-                { row: targets.own.row, col: targets.own.col, value: opponentPiece },
-                { row: targets.opponent.row, col: targets.opponent.col, value: currentPiece }
+                { row: target.own.row, col: target.own.col, value: opponentPiece },
+                { row: target.opponent.row, col: target.opponent.col, value: currentPiece }
             ];
             break;
+        }
     }
-    
-    // 标记技能已使用
+
     game.skillUsed[currentTurn] = true;
     game.lastMoveTime = Date.now();
-    
+
     return result;
 }
 
 /**
- * 执行混沌干扰的随机效果
+ * Execute random chaos effect.
+ * @param {RoomWithGame} room
+ * @returns {SkillSpecialEffect}
  */
 function executeChaos(room) {
     const effects = ['shuffle', 'remove_random', 'add_random'];
     const effect = effects[Math.floor(Math.random() * effects.length)];
-    
+
     const game = room.game;
     const board = game.board;
     const size = config.board.size;
-    
+
     switch (effect) {
-        case 'shuffle':
-            // 随机交换两个棋子
+        case 'shuffle': {
             const pieces = [];
             for (let r = 0; r < size; r++) {
                 for (let c = 0; c < size; c++) {
@@ -317,11 +372,11 @@ function executeChaos(room) {
                 const i = Math.floor(Math.random() * pieces.length);
                 let j = Math.floor(Math.random() * pieces.length);
                 while (j === i) j = Math.floor(Math.random() * pieces.length);
-                
+
                 const temp = board[pieces[i].row][pieces[i].col];
                 board[pieces[i].row][pieces[i].col] = board[pieces[j].row][pieces[j].col];
                 board[pieces[j].row][pieces[j].col] = temp;
-                
+
                 return {
                     type: 'shuffle',
                     pos1: pieces[i],
@@ -329,9 +384,9 @@ function executeChaos(room) {
                 };
             }
             break;
-            
-        case 'remove_random':
-            // 随机移除一个棋子
+        }
+
+        case 'remove_random': {
             const removable = [];
             for (let r = 0; r < size; r++) {
                 for (let c = 0; c < size; c++) {
@@ -351,9 +406,9 @@ function executeChaos(room) {
                 };
             }
             break;
-            
-        case 'add_random':
-            // 随机添加一个棋子
+        }
+
+        case 'add_random': {
             const empty = [];
             for (let r = 0; r < size; r++) {
                 for (let c = 0; c < size; c++) {
@@ -373,24 +428,26 @@ function executeChaos(room) {
                 };
             }
             break;
+        }
     }
-    
+
     return { type: 'none' };
 }
 
 /**
- * 处理回合结束时的技能效果（炸弹倒计时、巫毒腐蚀等）
+ * Process delayed skill effects at turn end.
+ * @param {RoomWithGame} room
+ * @returns {TurnEndEffect[]}
  */
 function processTurnEndEffects(room) {
     const game = room.game;
     const board = game.board;
+    /** @type {TurnEndEffect[]} */
     const effects = [];
-    
-    // 处理巫毒腐蚀
-    game.voodoo = game.voodoo.filter(v => {
+
+    game.voodoo = game.voodoo.filter((v) => {
         v.turnsLeft--;
         if (v.turnsLeft <= 0) {
-            // 棋子消失
             board[v.row][v.col] = 0;
             effects.push({
                 type: 'voodoo_expire',
@@ -401,12 +458,10 @@ function processTurnEndEffects(room) {
         }
         return true;
     });
-    
-    // 处理时间炸弹
-    game.bombs = game.bombs.filter(b => {
+
+    game.bombs = game.bombs.filter((b) => {
         b.turnsLeft--;
         if (b.turnsLeft <= 0) {
-            // 炸弹爆炸，清除周围 3x3 区域
             const explosions = [];
             for (let dr = -1; dr <= 1; dr++) {
                 for (let dc = -1; dc <= 1; dc++) {
@@ -430,17 +485,20 @@ function processTurnEndEffects(room) {
         }
         return true;
     });
-    
-    // 清除短兵相接效果
+
     if (game.activeEffect === 'short_battle') {
         game.activeEffect = null;
     }
-    
+
     return effects;
 }
 
-// ========== 辅助函数 ==========
-
+/**
+ * @param {number[][]} board
+ * @param {CellPos | undefined} pos
+ * @param {number} size
+ * @returns {boolean}
+ */
 function isEmptyCell(board, pos, size) {
     if (!pos || pos.row < 0 || pos.row >= size || pos.col < 0 || pos.col >= size) {
         return false;
@@ -448,6 +506,13 @@ function isEmptyCell(board, pos, size) {
     return board[pos.row][pos.col] === 0;
 }
 
+/**
+ * @param {number[][]} board
+ * @param {CellPos | undefined} pos
+ * @param {number} ownPiece
+ * @param {number} size
+ * @returns {boolean}
+ */
 function isOwnPiece(board, pos, ownPiece, size) {
     if (!pos || pos.row < 0 || pos.row >= size || pos.col < 0 || pos.col >= size) {
         return false;
@@ -455,6 +520,13 @@ function isOwnPiece(board, pos, ownPiece, size) {
     return board[pos.row][pos.col] === ownPiece;
 }
 
+/**
+ * @param {number[][]} board
+ * @param {CellPos | undefined} pos
+ * @param {number} opponentPiece
+ * @param {number} size
+ * @returns {boolean}
+ */
 function isOpponentPiece(board, pos, opponentPiece, size) {
     if (!pos || pos.row < 0 || pos.row >= size || pos.col < 0 || pos.col >= size) {
         return false;

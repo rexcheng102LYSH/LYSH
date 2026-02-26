@@ -5,7 +5,7 @@ const I18N = {
         gameTitle: "技能五子棋", 
         // [Alpha 0.7.9.6] 主标题移除Alpha，由版本号胶囊统一显示
         demoBadge: "Demo測試版",
-        subTitle: "Alpha0.7.9.8", 
+        subTitle: "Alpha0.7.9.9", 
         btnPvE: "人機對戰", 
         btnPvPSingle: "雙人單局", 
         btnPvPBO3: "三番戰 (BO3)", 
@@ -162,7 +162,7 @@ const I18N = {
         gameTitle: "技能五子棋", 
         // [Alpha 0.7.9.6] 主标题移除Alpha，由版本号胶囊统一显示
         demoBadge: "Demo测试版",
-        subTitle: "Alpha0.7.9.8", 
+        subTitle: "Alpha0.7.9.9", 
         btnPvE: "人机对战", 
         btnPvPSingle: "双人单局", 
         btnPvPBO3: "三番战 (BO3)", 
@@ -319,7 +319,7 @@ const I18N = {
         gameTitle: "Skill Gomoku", 
         // [Alpha 0.7.9.6] Main title removes Alpha, unified in version capsule
         demoBadge: "Demo",
-        subTitle: "Alpha0.7.9.8", 
+        subTitle: "Alpha0.7.9.9", 
         btnPvE: "vs AI", 
         btnPvPSingle: "Local Single", 
         btnPvPBO3: "Local BO3", 

@@ -79,6 +79,62 @@ body {
 .icon-btn:hover { transform: scale(1.1); background: #fff; }
 .icon-btn:active { transform: scale(0.95); }
 
+.resource-download-btn {
+    padding: 0;
+    overflow: hidden;
+    background: transparent;
+    backdrop-filter: none;
+    box-shadow: none;
+}
+
+.resource-download-btn .resource-download-svg {
+    width: 44px;
+    height: 44px;
+    display: block;
+    shape-rendering: geometricPrecision;
+}
+
+.resource-shell-circle {
+    fill: #ffffff;
+}
+
+.resource-arrow-gray {
+    fill: #9aa3ab;
+    stroke: #7f8992;
+    stroke-width: 0.7;
+    stroke-linejoin: miter;
+    stroke-miterlimit: 10;
+}
+
+.resource-arrow-green {
+    fill: #2fbe59;
+    stroke: #248d43;
+    stroke-width: 0.7;
+    stroke-linejoin: miter;
+    stroke-miterlimit: 10;
+}
+
+.resource-progress-ring {
+    fill: none;
+    stroke: #2fbe59;
+    stroke-width: 2.8;
+    stroke-linecap: butt;
+    stroke-dasharray: 0 999;
+    transform: rotate(-90deg);
+    transform-origin: 22px 22px;
+    opacity: 0;
+    transition: stroke-dasharray 0.25s ease, opacity 0.2s ease;
+}
+
+.resource-download-btn.is-downloading .resource-progress-ring,
+.resource-download-btn.is-ready .resource-progress-ring {
+    opacity: 1;
+}
+
+.resource-download-btn.is-ready .resource-arrow-gray {
+    fill: #2fbe59;
+}
+
 .fps-counter {
     position: fixed; top: 20px; left: 20px;
     color: rgba(0, 255, 0, 0.5); font-family: 'Courier New', monospace;

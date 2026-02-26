@@ -48,7 +48,7 @@
           <input type="text" id="simpleReleaseTitle" placeholder="例如：release: Alpha 0.8.0" />
         </label>
         <label>Description（可选）
-          <input type="text" id="simpleReleaseDesc" placeholder="例如：完成技能UI与联机回滚修复" />
+          <textarea id="simpleReleaseDesc" class="multiline-input" rows="3" placeholder="例如：完成技能UI与联机回滚修复"></textarea>
         </label>
         <button id="simplePrepareReleaseBtn" class="btn primary">A. 一键发布提交</button>
         <p>步骤 B：清除版本提交前的所有 stash</p>
@@ -58,7 +58,7 @@
           <input type="text" id="simpleTagName" placeholder="例如：v0.7.9.82" />
         </label>
         <label>Tag 说明（可选）
-          <input type="text" id="simpleTagMessage" placeholder="例如：Alpha 0.7.9.82 发布点" />
+          <textarea id="simpleTagMessage" class="multiline-input" rows="2" placeholder="例如：Alpha 0.7.9.82 发布点"></textarea>
         </label>
         <button id="simpleCreateTagBtn" class="btn">C. 一键打 Tag</button>
       </div>
@@ -157,7 +157,7 @@
           <input type="text" id="recoveryBranchName" placeholder="例如：recover/stash-conflict-01" />
         </label>
         <label>补丁备注（可选）
-          <input type="text" id="patchNote" placeholder="例如：回滚冲突现场备份" />
+          <textarea id="patchNote" class="multiline-input" rows="2" placeholder="例如：回滚冲突现场备份"></textarea>
         </label>
         <pre id="conflictOutput" class="output safety"></pre>
       </div>
@@ -171,7 +171,7 @@
           <input type="color" id="tagColor" value="#4f46e5" />
         </label>
         <label>备注
-          <input type="text" id="tagNote" placeholder="例如：联机房间与技能同步正常" />
+          <textarea id="tagNote" class="multiline-input" rows="2" placeholder="例如：联机房间与技能同步正常"></textarea>
         </label>
         <div class="row">
           <button id="saveTagBtn" class="btn">保存标签</button>
