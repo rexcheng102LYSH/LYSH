@@ -184,6 +184,9 @@ Backend architecture (server)
 
 Deployment architecture (Zeabur)
 - Root `Dockerfile` builds runtime image, installs `server` deps, copies full repo.
+- `Dockerfile.lysh-server` is kept as a service-name Dockerfile alias for Zeabur dockerfile-name resolution.
+- `zbpack.json` keeps `ignore_dockerfile=false` and provides Node build/start fallback commands.
+- `zbpack.lysh-server.json` is the service-scoped override (`lysh-server`) to force Dockerfile preference and direct Node startup fallback.
 - Runtime starts from `/app/server` with `node index.js`.
 - `zeabur.yaml` points to root deploy and health checks `/api/status`.
 - `play.bat` opens production URL directly: `https://lysh-server.zeabur.app`.

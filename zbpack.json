@@ -1,0 +1,5 @@
+{
+  "ignore_dockerfile": false,
+  "build_command": "npm install",
+  "start_command": "npm run start"
+}

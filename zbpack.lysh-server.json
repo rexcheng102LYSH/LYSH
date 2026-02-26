@@ -1,0 +1,9 @@
+{
+  "ignore_dockerfile": false,
+  "app_dir": "/",
+  "dockerfile": {
+    "name": "lysh-server"
+  },
+  "build_command": "npm --prefix server ci --omit=dev",
+  "start_command": "node server/index.js"
+}
