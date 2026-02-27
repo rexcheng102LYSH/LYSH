@@ -128,7 +128,32 @@ const FrameRateController = {
     }
 };
 
+function cleanupOnlineSessionForLocalMode() {
+    if (!GameState.online || !GameState.online.isOnline) return;
+
+    if (typeof OnlineGame !== 'undefined' && OnlineGame && typeof OnlineGame.leaveRoom === 'function') {
+        OnlineGame.leaveRoom({
+            silent: true,
+            skipShowScreen: true,
+            skipFxClear: true
+        });
+        return;
+    }
+
+    if (typeof SocketClient !== 'undefined' && SocketClient && typeof SocketClient.disconnect === 'function') {
+        SocketClient.disconnect();
+    }
+    GameState.online = {
+        isOnline: false,
+        roomId: null,
+        myColor: null,
+        opponentNickname: null,
+        opponentPieceStyle: null
+    };
+}
+
 function goToMenu() { 
+    cleanupOnlineSessionForLocalMode();
     GameState.gameActive = false;
     gameActive = false; // 同步
     
@@ -207,6 +232,10 @@ function startPvPFlow(subMode) {
 }
 
 function enterTurnSelection(mode, diff) { 
+    if (mode !== 'online') {
+        cleanupOnlineSessionForLocalMode();
+    }
+
     // [Fix] 进入新游戏流程前，强制清空上一局的特效
     if (typeof VisualFX !== 'undefined') VisualFX.clear();
     

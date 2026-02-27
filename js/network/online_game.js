@@ -156,16 +156,34 @@ const OnlineGame = {
     /**
      * 离开房间
      */
-    leaveRoom: function() {
-        SocketClient.disconnect();
+    leaveRoom: function(options) {
+        const opts = options || {};
+        const silent = !!opts.silent;
+        const skipShowScreen = !!opts.skipShowScreen;
+        const skipFxClear = !!opts.skipFxClear;
+
+        if (typeof SocketClient !== 'undefined' && SocketClient && typeof SocketClient.disconnect === 'function') {
+            SocketClient.disconnect();
+        }
+        if (typeof SocketClient !== 'undefined' && SocketClient && typeof SocketClient.clearPendingReconnect === 'function') {
+            SocketClient.clearPendingReconnect();
+        }
+
         this.resetState();
-        OnlineUI.hideAllModals();
-        OnlineUI.showToast('已离开房间');
-        // 清除特效，防止连珠/烟花残留
-        if (typeof FxHost !== 'undefined' && FxHost.clear) FxHost.clear();
-        if (typeof VisualFX !== 'undefined' && VisualFX.clear) VisualFX.clear();
+
+        if (typeof OnlineUI !== 'undefined' && OnlineUI && typeof OnlineUI.hideAllModals === 'function') {
+            OnlineUI.hideAllModals();
+        }
+        if (!silent && typeof OnlineUI !== 'undefined' && OnlineUI && typeof OnlineUI.showToast === 'function') {
+            OnlineUI.showToast('已离开房间');
+        }
+        if (!skipFxClear) {
+            // 清除特效，防止连珠/烟花残留
+            if (typeof FxHost !== 'undefined' && FxHost.clear) FxHost.clear();
+            if (typeof VisualFX !== 'undefined' && VisualFX.clear) VisualFX.clear();
+        }
         // 返回主菜单
-        if (typeof showScreen === 'function') showScreen('main');
+        if (!skipShowScreen && typeof showScreen === 'function') showScreen('main');
     },
     
     // ========== 房间事件处理 ==========
@@ -1079,10 +1097,30 @@ const OnlineGame = {
         
         // 重置初始化标记，确保下次连接时重新注册事件监听
         this._initialized = false;
+
+        GameState.gameActive = false;
+        gameActive = false;
+        GameState.activeEffect = null;
+        activeEffect = null;
+        GameState.selectedCell = null;
+        selectedCell = null;
+        if (GameState.gameMode === 'online') {
+            GameState.gameMode = 'pvp';
+            gameMode = GameState.gameMode;
+        }
         
         // 重置 GameState 的联网状态
         if (GameState.online) {
-            GameState.online.isOnline = false;
+            GameState.online = {
+                isOnline: false,
+                roomId: null,
+                myColor: null,
+                opponentNickname: null,
+                opponentPieceStyle: null
+            };
+        }
+        if (typeof SocketClient !== 'undefined' && SocketClient && typeof SocketClient.clearPendingReconnect === 'function') {
+            SocketClient.clearPendingReconnect();
         }
     }
 };
