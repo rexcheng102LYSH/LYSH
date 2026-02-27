@@ -1,6 +1,6 @@
-﻿# Project Lysh - File Map and Logic Overview (Alpha 0.7.9.8)
+﻿# Project Lysh - File Map and Logic Overview (Alpha 0.7.9.9)
 
-Last updated: 2026-02-25  
+Last updated: 2026-02-26  
 Owner: Project Lead (Lysh)
 
 Purpose
@@ -8,7 +8,7 @@ Purpose
 - Read this before editing to understand module ownership and data flow.
 
 Current release posture
-- Frontend version marker in `index.html` is `Alpha0.7.9.8`.
+- Frontend version marker in `index.html` is `Alpha0.7.9.9`.
 - Online mode defaults to Zeabur production URL and falls back to localhost in dev.
 - Deployment currently favors single-service hosting (frontend static + backend Socket.IO in one Node service).
 
@@ -156,9 +156,16 @@ Online multiplayer flow (current)
   1. room waiting
   2. RPS (`client:rps_choice`)
   3. winner side choice (`client:side_choice`)
-  4. game start
-  5. gameplay events (`client:place_piece`, `client:use_skill`, undo/surrender/rematch)
-- Reconnect/disconnect handling is server-side with timeout and `game_over` fallback.
+  4. draft phase (`client:draft_pick`, `room:draft_start`, `room:draft_update`, `room:draft_complete`)
+     - picker timeout is 10s per turn; on timeout server auto-picks the first available skill in configured order
+  5. game start (`room:game_start` carries `playerSkills`, `timeRemaining`, `match`)
+  6. gameplay events (`client:place_piece`, `client:use_skill`, undo/surrender/rematch)
+  7. timer sync and timeout (`room:timer_sync`, `room:time_out`)
+- Reconnect/disconnect handling supports both host and guest during active match flow:
+  - disconnect enters reconnect window (`room:opponent_disconnected`) instead of immediately destroying room
+  - reconnect window timeout is 10 seconds
+  - frontend auto-sends `client:reconnect` with `{ roomId, oldSocketId }` after socket re-establish
+  - server validates `oldSocketId` and returns extended reconnect snapshot with `myColor`, `opponent`, `match`
 
 Online gameplay config details (important compatibility notes)
 - Lobby create path supports: rule preset, enabled-skill subset, and optional 4-digit room password (`client:lobby_create` payload).
@@ -168,6 +175,7 @@ Online gameplay config details (important compatibility notes)
 Backend architecture (server)
 - `server/index.js`
   - serves static frontend from project root (`express.static(..)`).
+  - adds SPA-style fallback for non-API/non-asset routes (for local paths like `/测试`) to `index.html`.
   - hosts Socket.IO server on same process/port.
   - health endpoint: `GET /api/status`.
   - debug endpoint: `GET /api/rooms`.

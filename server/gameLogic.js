@@ -10,7 +10,7 @@ const config = require('./config');
  * @typedef {{ id: string, nickname?: string, pieceStyle?: string, connected?: boolean }} RoomPlayer
  * @typedef {{ black: boolean, white: boolean }} UsageState
  * @typedef {{ row: number, col: number, player: PlayerColor, turnsLeft: number }} BombState
- * @typedef {{ row: number, col: number, player: PlayerColor }} ZoneState
+ * @typedef {{ row: number, col: number, player: PlayerColor, turnsLeft?: number }} ZoneState
  * @typedef {{ row: number, col: number, turnsLeft: number }} VoodooState
  * @typedef {{ row: number, col: number, player: PlayerColor, time?: number, skillId?: string }} MoveRecord
  * @typedef {{
@@ -22,6 +22,14 @@ const config = require('./config');
  *   bombs: BombState[],
  *   zones: ZoneState[],
  *   voodoo: VoodooState[],
+ *   playerSkills?: Record<PlayerColor, string | null>,
+ *   chaosDebuff?: Record<PlayerColor, number>,
+ *   shortBattleTurns?: number,
+ *   territoryZones?: ZoneState[],
+ *   isDoubleMoveActive?: boolean,
+ *   bombTarget?: PlayerColor | null,
+ *   timeRemaining?: Record<PlayerColor, number>,
+ *   turnStartedAt?: number,
  *   lastMoveTime?: number,
  *   activeEffect?: string | null
  * }} RoomGameState
@@ -34,7 +42,7 @@ const config = require('./config');
  *   game?: RoomGameState
  * }} RoomState
  * @typedef {RoomState & { game: RoomGameState }} RoomWithGame
- * @typedef {{ valid: boolean, reason?: string }} ValidationResult
+ * @typedef {{ valid: boolean, reason?: string, resolvedRow?: number, resolvedCol?: number, chaosApplied?: boolean }} ValidationResult
  * @typedef {{ winner: PlayerColor, winLine: BoardPos[] }} WinResult
  * @typedef {{ success: true, undoneMove: MoveRecord, currentTurn: PlayerColor } | { success: false, reason: string }} UndoResult
  * @typedef {{
@@ -45,9 +53,76 @@ const config = require('./config');
  *   undoUsed: UsageState,
  *   bombs: BombState[],
  *   zones: ZoneState[],
- *   voodoo: VoodooState[]
+ *   voodoo: VoodooState[],
+ *   playerSkills: Record<PlayerColor, string | null>,
+ *   chaosDebuff: Record<PlayerColor, number>,
+ *   shortBattleTurns: number,
+ *   territoryZones: ZoneState[],
+ *   isDoubleMoveActive: boolean,
+ *   bombTarget: PlayerColor | null,
+ *   timeRemaining: Record<PlayerColor, number>,
+ *   turnStartedAt: number
  * }} BoardStateSnapshot
  */
+
+function isValidPos(row, col) {
+    const size = config.board.size;
+    return row >= 0 && row < size && col >= 0 && col < size;
+}
+
+/**
+ * @param {RoomGameState} game
+ * @param {number} row
+ * @param {number} col
+ * @param {PlayerColor} playerColor
+ * @returns {boolean}
+ */
+function isZoneRestricted(game, row, col, playerColor) {
+    const zones = game.territoryZones || [];
+    for (const zone of zones) {
+        if ((zone.turnsLeft || 0) <= 0) continue;
+        if (zone.player === playerColor) continue;
+        if (Math.abs(zone.row - row) <= 1 && Math.abs(zone.col - col) <= 1) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * @param {RoomGameState} game
+ * @param {number} row
+ * @param {number} col
+ * @param {PlayerColor} playerColor
+ * @returns {{ row: number, col: number, applied: boolean }}
+ */
+function resolveChaosMove(game, row, col, playerColor) {
+    const debuff = game.chaosDebuff || { black: 0, white: 0 };
+    if ((debuff[playerColor] || 0) <= 0) {
+        return { row, col, applied: false };
+    }
+
+    /** @type {{row:number,col:number}[]} */
+    const candidates = [];
+    for (let r = row - 1; r <= row + 1; r++) {
+        for (let c = col - 1; c <= col + 1; c++) {
+            if (!isValidPos(r, c)) continue;
+            if (game.board[r][c] !== 0) continue;
+            if (isZoneRestricted(game, r, c, playerColor)) continue;
+            candidates.push({ row: r, col: c });
+        }
+    }
+
+    if (candidates.length === 0) {
+        return { row, col, applied: false };
+    }
+    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    return {
+        row: pick.row,
+        col: pick.col,
+        applied: pick.row !== row || pick.col !== col
+    };
+}
 
 /**
  * Validate whether the incoming move is legal.
@@ -63,14 +138,8 @@ function isValidMove(room, socketId, row, col) {
     }
 
     const game = room.game;
-    const size = config.board.size;
-
-    if (row < 0 || row >= size || col < 0 || col >= size) {
+    if (!isValidPos(row, col)) {
         return { valid: false, reason: 'out_of_bounds' };
-    }
-
-    if (game.board[row][col] !== 0) {
-        return { valid: false, reason: 'cell_occupied' };
     }
 
     const currentPlayer = room.players[game.currentTurn];
@@ -78,7 +147,23 @@ function isValidMove(room, socketId, row, col) {
         return { valid: false, reason: 'not_your_turn' };
     }
 
-    return { valid: true };
+    const resolved = resolveChaosMove(game, row, col, game.currentTurn);
+    if (!isValidPos(resolved.row, resolved.col)) {
+        return { valid: false, reason: 'resolved_out_of_bounds' };
+    }
+    if (game.board[resolved.row][resolved.col] !== 0) {
+        return { valid: false, reason: 'cell_occupied' };
+    }
+    if (isZoneRestricted(game, resolved.row, resolved.col, game.currentTurn)) {
+        return { valid: false, reason: 'zone_restricted' };
+    }
+
+    return {
+        valid: true,
+        resolvedRow: resolved.row,
+        resolvedCol: resolved.col,
+        chaosApplied: resolved.applied
+    };
 }
 
 /**
@@ -105,7 +190,7 @@ function placePiece(room, row, col) {
 }
 
 /**
- * Check whether a move creates a five-in-a-row.
+ * Check whether a move creates a line.
  * @param {RoomWithGame} room
  * @param {number} row
  * @param {number} col
@@ -115,9 +200,8 @@ function checkWin(room, row, col) {
     const game = room.game;
     const board = game.board;
     const piece = board[row][col];
-    const size = config.board.size;
 
-    if (piece === 0) return null;
+    if (piece !== 1 && piece !== 2) return null;
 
     const directions = [
         { dr: 0, dc: 1 },
@@ -126,12 +210,14 @@ function checkWin(room, row, col) {
         { dr: 1, dc: -1 }
     ];
 
+    const limit = (game.shortBattleTurns || 0) > 0 ? 4 : 5;
+
     for (const { dr, dc } of directions) {
         const line = [{ row, col }];
 
         let r = row + dr;
         let c = col + dc;
-        while (r >= 0 && r < size && c >= 0 && c < size && board[r][c] === piece) {
+        while (isValidPos(r, c) && board[r][c] === piece) {
             line.push({ row: r, col: c });
             r += dr;
             c += dc;
@@ -139,16 +225,16 @@ function checkWin(room, row, col) {
 
         r = row - dr;
         c = col - dc;
-        while (r >= 0 && r < size && c >= 0 && c < size && board[r][c] === piece) {
+        while (isValidPos(r, c) && board[r][c] === piece) {
             line.unshift({ row: r, col: c });
             r -= dr;
             c -= dc;
         }
 
-        if (line.length >= 5) {
+        if (line.length >= limit) {
             return {
                 winner: piece === 1 ? 'black' : 'white',
-                winLine: line.slice(0, 5)
+                winLine: line.slice(0, limit)
             };
         }
     }
@@ -157,14 +243,41 @@ function checkWin(room, row, col) {
 }
 
 /**
- * Switch current turn to the other side.
+ * Tick turn-bound status and switch current turn.
  * @param {RoomWithGame} room
  * @returns {PlayerColor}
  */
 function switchTurn(room) {
     const game = room.game;
+
+    // 领地状态递减
+    game.territoryZones = (game.territoryZones || [])
+        .map((zone) => ({ ...zone, turnsLeft: (zone.turnsLeft || 0) - 1 }))
+        .filter((zone) => (zone.turnsLeft || 0) > 0);
+
+    // 短兵状态递减
+    if ((game.shortBattleTurns || 0) > 0) {
+        game.shortBattleTurns = Math.max(0, (game.shortBattleTurns || 0) - 1);
+    }
+
     game.currentTurn = game.currentTurn === 'black' ? 'white' : 'black';
+    game.turnStartedAt = Date.now();
     return game.currentTurn;
+}
+
+/**
+ * Consume one chaos debuff stack for current player.
+ * @param {RoomWithGame} room
+ * @returns {number}
+ */
+function consumeChaosDebuff(room) {
+    const game = room.game;
+    const key = game.currentTurn;
+    const debuff = game.chaosDebuff || { black: 0, white: 0 };
+    const next = Math.max(0, (debuff[key] || 0) - 1);
+    debuff[key] = next;
+    game.chaosDebuff = debuff;
+    return next;
 }
 
 /**
@@ -182,6 +295,7 @@ function executeUndo(room) {
     const lastMove = game.moveHistory.pop();
     game.board[lastMove.row][lastMove.col] = 0;
     game.currentTurn = lastMove.player;
+    game.turnStartedAt = Date.now();
 
     return {
         success: true,
@@ -206,9 +320,19 @@ function getBoardState(room) {
         moveHistory: [...game.moveHistory],
         skillUsed: { ...game.skillUsed },
         undoUsed: { ...game.undoUsed },
-        bombs: [...game.bombs],
-        zones: [...game.zones],
-        voodoo: [...game.voodoo]
+        bombs: [...(game.bombs || [])],
+        zones: [...(game.zones || [])],
+        voodoo: [...(game.voodoo || [])],
+        playerSkills: { ...(game.playerSkills || { black: null, white: null }) },
+        chaosDebuff: { ...(game.chaosDebuff || { black: 0, white: 0 }) },
+        shortBattleTurns: game.shortBattleTurns || 0,
+        territoryZones: [...(game.territoryZones || [])],
+        isDoubleMoveActive: !!game.isDoubleMoveActive,
+        bombTarget: game.bombTarget || null,
+        timeRemaining: {
+            ...(game.timeRemaining || { black: 240, white: 240 })
+        },
+        turnStartedAt: game.turnStartedAt || Date.now()
     };
 }
 
@@ -217,6 +341,8 @@ module.exports = {
     placePiece,
     checkWin,
     switchTurn,
+    consumeChaosDebuff,
     executeUndo,
-    getBoardState
+    getBoardState,
+    isZoneRestricted
 };

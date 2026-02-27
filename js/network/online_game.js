@@ -9,14 +9,20 @@
  * @typedef {{ hostChoice: 'rock'|'paper'|'scissors', guestChoice: 'rock'|'paper'|'scissors', result: 'tie'|'decided', winner?: 'host'|'guest' }} RoomRpsResultPayload
  * @typedef {{ timeout: number }} RoomChooseSidePayload
  * @typedef {{ blackPlayer: string, whitePlayer: string, blackSocketId: string, whiteSocketId: string }} RoomSidesDecidedPayload
- * @typedef {{ blackPlayer: string, whitePlayer: string }} RoomGameStartPayload
- * @typedef {{ row: number, col: number, player: 'black'|'white', pieceValue: number, nextTurn?: 'black'|'white' }} RoomPiecePlacedPayload
+ * @typedef {{ firstPicker: 'black'|'white', availableSkills: string[], timeoutMs: number }} RoomDraftStartPayload
+ * @typedef {{ picked: { black?: string, white?: string }, currentPicker: 'black'|'white'|null, remainMs?: number }} RoomDraftUpdatePayload
+ * @typedef {{ playerSkills: { black: string|null, white: string|null } }} RoomDraftCompletePayload
+ * @typedef {{ blackPlayer: string, whitePlayer: string, playerSkills?: { black: string|null, white: string|null }, timeRemaining?: { black:number, white:number }, match?: unknown }} RoomGameStartPayload
+ * @typedef {{ row: number, col: number, player: 'black'|'white', pieceValue: number, nextTurn?: 'black'|'white', requestedRow?: number, requestedCol?: number, resolvedRow?: number, resolvedCol?: number, chaosApplied?: boolean, state?: Record<string, unknown> }} RoomPiecePlacedPayload
  * @typedef {{ winner: 'black'|'white', winLine?: { row: number, col: number }[], reason: 'five_in_row'|'surrender'|'disconnect_timeout'|string }} RoomGameOverPayload
  * @typedef {{ currentTurn: 'black'|'white' }} RoomTurnChangedPayload
  * @typedef {{ row: number, col: number, value?: number }} RoomSkillChange
- * @typedef {{ player: 'black'|'white', skillId: string, targets?: Record<string, unknown>, changes?: RoomSkillChange[], specialEffect?: unknown, skillUsed?: Record<string, boolean> }} RoomSkillUsedPayload
+ * @typedef {{ player: 'black'|'white', skillId: string, targets?: Record<string, unknown>, changes?: RoomSkillChange[], specialEffect?: unknown, skillUsed?: Record<string, boolean>, state?: Record<string, unknown> }} RoomSkillUsedPayload
  * @typedef {{ type: 'bomb_explode', row: number, col: number, explosions: { row: number, col: number, was: number }[] } | { type: 'voodoo_expire', row: number, col: number } | Record<string, unknown>} RoomSkillEffectItem
  * @typedef {{ effects?: RoomSkillEffectItem[] }} RoomSkillEffectPayload
+ * @typedef {{ timeRemaining: { black:number, white:number }, currentTurn:'black'|'white', ts:number }} RoomTimerSyncPayload
+ * @typedef {{ loser:'black'|'white', winner:'black'|'white' }} RoomTimeOutPayload
+ * @typedef {{ winner:'host'|'guest', winnerColor:'black'|'white', scores:{host:number,guest:number} }} RoomMatchOverPayload
  * @typedef {{ player: string, socketId: string }} RoomPlayerSurrenderedPayload
  * @typedef {{ fromPlayer: 'black'|'white' }} RoomUndoRequestedPayload
  * @typedef {{ accepted: boolean, byPlayer: 'black'|'white', undoUsed?: Record<'black'|'white', boolean> }} RoomUndoResponsePayload
@@ -41,6 +47,9 @@ const OnlineGame = {
     // 猜拳状态
     rpsPhase: false,
     myRpsChoice: null,
+    pendingSkill: null,
+    draftState: null,
+    matchState: null,
     
     // 防止重复初始化
     _initialized: false,
@@ -74,6 +83,9 @@ const OnlineGame = {
         socket.on('room:rps_result', this.onRpsResult.bind(this));
         socket.on('room:choose_side', this.onChooseSide.bind(this));
         socket.on('room:sides_decided', this.onSidesDecided.bind(this));
+        socket.on('room:draft_start', this.onDraftStart.bind(this));
+        socket.on('room:draft_update', this.onDraftUpdate.bind(this));
+        socket.on('room:draft_complete', this.onDraftComplete.bind(this));
         
         // 游戏事件
         socket.on('room:game_start', this.onGameStart.bind(this));
@@ -81,6 +93,9 @@ const OnlineGame = {
         socket.on('server:invalid_move', this.onInvalidMove.bind(this));
         socket.on('room:game_over', this.onGameOver.bind(this));
         socket.on('room:turn_changed', this.onTurnChanged.bind(this));
+        socket.on('room:timer_sync', this.onTimerSync.bind(this));
+        socket.on('room:time_out', this.onTimeOut.bind(this));
+        socket.on('room:match_over', this.onMatchOver.bind(this));
         
         // 技能事件
         socket.on('room:skill_used', this.onSkillUsed.bind(this));
@@ -237,6 +252,9 @@ const OnlineGame = {
     /** @param {RoomChooseSidePayload} data */
     onChooseSide: function(data) {
         console.log('[OnlineGame] Choose side:', data);
+        if (typeof OnlineUI.hideGameOverModal === 'function') {
+            OnlineUI.hideGameOverModal();
+        }
         OnlineUI.showSideChoiceModal(data.timeout);
     },
     
@@ -253,8 +271,114 @@ const OnlineGame = {
         
         OnlineUI.showToast('你是' + (this.myColor === 'black' ? '黑方(先手)' : '白方(后手)'));
     },
+
+    /** @param {RoomDraftStartPayload} data */
+    onDraftStart: function(data) {
+        console.log('[OnlineGame] Draft start:', data);
+        this.draftState = {
+            availableSkills: Array.isArray(data.availableSkills) ? data.availableSkills.slice() : [],
+            currentPicker: data.firstPicker,
+            picked: {},
+            remainMs: Number.isFinite(data.timeoutMs) ? data.timeoutMs : 0
+        };
+        if (typeof OnlineUI.showDraftModal === 'function') {
+            OnlineUI.showDraftModal(this.draftState.availableSkills, this.myColor, this.sendDraftPick.bind(this));
+            if (typeof OnlineUI.updateDraftState === 'function') {
+                OnlineUI.updateDraftState(this.draftState, this.myColor);
+            }
+        } else if (typeof showScreen === 'function') {
+            showScreen('draft');
+        }
+    },
+
+    /** @param {RoomDraftUpdatePayload} data */
+    onDraftUpdate: function(data) {
+        console.log('[OnlineGame] Draft update:', data);
+        this.draftState = this.draftState || {};
+        this.draftState.picked = data.picked || {};
+        this.draftState.currentPicker = data.currentPicker;
+        this.draftState.remainMs = Number.isFinite(data.remainMs) ? data.remainMs : this.draftState.remainMs;
+        if (typeof OnlineUI.updateDraftState === 'function') {
+            OnlineUI.updateDraftState(this.draftState, this.myColor);
+        }
+    },
+
+    /** @param {RoomDraftCompletePayload} data */
+    onDraftComplete: function(data) {
+        console.log('[OnlineGame] Draft complete:', data);
+        if (data && data.playerSkills) {
+            GameState.playerSkills = {
+                [MAPLE]: data.playerSkills.black || null,
+                [SUN]: data.playerSkills.white || null
+            };
+            playerSkills = GameState.playerSkills;
+        }
+        if (typeof OnlineUI.hideDraftModal === 'function') {
+            OnlineUI.hideDraftModal();
+        }
+    },
     
     // ========== 游戏事件处理 ==========
+
+    applyStateDelta: function(state) {
+        if (!state || typeof state !== 'object') return;
+        if (state.currentTurn) {
+            GameState.currentPlayer = state.currentTurn === 'black' ? MAPLE : SUN;
+            currentPlayer = GameState.currentPlayer;
+        }
+        if (state.skillUsed) {
+            GameState.skillUsed = {
+                [MAPLE]: !!state.skillUsed.black,
+                [SUN]: !!state.skillUsed.white
+            };
+            skillUsed = GameState.skillUsed;
+        }
+        if (state.playerSkills) {
+            GameState.playerSkills = {
+                [MAPLE]: state.playerSkills.black || null,
+                [SUN]: state.playerSkills.white || null
+            };
+            playerSkills = GameState.playerSkills;
+        }
+        if (state.chaosDebuff) {
+            GameState.chaosDebuff = {
+                [MAPLE]: Number(state.chaosDebuff.black || 0),
+                [SUN]: Number(state.chaosDebuff.white || 0)
+            };
+            chaosDebuff = GameState.chaosDebuff;
+        }
+        if (Number.isFinite(state.shortBattleTurns)) {
+            GameState.shortBattleTurns = state.shortBattleTurns;
+            shortBattleTurns = GameState.shortBattleTurns;
+        }
+        if (Array.isArray(state.territoryZones)) {
+            GameState.territoryZones = state.territoryZones.map((z) => ({
+                r: z.row,
+                c: z.col,
+                owner: z.player === 'black' ? MAPLE : SUN,
+                turns: Number(z.turnsLeft || 0)
+            }));
+            territoryZones = GameState.territoryZones;
+            if (typeof updateTerritoriesUI === 'function') updateTerritoriesUI();
+        }
+        if (typeof state.isDoubleMoveActive === 'boolean') {
+            GameState.isDoubleMoveActive = state.isDoubleMoveActive;
+            isDoubleMoveActive = GameState.isDoubleMoveActive;
+        }
+        if (state.bombTarget) {
+            GameState.bombTarget = state.bombTarget === 'black' ? MAPLE : SUN;
+        } else if (state.bombTarget === null) {
+            GameState.bombTarget = null;
+        }
+        bombTarget = GameState.bombTarget;
+        if (state.timeRemaining) {
+            GameState.timeRemaining = {
+                [MAPLE]: Number.isFinite(state.timeRemaining.black) ? state.timeRemaining.black : GameState.timeRemaining[MAPLE],
+                [SUN]: Number.isFinite(state.timeRemaining.white) ? state.timeRemaining.white : GameState.timeRemaining[SUN]
+            };
+            timeRemaining = GameState.timeRemaining;
+        }
+    },
     
     /** @param {RoomGameStartPayload} data */
     onGameStart: function(data) {
@@ -277,10 +401,30 @@ const OnlineGame = {
         this.opponentSkillUsed = false;
         this.myUndoUsed = false;
         this.opponentUndoUsed = false;
+        this.pendingSkill = null;
+        this.matchState = data.match || null;
+        if (typeof OnlineUI.updateMatchScore === 'function') {
+            OnlineUI.updateMatchScore(this.matchState, this.role);
+        }
+
+        if (data.playerSkills) {
+            GameState.playerSkills = {
+                [MAPLE]: data.playerSkills.black || null,
+                [SUN]: data.playerSkills.white || null
+            };
+            playerSkills = GameState.playerSkills;
+        }
+        if (data.timeRemaining) {
+            GameState.timeRemaining = {
+                [MAPLE]: Number.isFinite(data.timeRemaining.black) ? data.timeRemaining.black : 240,
+                [SUN]: Number.isFinite(data.timeRemaining.white) ? data.timeRemaining.white : 240
+            };
+            timeRemaining = GameState.timeRemaining;
+        }
         
         // 启动游戏
         if (typeof startOnlineGame === 'function') {
-            startOnlineGame(this.myColor, this.opponentNickname);
+            startOnlineGame(this.myColor, this.opponentNickname, data);
         }
         
         // 更新 UI 显示对手信息
@@ -290,15 +434,17 @@ const OnlineGame = {
     /** @param {RoomPiecePlacedPayload} data */
     onPiecePlaced: function(data) {
         console.log('[OnlineGame] Piece placed:', data);
+        const r = Number.isInteger(data.resolvedRow) ? data.resolvedRow : data.row;
+        const c = Number.isInteger(data.resolvedCol) ? data.resolvedCol : data.col;
         
         // 使用专门的处理函数渲染棋子
         if (typeof handleOnlineOpponentMove === 'function') {
-            handleOnlineOpponentMove(data.row, data.col, data.pieceValue);
+            handleOnlineOpponentMove(r, c, data.pieceValue);
         } else {
             // 备用：直接更新并渲染
-            GameState.board[data.row][data.col] = data.pieceValue;
-            board[data.row][data.col] = data.pieceValue;
-            const cell = getCell(data.row, data.col);
+            GameState.board[r][c] = data.pieceValue;
+            board[r][c] = data.pieceValue;
+            const cell = getCell(r, c);
             if (cell && typeof renderPieceInCell === 'function') {
                 renderPieceInCell(cell, data.pieceValue);
             }
@@ -314,6 +460,10 @@ const OnlineGame = {
                 updateDynamicUI();
             }
         }
+        this.applyStateDelta(data.state);
+        if (data.chaosApplied) {
+            OnlineUI.showToast('混沌干扰触发');
+        }
     },
     
     onInvalidMove: function(data) {
@@ -324,6 +474,13 @@ const OnlineGame = {
     /** @param {RoomGameOverPayload} data */
     onGameOver: function(data) {
         console.log('[OnlineGame] Game over:', data);
+        this.applyStateDelta(data.state);
+        if (data.match) {
+            this.matchState = data.match;
+            if (typeof OnlineUI.updateMatchScore === 'function') {
+                OnlineUI.updateMatchScore(this.matchState, this.role);
+            }
+        }
         
         const iWon = data.winner === this.myColor;
         let message = iWon ? '你赢了！' : '你输了';
@@ -338,6 +495,12 @@ const OnlineGame = {
             case 'disconnect_timeout':
                 message = iWon ? '对手断线超时，你赢了！' : '断线超时，你输了';
                 break;
+            case 'timeout':
+                message = iWon ? '对手超时，你赢了！' : '你超时了';
+                break;
+            case 'bomb_explode':
+                message = iWon ? '炸弹引爆，你赢了！' : '炸弹引爆，你输了';
+                break;
         }
         
         // 显示胜利特效
@@ -347,6 +510,13 @@ const OnlineGame = {
         }
         
         GameState.gameActive = false;
+        gameActive = false;
+
+        const isBo3InterRound = !!(data.match && data.match.mode === 'bo3' && !data.match.over);
+        if (isBo3InterRound) {
+            OnlineUI.showToast('本局结束，进入下一局选边');
+            return;
+        }
         OnlineUI.showGameOverModal(iWon, message);
     },
     
@@ -354,9 +524,47 @@ const OnlineGame = {
     onTurnChanged: function(data) {
         console.log('[OnlineGame] Turn changed:', data);
         GameState.currentPlayer = data.currentTurn === 'black' ? 1 : 2;
+        currentPlayer = GameState.currentPlayer;
+        this.applyStateDelta(data.state);
         if (typeof updateDynamicUI === 'function') {
             updateDynamicUI();
         }
+    },
+
+    /** @param {RoomTimerSyncPayload} data */
+    onTimerSync: function(data) {
+        if (!data || !data.timeRemaining) return;
+        GameState.timeRemaining = {
+            [MAPLE]: Number.isFinite(data.timeRemaining.black) ? data.timeRemaining.black : GameState.timeRemaining[MAPLE],
+            [SUN]: Number.isFinite(data.timeRemaining.white) ? data.timeRemaining.white : GameState.timeRemaining[SUN]
+        };
+        timeRemaining = GameState.timeRemaining;
+        if (data.currentTurn) {
+            GameState.currentPlayer = data.currentTurn === 'black' ? MAPLE : SUN;
+            currentPlayer = GameState.currentPlayer;
+        }
+        if (typeof updateDynamicUI === 'function') updateDynamicUI();
+    },
+
+    /** @param {RoomTimeOutPayload} data */
+    onTimeOut: function(data) {
+        console.log('[OnlineGame] Timeout:', data);
+        OnlineUI.showToast('超时判负');
+    },
+
+    /** @param {RoomMatchOverPayload} data */
+    onMatchOver: function(data) {
+        console.log('[OnlineGame] Match over:', data);
+        this.matchState = {
+            mode: 'bo3',
+            scores: data.scores || { host: 0, guest: 0 },
+            over: true,
+            winner: data.winner
+        };
+        if (typeof OnlineUI.updateMatchScore === 'function') {
+            OnlineUI.updateMatchScore(this.matchState, this.role);
+        }
+        OnlineUI.showToast('BO3 比赛结束');
     },
     
     // ========== 技能事件处理 ==========
@@ -368,6 +576,9 @@ const OnlineGame = {
         // 更新技能使用状态
         if (data.player === this.myColor) {
             this.mySkillUsed = true;
+            this.pendingSkill = null;
+            GameState.activeEffect = null;
+            activeEffect = null;
         } else {
             this.opponentSkillUsed = true;
         }
@@ -377,6 +588,9 @@ const OnlineGame = {
             for (const change of data.changes) {
                 if (change.value !== undefined) {
                     GameState.board[change.row][change.col] = change.value;
+                    if (Array.isArray(board) && Array.isArray(board[change.row])) {
+                        board[change.row][change.col] = change.value;
+                    }
                 }
             }
         }
@@ -388,6 +602,10 @@ const OnlineGame = {
         
         // 显示技能特效提示
         OnlineUI.showToast((data.player === this.myColor ? '你' : '对手') + '使用了技能');
+        this.applyStateDelta(data.state);
+        if (data.specialEffect && data.specialEffect.type === 'bomb_activated') {
+            OnlineUI.showToast('炸弹已激活');
+        }
         
         // 更新 UI
         if (typeof updateDynamicUI === 'function') {
@@ -411,11 +629,17 @@ const OnlineGame = {
                     // 炸弹爆炸效果
                     for (const exp of effect.explosions) {
                         GameState.board[exp.row][exp.col] = 0;
+                        if (Array.isArray(board) && Array.isArray(board[exp.row])) {
+                            board[exp.row][exp.col] = 0;
+                        }
                     }
                     OnlineUI.showToast('炸弹爆炸！');
                 } else if (effect.type === 'voodoo_expire') {
                     // 巫毒腐蚀生效
                     GameState.board[effect.row][effect.col] = 0;
+                    if (Array.isArray(board) && Array.isArray(board[effect.row])) {
+                        board[effect.row][effect.col] = 0;
+                    }
                     OnlineUI.showToast('巫毒腐蚀生效！');
                 }
             }
@@ -464,10 +688,14 @@ const OnlineGame = {
         // 恢复棋盘状态
         if (data.undoneMove) {
             GameState.board[data.undoneMove.row][data.undoneMove.col] = 0;
+            if (Array.isArray(board) && Array.isArray(board[data.undoneMove.row])) {
+                board[data.undoneMove.row][data.undoneMove.col] = 0;
+            }
         }
         
         // 更新回合
         GameState.currentPlayer = data.currentTurn === 'black' ? 1 : 2;
+        currentPlayer = GameState.currentPlayer;
         
         // 更新悔棋状态
         if (data.undoUsed) {
@@ -499,11 +727,59 @@ const OnlineGame = {
     
     onReconnectSuccess: function(data) {
         console.log('[OnlineGame] Reconnect success:', data);
-        // TODO: 恢复游戏状态
+        if (!data || !data.boardState) return;
+        const state = data.boardState;
+        if (data.roomId) this.roomId = data.roomId;
+        if (data.role) this.role = data.role;
+        if (data.myColor) this.myColor = data.myColor;
+        if (data.opponent && data.opponent.nickname) {
+            this.opponentNickname = data.opponent.nickname;
+            this.opponentPieceStyle = data.opponent.pieceStyle || this.opponentPieceStyle;
+        }
+        if (data.match) {
+            this.matchState = data.match;
+            if (typeof OnlineUI.updateMatchScore === 'function') {
+                OnlineUI.updateMatchScore(this.matchState, this.role);
+            }
+        }
+        GameState.online = {
+            isOnline: true,
+            roomId: this.roomId,
+            myColor: this.myColor,
+            opponentNickname: this.opponentNickname,
+            opponentPieceStyle: this.opponentPieceStyle
+        };
+        GameState.gameMode = 'online';
+        gameMode = 'online';
+
+        GameState.board = state.board || GameState.board;
+        board = GameState.board;
+        if (data.status === 'playing') {
+            GameState.gameActive = true;
+            gameActive = true;
+            if (typeof showScreen === 'function') showScreen('game');
+        } else {
+            GameState.gameActive = false;
+            gameActive = false;
+        }
+        this.applyStateDelta(state);
+        if (Array.isArray(state.moveHistory)) {
+            GameState.moveHistory = state.moveHistory;
+        }
+        if (typeof renderBoard === 'function') renderBoard();
+        if (typeof updateDynamicUI === 'function') updateDynamicUI();
+        OnlineUI.hideDisconnectWarning();
+        if (SocketClient && typeof SocketClient.clearPendingReconnect === 'function') {
+            SocketClient.clearPendingReconnect();
+        }
+        OnlineUI.showToast('重连成功，状态已恢复');
     },
     
     onReconnectFailed: function(data) {
         console.log('[OnlineGame] Reconnect failed:', data);
+        if (SocketClient && typeof SocketClient.clearPendingReconnect === 'function') {
+            SocketClient.clearPendingReconnect();
+        }
         OnlineUI.showToast('重连失败: ' + data.reason);
     },
     
@@ -584,6 +860,10 @@ const OnlineGame = {
     sendSideChoice: function(side) {
         SocketClient.emit('client:side_choice', { side });
     },
+
+    sendDraftPick: function(skillId) {
+        SocketClient.emit('client:draft_pick', { skillId });
+    },
     
     /**
      * 请求再来一局
@@ -643,6 +923,126 @@ const OnlineGame = {
             OnlineUI.renderRoomList(data.rooms || []);
         }
     },
+
+    activateOnlineSkill: function(skillId) {
+        if (!this.isMyTurn()) {
+            OnlineUI.showToast('当前不是你的回合');
+            return;
+        }
+        if (this.mySkillUsed) {
+            OnlineUI.showToast('技能已使用');
+            return;
+        }
+
+        const instantSkills = new Set(['double', 'chaos', 'short_battle', 'bomb']);
+        if (instantSkills.has(skillId)) {
+            this.sendSkill(skillId, {});
+            return;
+        }
+
+        this.pendingSkill = { id: skillId, step: 0, data: {} };
+        GameState.activeEffect = 'online_pending_skill';
+        activeEffect = GameState.activeEffect;
+        const hintMap = {
+            voodoo: '请选择目标棋子',
+            zone: '请选择领地中心',
+            move_self: '请选择己方棋子',
+            move_enemy: '请选择敌方棋子',
+            swap: '请选择己方棋子',
+            god_hand: '请选择第一颗棋子'
+        };
+        OnlineUI.showToast(hintMap[skillId] || '请选择技能目标');
+    },
+
+    hasPendingSkill: function() {
+        return !!this.pendingSkill;
+    },
+
+    clearPendingSkill: function() {
+        this.pendingSkill = null;
+        GameState.activeEffect = null;
+        activeEffect = null;
+    },
+
+    handleSkillCellClick: function(r, c) {
+        if (!this.pendingSkill) return false;
+        const skillId = this.pendingSkill.id;
+        const val = GameState.board[r][c];
+        const myPiece = GameState.currentPlayer;
+        const enemyPiece = myPiece === MAPLE ? SUN : MAPLE;
+
+        if (skillId === 'voodoo') {
+            if (val === EMPTY || val === CORRODED) return true;
+            this.sendSkill(skillId, { pos: { row: r, col: c } });
+            this.clearPendingSkill();
+            return true;
+        }
+
+        if (skillId === 'zone') {
+            this.sendSkill(skillId, { pos: { row: r, col: c } });
+            this.clearPendingSkill();
+            return true;
+        }
+
+        if (skillId === 'move_self' || skillId === 'move_enemy') {
+            if (!this.pendingSkill.data.from) {
+                const ok = skillId === 'move_self' ? val === myPiece : val === enemyPiece;
+                if (!ok) return true;
+                this.pendingSkill.data.from = { row: r, col: c };
+                OnlineUI.showToast('请选择目标空位');
+                return true;
+            }
+            if (val !== EMPTY) return true;
+            this.sendSkill(skillId, {
+                from: this.pendingSkill.data.from,
+                to: { row: r, col: c }
+            });
+            this.clearPendingSkill();
+            return true;
+        }
+
+        if (skillId === 'swap') {
+            if (!this.pendingSkill.data.own) {
+                if (val !== myPiece) return true;
+                this.pendingSkill.data.own = { row: r, col: c };
+                OnlineUI.showToast('请选择敌方棋子');
+                return true;
+            }
+            if (val !== enemyPiece) return true;
+            this.sendSkill(skillId, {
+                own: this.pendingSkill.data.own,
+                opponent: { row: r, col: c }
+            });
+            this.clearPendingSkill();
+            return true;
+        }
+
+        if (skillId === 'god_hand') {
+            const moves = this.pendingSkill.data.moves || [];
+            if (!this.pendingSkill.data.from) {
+                if (val === EMPTY || val === CORRODED) return true;
+                this.pendingSkill.data.from = { row: r, col: c };
+                OnlineUI.showToast('请选择落点');
+                return true;
+            }
+            if (val !== EMPTY) return true;
+            moves.push({
+                from: this.pendingSkill.data.from,
+                to: { row: r, col: c }
+            });
+            this.pendingSkill.data.moves = moves;
+            this.pendingSkill.data.from = null;
+            if (moves.length >= 2) {
+                this.sendSkill(skillId, { moves });
+                this.clearPendingSkill();
+            } else {
+                OnlineUI.showToast('请选择第二颗棋子');
+            }
+            return true;
+        }
+
+        return false;
+    },
     
     // ========== 工具方法 ==========
     
@@ -670,6 +1070,12 @@ const OnlineGame = {
         this.opponentUndoUsed = false;
         this.rpsPhase = false;
         this.myRpsChoice = null;
+        this.pendingSkill = null;
+        this.draftState = null;
+        this.matchState = null;
+        if (typeof OnlineUI !== 'undefined' && typeof OnlineUI.updateMatchScore === 'function') {
+            OnlineUI.updateMatchScore(null, null);
+        }
         
         // 重置初始化标记，确保下次连接时重新注册事件监听
         this._initialized = false;

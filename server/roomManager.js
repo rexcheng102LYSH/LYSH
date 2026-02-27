@@ -49,6 +49,7 @@ const config = require('./config');
  *  white: RoomPlayer|null
  * }} players
  * @property {RpsState} rps
+ * @property {{ availableSkills?: string[], picks?: {black?: string|null, white?: string|null}, currentPicker?: 'black'|'white'|null, startedAt?: number, timeoutMs?: number, timerId?: ReturnType<typeof setTimeout>|null }|null} draft
  * @property {any} game
  * @property {MatchState} match
  * @property {number} createdAt
@@ -99,7 +100,8 @@ class RoomManager {
         
         const room = {
             id: roomId,
-            status: 'waiting',  // waiting -> rps -> choosing_side -> playing -> finished
+            status: 'waiting',  // waiting -> rps -> choosing_side -> drafting -> playing -> finished
+            draft: null,
             
             players: {
                 host: {
@@ -194,8 +196,14 @@ class RoomManager {
             // 检查是否是房主
             if (room.players.host && room.players.host.id === socketId) {
                 console.log(`[Room] ${roomId}: Host left`);
+                const inMatchFlow = room.status === 'playing' || room.status === 'choosing_side' || room.status === 'drafting';
+                if (inMatchFlow) {
+                    room.players.host.connected = false;
+                    room.players.host.disconnectTime = Date.now();
+                    return { roomId, role: 'host', room, gameInProgress: true };
+                }
                 this.rooms.delete(roomId);
-                return { roomId, role: 'host', room };
+                return { roomId, role: 'host', room, gameInProgress: false };
             }
             
             // 检查是否是加入者
@@ -267,8 +275,18 @@ class RoomManager {
     initGame(roomId) {
         const room = this.rooms.get(roomId);
         if (!room) return null;
+
+        if (room.game && room.game.timerId) {
+            clearInterval(room.game.timerId);
+        }
         
         const size = config.board.size;
+        const draftPicks = room.draft && room.draft.picks
+            ? {
+                black: room.draft.picks.black || null,
+                white: room.draft.picks.white || null
+            }
+            : { black: null, white: null };
         
         room.game = {
             board: Array(size).fill(null).map(() => Array(size).fill(0)),
@@ -276,20 +294,33 @@ class RoomManager {
             moveHistory: [],
             startTime: Date.now(),
             lastMoveTime: Date.now(),
-            
+            turnStartedAt: Date.now(),
+             
             // 技能状态
             skillUsed: { black: false, white: false },
+            playerSkills: draftPicks,
+            chaosDebuff: { black: 0, white: 0 },
+            shortBattleTurns: 0,
+            territoryZones: [],
+            isDoubleMoveActive: false,
+            bombTarget: null,
+            timeRemaining: { black: 240, white: 240 },
+            timerId: null,
+            timerRunning: false,
+            effectData: {},
+            // 旧字段兼容
             bombs: [],      // 时间炸弹
             zones: [],      // 领地
             voodoo: [],     // 巫毒腐蚀
             activeEffect: null,
-            
+             
             // 悔棋状态
             undoUsed: { black: false, white: false },
             undoPending: null
         };
         
         room.status = 'playing';
+        room.draft = null;
         
         console.log(`[Room] ${roomId}: Game started`);
         
@@ -303,6 +334,10 @@ class RoomManager {
     resetGame(roomId) {
         const room = this.rooms.get(roomId);
         if (!room) return null;
+
+        if (room.game && room.game.timerId) {
+            clearInterval(room.game.timerId);
+        }
         
         // 重置猜拳
         room.rps = {
@@ -318,9 +353,16 @@ class RoomManager {
         
         // 清除游戏状态
         room.game = null;
+        room.draft = null;
         
         // 回到猜拳阶段
         room.status = 'rps';
+
+        // 再来一局按新系列赛重置比分
+        if (room.match) {
+            room.match.scores = { host: 0, guest: 0 };
+            room.match.currentGame = 1;
+        }
         
         console.log(`[Room] ${roomId}: Game reset`);
         
@@ -387,6 +429,7 @@ class RoomManager {
             id: roomId,
             status: 'waiting',
             isLobbyRoom: true,  // 标记为大厅房间
+            draft: null,
             
             players: {
                 host: {

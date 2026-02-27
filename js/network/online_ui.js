@@ -377,9 +377,159 @@ const OnlineUI = {
         this.hideSideChoiceModal();
         OnlineGame.sendSideChoice(side);
     },
-    
+
+    showDraftModal: function(availableSkills, myColor, onPick) {
+        if (typeof showScreen === 'function') {
+            showScreen('draft');
+        }
+        if (this._draftCtx && this._draftCtx.timerId) {
+            this.stopDraftCountdown();
+        }
+        const grid = document.getElementById('skillGrid');
+        const title = document.getElementById('draftTitle');
+        if (!grid) return;
+
+        grid.innerHTML = '';
+        const skills = Array.isArray(availableSkills) && availableSkills.length > 0
+            ? availableSkills
+            : (typeof SKILL_IDS !== 'undefined' ? SKILL_IDS : []);
+        this._draftCtx = {
+            availableSkills: skills.slice(),
+            myColor,
+            onPick,
+            draftState: null,
+            timerId: null,
+            deadlineTs: null
+        };
+        skills.forEach((sid) => {
+            const card = document.createElement('div');
+            card.className = 'skill-card';
+            card.dataset.skillId = sid;
+            const meta = typeof t === 'function' ? t(sid, 'skills') : { name: sid, desc: sid };
+            const iconSvg = (typeof SKILL_ICONS !== 'undefined' ? SKILL_ICONS[sid] : '') || '';
+            card.innerHTML = `
+                <div class="skill-icon">${iconSvg}</div>
+                <div class="skill-info">
+                    <div class="skill-title">${meta.name || sid}</div>
+                    <div class="skill-desc">${meta.desc || ''}</div>
+                </div>
+            `;
+            card.onclick = () => {
+                if (typeof onPick === 'function') onPick(sid);
+                grid.querySelectorAll('.skill-card').forEach((el) => {
+                    el.classList.add('disabled');
+                    el.onclick = null;
+                });
+                card.classList.add('selected');
+            };
+            grid.appendChild(card);
+        });
+        if (title) {
+            title.textContent = '\u6280\u80FD\u8349\u7A3F\u51C6\u5907\u4E2D...';
+        }
+    },
+
+    updateDraftState: function(draftState, myColor) {
+        const grid = document.getElementById('skillGrid');
+        if (!draftState || !grid || !this._draftCtx) return;
+
+        const picker = draftState.currentPicker;
+        this._draftCtx.myColor = myColor;
+        this._draftCtx.draftState = {
+            picked: draftState.picked || {},
+            currentPicker: picker || null,
+            remainMs: Number.isFinite(draftState.remainMs) ? draftState.remainMs : 0
+        };
+        if (picker) {
+            this._draftCtx.deadlineTs = Date.now() + this._draftCtx.draftState.remainMs;
+            this.startDraftCountdown();
+        } else {
+            this.stopDraftCountdown();
+        }
+        this.renderDraftTitle();
+
+        const pickedSet = new Set(Object.values(draftState.picked || {}).filter(Boolean));
+        const canPick = (myColor === picker);
+        grid.innerHTML = '';
+
+        this._draftCtx.availableSkills.forEach((sid) => {
+            const card = document.createElement('div');
+            card.className = 'skill-card';
+            card.dataset.skillId = sid;
+            const meta = typeof t === 'function' ? t(sid, 'skills') : { name: sid, desc: sid };
+            const iconSvg = (typeof SKILL_ICONS !== 'undefined' ? SKILL_ICONS[sid] : '') || '';
+            card.innerHTML = `
+                <div class="skill-icon">${iconSvg}</div>
+                <div class="skill-info">
+                    <div class="skill-title">${meta.name || sid}</div>
+                    <div class="skill-desc">${meta.desc || ''}</div>
+                </div>
+            `;
+            const picked = pickedSet.has(sid);
+            if (picked) {
+                card.classList.add('selected');
+            } else if (canPick) {
+                card.onclick = () => {
+                    if (typeof this._draftCtx.onPick === 'function') this._draftCtx.onPick(sid);
+                };
+            } else {
+                card.classList.add('disabled');
+            }
+            grid.appendChild(card);
+        });
+    },
+
+    renderDraftTitle: function() {
+        const title = document.getElementById('draftTitle');
+        const ctx = this._draftCtx;
+        if (!title || !ctx || !ctx.draftState) return;
+
+        const myColor = ctx.myColor;
+        const picker = ctx.draftState.currentPicker;
+        const mySide = myColor === 'black' ? '\u5148\u624B\u65B9' : '\u540E\u624B\u65B9';
+        const pickerSide = picker === 'black' ? '\u5148\u624B\u65B9' : (picker === 'white' ? '\u540E\u624B\u65B9' : '');
+        const remainMs = ctx.deadlineTs ? Math.max(0, ctx.deadlineTs - Date.now()) : Number(ctx.draftState.remainMs || 0);
+        const remainSec = Math.max(0, Math.ceil(remainMs / 1000));
+
+        if (!picker) {
+            title.textContent = '\u53CC\u65B9\u6280\u80FD\u5DF2\u786E\u8BA4\uFF0C\u6B63\u5728\u8FDB\u5165\u5BF9\u5C40...';
+            return;
+        }
+        if (myColor === picker) {
+            title.textContent = `\u60A8\u662F${mySide}\uFF0C\u8BF7\u60A8\u9009\u62E9\u6280\u80FD\uFF08${remainSec}\uFF09`;
+        } else {
+            title.textContent = `\u60A8\u662F${mySide}\uFF0C\u5F53\u524D${pickerSide}\u6B63\u5728\u9009\u62E9\u6280\u80FD\uFF08${remainSec}\uFF09`;
+        }
+    },
+
+    startDraftCountdown: function() {
+        const ctx = this._draftCtx;
+        if (!ctx) return;
+        this.stopDraftCountdown();
+        ctx.timerId = setInterval(() => {
+            if (!this._draftCtx || !this._draftCtx.draftState) return;
+            this.renderDraftTitle();
+            if (this._draftCtx.deadlineTs && Date.now() >= this._draftCtx.deadlineTs) {
+                this.stopDraftCountdown();
+            }
+        }, 250);
+    },
+
+    stopDraftCountdown: function() {
+        const ctx = this._draftCtx;
+        if (!ctx || !ctx.timerId) return;
+        clearInterval(ctx.timerId);
+        ctx.timerId = null;
+    },
+
+    hideDraftModal: function() {
+        // Draft uses its own screen and is closed by game_start -> game transition.
+        this.stopDraftCountdown();
+        this._draftCtx = null;
+    },
+
     /**
-     * 显示游戏结束弹窗
+     * Show game over modal
      */
     showGameOverModal: function(iWon, message) {
         const modal = document.getElementById('onlineGameOverModal');
@@ -541,6 +691,30 @@ const OnlineUI = {
         if (myColorDisplay && OnlineGame.myColor) {
             myColorDisplay.textContent = OnlineGame.myColor === 'black' ? '黑方' : '白方';
         }
+
+        this.updateMatchScore(OnlineGame.matchState, OnlineGame.role);
+    },
+
+    updateMatchScore: function(matchState, myRole) {
+        const scoreBoard = document.getElementById('scoreBoard');
+        if (!scoreBoard) return;
+
+        if (!matchState || matchState.mode !== 'bo3') {
+            if (typeof GameState !== 'undefined' && GameState.gameMode === 'online') {
+                scoreBoard.style.display = 'none';
+            }
+            return;
+        }
+
+        const scores = matchState.scores || { host: 0, guest: 0 };
+        const role = myRole === 'guest' ? 'guest' : 'host';
+        const enemyRole = role === 'host' ? 'guest' : 'host';
+        const myScore = Number(scores[role] || 0);
+        const enemyScore = Number(scores[enemyRole] || 0);
+        const overTag = matchState.over ? ' 已结束' : '';
+
+        scoreBoard.style.display = 'block';
+        scoreBoard.textContent = `BO3 你 (${myScore}) : (${enemyScore}) 对手${overTag}`;
     },
     
     /**

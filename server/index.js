@@ -127,6 +127,18 @@ app.get('/api/rooms', (req, res) => {
     });
 });
 
+// 前端路由回退：允许本地测试使用 /测试 等路径直接打开页面
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/socket.io/')) {
+        return next();
+    }
+    // 静态资源文件（含扩展名）仍交给静态中间件处理
+    if (path.extname(req.path)) {
+        return next();
+    }
+    return res.sendFile(path.join(FRONTEND_ROOT, 'index.html'));
+});
+
 // 启动服务器
 process.on('unhandledRejection', (reason) => {
     logServerDiagnostic('error', 'unhandled_rejection', {

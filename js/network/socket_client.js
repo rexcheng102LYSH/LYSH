@@ -36,6 +36,7 @@ function validateOutgoingPayload(event, data) {
             }
             return { valid: true };
         case 'client:use_skill':
+        case 'client:draft_pick':
             if (!isObject(data) || typeof data.skillId !== 'string' || !data.skillId.trim()) {
                 return { valid: false, reason: 'invalid_skill_id' };
             }
@@ -119,6 +120,9 @@ function getTraceIdFromPayload(payload) {
 const SocketClient = {
     socket: null,
     connected: false,
+    _manualDisconnect: false,
+    _lastSocketId: null,
+    _pendingReconnect: null,
     
     /**
      * 自动获取服务器地址
@@ -161,6 +165,14 @@ const SocketClient = {
                 this.socket.on('connect', () => {
                     console.log('[Socket] Connected:', this.socket.id);
                     this.connected = true;
+                    this._lastSocketId = this.socket.id;
+                    this._manualDisconnect = false;
+
+                    const reconnectPayload = this._pendingReconnect;
+                    if (reconnectPayload && reconnectPayload.roomId && reconnectPayload.oldSocketId) {
+                        console.log('[Socket] Attempting room reconnect:', reconnectPayload.roomId);
+                        this.emit('client:reconnect', reconnectPayload);
+                    }
                     resolve();
                 });
                 
@@ -172,7 +184,23 @@ const SocketClient = {
                 
                 this.socket.on('disconnect', (reason) => {
                     console.log('[Socket] Disconnected:', reason);
+                    const disconnectedSocketId = this._lastSocketId || (this.socket ? this.socket.id : null);
                     this.connected = false;
+
+                    if (!this._manualDisconnect
+                        && typeof window !== 'undefined'
+                        && window.OnlineGame
+                        && OnlineGame.roomId
+                        && disconnectedSocketId) {
+                        this._pendingReconnect = {
+                            roomId: OnlineGame.roomId,
+                            oldSocketId: disconnectedSocketId
+                        };
+                    }
+                    if (this._manualDisconnect) {
+                        this._pendingReconnect = null;
+                        this._manualDisconnect = false;
+                    }
                     
                     // 通知 UI 断线
                     if (OnlineGame && OnlineGame.handleDisconnect) {
@@ -198,9 +226,11 @@ const SocketClient = {
      */
     disconnect: function() {
         if (this.socket) {
+            this._manualDisconnect = true;
             this.socket.disconnect();
             this.socket = null;
             this.connected = false;
+            this._pendingReconnect = null;
             console.log('[Socket] Manually disconnected');
         }
     },
@@ -288,6 +318,10 @@ const SocketClient = {
      */
     getId: function() {
         return this.socket ? this.socket.id : null;
+    },
+
+    clearPendingReconnect: function() {
+        this._pendingReconnect = null;
     }
 };
 

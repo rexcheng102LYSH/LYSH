@@ -23,6 +23,7 @@ const { validateClientPayload } = require('./protocol_contract');
  * @typedef {{ side: 'black'|'white' } & TracePayload} SideChoicePayload
  * @typedef {{ row: number, col: number } & TracePayload} PlacePiecePayload
  * @typedef {{ skillId: KnownSkillId | string, targets?: SkillTargets } & TracePayload} UseSkillPayload
+ * @typedef {{ skillId: KnownSkillId | string } & TracePayload} DraftPickPayload
  * @typedef {{ accept: boolean } & TracePayload} RespondUndoPayload
  * @typedef {{ nickname: string, rule?: 'single'|'bo3'|string, enabledSkills?: string[], hasPassword?: boolean, password?: string } & TracePayload} LobbyCreatePayload
  * @typedef {{ roomId: string, nickname: string, password?: string } & TracePayload} LobbyJoinPayload
@@ -36,7 +37,7 @@ const { validateClientPayload } = require('./protocol_contract');
  * @typedef {{ effects: unknown[] }} SkillEffectPayload
  * @typedef {{ player: 'black'|'white', skillId: string, targets?: SkillTargets, changes: unknown[], specialEffect: unknown, skillUsed: Record<string, boolean> }} SkillUsedPayload
  * @typedef {{ currentTurn: 'black'|'white' }} TurnChangedPayload
- * @typedef {{ roomId: string, role: string, boardState: unknown, status: string }} ReconnectSuccessPayload
+ * @typedef {{ roomId: string, role: string, boardState: unknown, status: string, match?: unknown, myColor?: 'black'|'white'|null, opponent?: { nickname?: string, pieceStyle?: string } }} ReconnectSuccessPayload
  * @typedef {{ blackPlayer: string, whitePlayer: string }} GameStartPayload
  * @typedef {{ blackPlayer: string, whitePlayer: string, blackSocketId: string, whiteSocketId: string }} SidesDecidedPayload
  */
@@ -98,12 +99,307 @@ function validateIncoming(socket, eventName, data) {
     return true;
 }
 
+const DEFAULT_SKILLS = Object.freeze([
+    'double', 'voodoo', 'move_self', 'move_enemy', 'zone',
+    'bomb', 'god_hand', 'chaos', 'short_battle', 'swap'
+]);
+const DRAFT_PICK_TIMEOUT_MS = 10000;
+
+/**
+ * @param {import('./roomManager')} roomManager
+ * @param {string} roomId
+ * @returns {string[]}
+ */
+function resolveDraftSkillPool(roomManager, roomId) {
+    const room = roomManager.getRoom(roomId);
+    if (!room) return [...DEFAULT_SKILLS];
+    const configured = room.settings && Array.isArray(room.settings.enabledSkills)
+        ? room.settings.enabledSkills.filter(Boolean)
+        : [];
+    if (configured.length >= 2) return configured;
+    return [...DEFAULT_SKILLS];
+}
+
+/**
+ * @param {import('socket.io').Server} io
+ * @param {any} room
+ */
+function emitTimerSync(io, room) {
+    if (!room || !room.game) return;
+    io.to(room.id).emit('room:timer_sync', {
+        timeRemaining: room.game.timeRemaining,
+        currentTurn: room.game.currentTurn,
+        ts: Date.now()
+    });
+}
+
+/**
+ * @param {any} room
+ */
+function stopRoomTimer(room) {
+    if (!room || !room.game || !room.game.timerId) return;
+    clearInterval(room.game.timerId);
+    room.game.timerId = null;
+    room.game.timerRunning = false;
+}
+
+/**
+ * @param {import('socket.io').Server} io
+ * @param {any} room
+ * @param {(room:any, winnerColor:'black'|'white', reason:string, winLine?:Array<{row:number,col:number}>)=>void} onGameOver
+ */
+function startRoomTimer(io, room, onGameOver) {
+    if (!room || !room.game) return;
+    stopRoomTimer(room);
+    room.game.timerRunning = true;
+    room.game.turnStartedAt = Date.now();
+    room.game.timerId = setInterval(() => {
+        if (!room.game || room.status !== 'playing') {
+            stopRoomTimer(room);
+            return;
+        }
+        const turn = room.game.currentTurn;
+        room.game.timeRemaining[turn] = Math.max(0, (room.game.timeRemaining[turn] || 0) - 1);
+        room.game.lastMoveTime = Date.now();
+        emitTimerSync(io, room);
+        if (room.game.timeRemaining[turn] <= 0) {
+            const winner = turn === 'black' ? 'white' : 'black';
+            io.to(room.id).emit('room:time_out', { loser: turn, winner });
+            onGameOver(room, winner, 'timeout');
+        }
+    }, 1000);
+}
+
+/**
+ * @param {any} room
+ * @returns {Record<string, unknown>}
+ */
+function buildStateDelta(room) {
+    if (!room || !room.game) return {};
+    return {
+        currentTurn: room.game.currentTurn,
+        skillUsed: room.game.skillUsed,
+        playerSkills: room.game.playerSkills,
+        chaosDebuff: room.game.chaosDebuff,
+        shortBattleTurns: room.game.shortBattleTurns,
+        territoryZones: room.game.territoryZones,
+        isDoubleMoveActive: !!room.game.isDoubleMoveActive,
+        bombTarget: room.game.bombTarget,
+        timeRemaining: room.game.timeRemaining
+    };
+}
+
+/**
+ * @param {any} room
+ */
+function clearDraftPickTimer(room) {
+    if (!room || !room.draft || !room.draft.timerId) return;
+    clearTimeout(room.draft.timerId);
+    room.draft.timerId = null;
+}
+
+/**
+ * @param {any} room
+ * @returns {string}
+ */
+function resolveDefaultDraftSkill(room) {
+    const pool = room && room.draft && Array.isArray(room.draft.availableSkills)
+        ? room.draft.availableSkills
+        : [...DEFAULT_SKILLS];
+    const used = new Set(Object.values((room && room.draft && room.draft.picks) || {}).filter(Boolean));
+    const remain = pool.filter((sid) => !used.has(sid));
+    return remain[0] || DEFAULT_SKILLS.find((sid) => !used.has(sid)) || DEFAULT_SKILLS[0];
+}
+
+/**
+ * @param {import('socket.io').Server} io
+ * @param {any} room
+ */
+function emitDraftUpdate(io, room) {
+    if (!room || !room.draft) return;
+    const elapsed = Date.now() - (room.draft.startedAt || Date.now());
+    const timeoutMs = Number(room.draft.timeoutMs || DRAFT_PICK_TIMEOUT_MS);
+    const remainMs = room.draft.currentPicker
+        ? Math.max(0, timeoutMs - elapsed)
+        : 0;
+    io.to(room.id).emit('room:draft_update', {
+        picked: { ...room.draft.picks },
+        currentPicker: room.draft.currentPicker || null,
+        remainMs
+    });
+}
+
+/**
+ * @param {import('socket.io').Server} io
+ * @param {import('./roomManager')} roomManager
+ * @param {any} room
+ * @param {(room:any, winnerColor:'black'|'white', reason:string, winLine?:Array<{row:number,col:number}>)=>void} onGameOver
+ */
+function startGameFromDraft(io, roomManager, room, onGameOver) {
+    if (!room || room.status !== 'drafting' || !room.draft) return;
+    clearDraftPickTimer(room);
+
+    const blackPlayer = room.players.black ? room.players.black.nickname : 'Black';
+    const whitePlayer = room.players.white ? room.players.white.nickname : 'White';
+    roomManager.initGame(room.id);
+
+    const latest = roomManager.getRoom(room.id);
+    if (!latest || !latest.game) return;
+
+    io.to(latest.id).emit('room:draft_complete', {
+        playerSkills: latest.game.playerSkills
+    });
+    io.to(latest.id).emit('room:game_start', {
+        blackPlayer,
+        whitePlayer,
+        playerSkills: latest.game.playerSkills,
+        timeRemaining: latest.game.timeRemaining,
+        match: latest.match || null
+    });
+    emitTimerSync(io, latest);
+    startRoomTimer(io, latest, onGameOver);
+}
+
+/**
+ * @param {import('socket.io').Server} io
+ * @param {import('./roomManager')} roomManager
+ * @param {string} roomId
+ * @param {(room:any, winnerColor:'black'|'white', reason:string, winLine?:Array<{row:number,col:number}>)=>void} onGameOver
+ */
+function setupDraftTurnTimeout(io, roomManager, roomId, onGameOver) {
+    const room = roomManager.getRoom(roomId);
+    if (!room || room.status !== 'drafting' || !room.draft) return;
+
+    clearDraftPickTimer(room);
+    room.draft.startedAt = Date.now();
+
+    const timeoutMs = Number(room.draft.timeoutMs || DRAFT_PICK_TIMEOUT_MS);
+    room.draft.timerId = setTimeout(() => {
+        const latest = roomManager.getRoom(roomId);
+        if (!latest || latest.status !== 'drafting' || !latest.draft) return;
+
+        const picker = latest.draft.currentPicker;
+        if (!picker) return;
+
+        if (!latest.draft.picks[picker]) {
+            latest.draft.picks[picker] = resolveDefaultDraftSkill(latest);
+        }
+
+        if (latest.draft.picks.black && latest.draft.picks.white) {
+            latest.draft.currentPicker = null;
+            emitDraftUpdate(io, latest);
+            startGameFromDraft(io, roomManager, latest, onGameOver);
+            return;
+        }
+
+        latest.draft.currentPicker = picker === 'white' ? 'black' : 'white';
+        latest.draft.startedAt = Date.now();
+        emitDraftUpdate(io, latest);
+        setupDraftTurnTimeout(io, roomManager, latest.id, onGameOver);
+    }, timeoutMs);
+}
+
+/**
+ * @param {import('socket.io').Server} io
+ * @param {import('./roomManager')} roomManager
+ * @param {string} roomId
+ * @param {(room:any, winnerColor:'black'|'white', reason:string, winLine?:Array<{row:number,col:number}>)=>void} onGameOver
+ */
+function startDraftPhase(io, roomManager, roomId, onGameOver) {
+    const room = roomManager.getRoom(roomId);
+    if (!room) return;
+
+    const skillPool = resolveDraftSkillPool(roomManager, roomId);
+    room.status = 'drafting';
+    room.draft = {
+        availableSkills: skillPool,
+        picks: { black: null, white: null },
+        currentPicker: 'white',
+        startedAt: Date.now(),
+        timeoutMs: DRAFT_PICK_TIMEOUT_MS,
+        timerId: null
+    };
+
+    io.to(room.id).emit('room:draft_start', {
+        firstPicker: room.draft.currentPicker,
+        availableSkills: skillPool,
+        timeoutMs: room.draft.timeoutMs
+    });
+    emitDraftUpdate(io, room);
+    setupDraftTurnTimeout(io, roomManager, room.id, onGameOver);
+}
+
 /**
  * @param {import('socket.io').Server} io
  * @param {import('./roomManager')} roomManager
  */
 function setupSocketHandlers(io, roomManager) {
-    
+    /**
+     * @param {any} room
+     * @param {'black'|'white'} winnerColor
+     * @param {string} reason
+     * @param {Array<{row:number,col:number}>=} winLine
+     */
+    function finalizeGame(room, winnerColor, reason, winLine) {
+        if (!room || !room.game) return;
+        stopRoomTimer(room);
+        room.status = 'finished';
+
+        let matchPayload = null;
+        if (room.match && room.match.mode === 'bo3') {
+            const hostIsBlack = !!(room.players.black && room.players.host && room.players.black.id === room.players.host.id);
+            const winnerRole = hostIsBlack
+                ? (winnerColor === 'black' ? 'host' : 'guest')
+                : (winnerColor === 'black' ? 'guest' : 'host');
+            const loserRole = winnerRole === 'host' ? 'guest' : 'host';
+            room.match.scores[winnerRole] = (room.match.scores[winnerRole] || 0) + 1;
+            room.match.currentGame = (room.match.currentGame || 1) + 1;
+            const hostScore = room.match.scores.host || 0;
+            const guestScore = room.match.scores.guest || 0;
+            const isOver = hostScore >= 2 || guestScore >= 2;
+            matchPayload = {
+                mode: room.match.mode,
+                scores: { ...room.match.scores },
+                currentGame: room.match.currentGame,
+                over: isOver
+            };
+            if (isOver) {
+                io.to(room.id).emit('room:match_over', {
+                    winner: hostScore >= 2 ? 'host' : 'guest',
+                    winnerColor,
+                    scores: { ...room.match.scores }
+                });
+            } else {
+                // BO3 未结束：由本局败者获得下一局选边权
+                setTimeout(() => {
+                    const latest = roomManager.getRoom(room.id);
+                    if (!latest || latest.status !== 'finished') return;
+                    latest.status = 'choosing_side';
+                    latest.rps = latest.rps || { hostChoice: null, guestChoice: null, winner: null, round: 1 };
+                    latest.rps.winner = loserRole;
+                    const chooserSocketId = latest.players[loserRole] ? latest.players[loserRole].id : null;
+                    if (chooserSocketId) {
+                        io.to(chooserSocketId).emit('room:choose_side', {
+                            timeout: config.rps.sideChoiceTimeout,
+                            reason: 'bo3_next_round'
+                        });
+                        setupSideChoiceTimeout(io, roomManager, latest.id, chooserSocketId, finalizeGame);
+                    }
+                }, 1500);
+            }
+        }
+
+        /** @type {GameOverPayload & Record<string, unknown>} */
+        const payload = {
+            winner: winnerColor,
+            reason
+        };
+        if (winLine) payload.winLine = winLine;
+        if (matchPayload) payload.match = matchPayload;
+        payload.state = buildStateDelta(room);
+        io.to(room.id).emit('room:game_over', payload);
+    }
+
     io.on('connection', (socket) => {
         console.log(`[Socket] Connected: ${socket.id}`);
         
@@ -206,7 +502,7 @@ function setupSocketHandlers(io, roomManager) {
             io.to(roomId).emit('room:rps_start', rpsStartPayload);
             
             // 设置猜拳超时
-            setupRPSTimeout(io, roomManager, roomId);
+            setupRPSTimeout(io, roomManager, roomId, finalizeGame);
         });
         
         // ========== 猜拳系统 ==========
@@ -242,7 +538,7 @@ function setupSocketHandlers(io, roomManager) {
             
             // 检查是否双方都已选择
             if (rpsLogic.bothChosen(room)) {
-                handleRPSResult(io, roomManager, room);
+                handleRPSResult(io, roomManager, room, finalizeGame);
             }
         });
         
@@ -257,6 +553,11 @@ function setupSocketHandlers(io, roomManager) {
             if (!found) return;
             
             const { room, role } = found;
+
+            if (room.status !== 'choosing_side') {
+                socket.emit('server:error', { message: 'not_in_side_choice_phase' });
+                return;
+            }
             
             // 验证是否是猜拳胜者
             if (room.rps.winner !== role) {
@@ -270,10 +571,7 @@ function setupSocketHandlers(io, roomManager) {
                 return;
             }
             
-            // 初始化游戏
-            roomManager.initGame(room.id);
-            
-            // 广播选边结果和游戏开始
+            // 广播选边结果
             /** @type {SidesDecidedPayload} */
             const sidesDecidedPayload = {
                 blackPlayer: result.blackPlayer,
@@ -282,13 +580,63 @@ function setupSocketHandlers(io, roomManager) {
                 whiteSocketId: result.whiteSocketId
             };
             io.to(room.id).emit('room:sides_decided', sidesDecidedPayload);
-            
-            /** @type {GameStartPayload} */
-            const gameStartPayload = {
-                blackPlayer: result.blackPlayer,
-                whitePlayer: result.whitePlayer
-            };
-            io.to(room.id).emit('room:game_start', gameStartPayload);
+
+            // 进入技能草稿阶段（白方先选，单人10秒）
+            startDraftPhase(io, roomManager, room.id, finalizeGame);
+        });
+
+        // 技能草稿选择
+        socket.on('client:draft_pick', (data) => {
+            /** @type {DraftPickPayload} */
+            const payload = data;
+            if (!validateIncoming(socket, 'client:draft_pick', payload)) return;
+            const { skillId } = payload;
+
+            const found = roomManager.getRoomBySocketId(socket.id);
+            if (!found) return;
+            const { room } = found;
+            if (room.status !== 'drafting' || !room.draft) {
+                socket.emit('server:error', { message: 'not_in_draft_phase' });
+                return;
+            }
+
+            const color = room.players.black && room.players.black.id === socket.id
+                ? 'black'
+                : (room.players.white && room.players.white.id === socket.id ? 'white' : null);
+            if (!color) {
+                socket.emit('server:error', { message: 'color_not_assigned' });
+                return;
+            }
+            if (room.draft.currentPicker !== color) {
+                socket.emit('server:error', { message: 'not_your_draft_turn' });
+                return;
+            }
+
+            const pool = room.draft.availableSkills || DEFAULT_SKILLS;
+            if (!pool.includes(skillId)) {
+                socket.emit('server:error', { message: 'skill_not_enabled' });
+                return;
+            }
+            const already = Object.values(room.draft.picks || {});
+            if (already.includes(skillId)) {
+                socket.emit('server:error', { message: 'skill_already_picked' });
+                return;
+            }
+
+            room.draft.picks[color] = skillId;
+            clearDraftPickTimer(room);
+
+            if (room.draft.picks.black && room.draft.picks.white) {
+                room.draft.currentPicker = null;
+                emitDraftUpdate(io, room);
+                startGameFromDraft(io, roomManager, room, finalizeGame);
+                return;
+            }
+
+            room.draft.currentPicker = color === 'white' ? 'black' : 'white';
+            room.draft.startedAt = Date.now();
+            emitDraftUpdate(io, room);
+            setupDraftTurnTimeout(io, roomManager, room.id, finalizeGame);
         });
         
         // ========== 游戏流程 ==========
@@ -305,55 +653,70 @@ function setupSocketHandlers(io, roomManager) {
             
             const { room } = found;
             
-            // 验证落子
+            if (room.status !== 'playing' || !room.game) {
+                socket.emit('server:invalid_move', { reason: 'game_not_playing' });
+                return;
+            }
+
+            // 验证落子（服务端计算混沌偏移）
             const validation = gameLogic.isValidMove(room, socket.id, row, col);
             if (!validation.valid) {
                 socket.emit('server:invalid_move', { reason: validation.reason });
                 return;
             }
-            
+
+            const resolvedRow = Number.isInteger(validation.resolvedRow) ? validation.resolvedRow : row;
+            const resolvedCol = Number.isInteger(validation.resolvedCol) ? validation.resolvedCol : col;
+
             // 执行落子
-            const pieceValue = gameLogic.placePiece(room, row, col);
+            const pieceValue = gameLogic.placePiece(room, resolvedRow, resolvedCol);
             const player = room.game.currentTurn;
-            
+
+            // 混沌干扰在落子后消耗
+            if (room.game.chaosDebuff && room.game.chaosDebuff[player] > 0) {
+                gameLogic.consumeChaosDebuff(room);
+            }
+
             // 检查胜负
-            const winResult = gameLogic.checkWin(room, row, col);
-            
+            const winResult = gameLogic.checkWin(room, resolvedRow, resolvedCol);
+
             if (winResult) {
-                // 游戏结束
-                room.status = 'finished';
-                
-                /** @type {PiecePlacedPayload} */
+                /** @type {PiecePlacedPayload & Record<string, unknown>} */
                 const piecePlacedPayload = {
-                    row, col, player, pieceValue
+                    row: resolvedRow, col: resolvedCol, player, pieceValue,
+                    requestedRow: row,
+                    requestedCol: col,
+                    resolvedRow,
+                    resolvedCol,
+                    chaosApplied: !!validation.chaosApplied,
+                    state: buildStateDelta(room)
                 };
                 io.to(room.id).emit('room:piece_placed', piecePlacedPayload);
-                
-                /** @type {GameOverPayload} */
-                const gameOverPayload = {
-                    winner: winResult.winner,
-                    winLine: winResult.winLine,
-                    reason: 'five_in_row'
-                };
-                io.to(room.id).emit('room:game_over', gameOverPayload);
+                finalizeGame(room, winResult.winner, 'five_in_row', winResult.winLine);
             } else {
-                // 处理回合结束效果（炸弹、巫毒等）
-                const turnEffects = skillLogic.processTurnEndEffects(room);
-                if (turnEffects.length > 0) {
-                    /** @type {SkillEffectPayload} */
-                    const skillEffectPayload = {
-                        effects: turnEffects
-                    };
-                    io.to(room.id).emit('room:skill_effect', skillEffectPayload);
+                let nextTurn = room.game.currentTurn;
+                if (room.game.isDoubleMoveActive) {
+                    room.game.isDoubleMoveActive = false;
+                } else {
+                    gameLogic.switchTurn(room);
+                    nextTurn = room.game.currentTurn;
                 }
-                
-                // 切换回合
-                gameLogic.switchTurn(room);
-                
-                /** @type {PiecePlacedPayload} */
+
+                emitTimerSync(io, room);
+
+                /** @type {PiecePlacedPayload & Record<string, unknown>} */
                 const piecePlacedWithNextTurnPayload = {
-                    row, col, player, pieceValue,
-                    nextTurn: room.game.currentTurn
+                    row: resolvedRow,
+                    col: resolvedCol,
+                    player,
+                    pieceValue,
+                    nextTurn,
+                    requestedRow: row,
+                    requestedCol: col,
+                    resolvedRow,
+                    resolvedCol,
+                    chaosApplied: !!validation.chaosApplied,
+                    state: buildStateDelta(room)
                 };
                 io.to(room.id).emit('room:piece_placed', piecePlacedWithNextTurnPayload);
             }
@@ -373,6 +736,11 @@ function setupSocketHandlers(io, roomManager) {
             
             const { room } = found;
             
+            if (room.status !== 'playing' || !room.game) {
+                socket.emit('server:skill_invalid', { reason: 'game_not_playing' });
+                return;
+            }
+
             // 验证技能
             const validation = skillLogic.isValidSkill(room, socket.id, skillId, targets);
             if (!validation.valid) {
@@ -384,55 +752,59 @@ function setupSocketHandlers(io, roomManager) {
             const result = skillLogic.executeSkill(room, skillId, targets);
             
             // 广播技能使用
-            /** @type {SkillUsedPayload} */
+            /** @type {SkillUsedPayload & Record<string, unknown>} */
             const skillUsedPayload = {
                 player: result.player,
                 skillId: result.skillId,
                 targets,
                 changes: result.changes,
                 specialEffect: result.specialEffect,
-                skillUsed: room.game.skillUsed
+                skillUsed: room.game.skillUsed,
+                state: buildStateDelta(room)
             };
             io.to(room.id).emit('room:skill_used', skillUsedPayload);
-            
-            // 检查技能是否导致胜利（如双连）
+
+            // 检查技能是否导致胜利（移动类技能）
             if (result.changes && result.changes.length > 0) {
                 for (const change of result.changes) {
                     if (change.value === 1 || change.value === 2) {
                         const winResult = gameLogic.checkWin(room, change.row, change.col);
                         if (winResult) {
-                            room.status = 'finished';
-                            /** @type {GameOverPayload} */
-                            const skillGameOverPayload = {
-                                winner: winResult.winner,
-                                winLine: winResult.winLine,
-                                reason: 'five_in_row'
-                            };
-                            io.to(room.id).emit('room:game_over', skillGameOverPayload);
+                            finalizeGame(room, winResult.winner, 'five_in_row', winResult.winLine);
                             return;
                         }
                     }
                 }
             }
-            
-            // 处理回合结束效果
-            const turnEffects = skillLogic.processTurnEndEffects(room);
-            if (turnEffects.length > 0) {
-                /** @type {SkillEffectPayload} */
-                const turnEndSkillEffectPayload = {
-                    effects: turnEffects
-                };
-                io.to(room.id).emit('room:skill_effect', turnEndSkillEffectPayload);
+
+            // 炸弹扣时立即判负
+            if (skillId === 'bomb' && room.game.bombTarget) {
+                const bombTarget = room.game.bombTarget;
+                if ((room.game.timeRemaining[bombTarget] || 0) <= 0) {
+                    const winner = bombTarget === 'black' ? 'white' : 'black';
+                    io.to(room.id).emit('room:bomb_activated', {
+                        bombTarget,
+                        timeRemaining: room.game.timeRemaining
+                    });
+                    finalizeGame(room, winner, 'bomb_explode');
+                    return;
+                }
+                io.to(room.id).emit('room:bomb_activated', {
+                    bombTarget,
+                    timeRemaining: room.game.timeRemaining
+                });
             }
-            
-            // 切换回合
-            gameLogic.switchTurn(room);
-            
-            /** @type {TurnChangedPayload} */
-            const turnChangedPayload = {
-                currentTurn: room.game.currentTurn
-            };
-            io.to(room.id).emit('room:turn_changed', turnChangedPayload);
+
+            if (result.switchTurn) {
+                gameLogic.switchTurn(room);
+                /** @type {TurnChangedPayload & Record<string, unknown>} */
+                const turnChangedPayload = {
+                    currentTurn: room.game.currentTurn,
+                    state: buildStateDelta(room)
+                };
+                io.to(room.id).emit('room:turn_changed', turnChangedPayload);
+            }
+            emitTimerSync(io, room);
         });
         
         // ========== 投降与悔棋 ==========
@@ -451,17 +823,12 @@ function setupSocketHandlers(io, roomManager) {
             const winner = role === 'host' ? 'guest' : 'host';
             const winnerColor = room.players.black.id === room.players[winner].id ? 'black' : 'white';
             
-            room.status = 'finished';
-            
             io.to(room.id).emit('room:player_surrendered', {
                 player: surrenderer.nickname,
                 socketId: socket.id
             });
-            
-            io.to(room.id).emit('room:game_over', {
-                winner: winnerColor,
-                reason: 'surrender'
-            });
+
+            finalizeGame(room, winnerColor, 'surrender');
         });
         
         // 请求悔棋
@@ -577,7 +944,7 @@ function setupSocketHandlers(io, roomManager) {
                 round: 1
             });
             
-            setupRPSTimeout(io, roomManager, room.id);
+            setupRPSTimeout(io, roomManager, room.id, finalizeGame);
         });
         
         // ========== 公共大厅 ==========
@@ -697,7 +1064,7 @@ function setupSocketHandlers(io, roomManager) {
                 round: 1
             });
             
-            setupRPSTimeout(io, roomManager, roomId);
+            setupRPSTimeout(io, roomManager, roomId, finalizeGame);
         });
         
         // 离开大厅（只是取消监听，不做特殊处理）
@@ -713,17 +1080,17 @@ function setupSocketHandlers(io, roomManager) {
             const result = roomManager.leaveRoom(socket.id);
             
             if (result) {
-                if (result.role === 'host') {
-                    // 房主离开，通知 guest 并关闭房间
-                    io.to(result.roomId).emit('room:host_left', {});
-                } else if (result.gameInProgress) {
-                    // 游戏进行中 guest 断线
+                if (result.gameInProgress) {
+                    // 对局流程中任意一方断线，进入重连窗口
                     io.to(result.roomId).emit('room:opponent_disconnected', {
                         timeout: config.reconnect.timeout
                     });
                     
                     // 设置断线超时
                     setupDisconnectTimeout(io, roomManager, result.roomId, socket.id);
+                } else if (result.role === 'host') {
+                    // 房主在非对局阶段离开，直接关闭房间
+                    io.to(result.roomId).emit('room:host_left', {});
                 }
                 
                 // 广播大厅更新（房间可能被删除或状态变化）
@@ -746,14 +1113,14 @@ function setupSocketHandlers(io, roomManager) {
                 return;
             }
             
-            // 查找断线的玩家
+            // 查找断线的玩家（要求 oldSocketId 匹配，防冒充）
             let reconnectedRole = null;
-            if (room.players.host && !room.players.host.connected) {
+            if (room.players.host && !room.players.host.connected && room.players.host.id === oldSocketId) {
                 room.players.host.id = socket.id;
                 room.players.host.connected = true;
                 room.players.host.disconnectTime = null;
                 reconnectedRole = 'host';
-            } else if (room.players.guest && !room.players.guest.connected) {
+            } else if (room.players.guest && !room.players.guest.connected && room.players.guest.id === oldSocketId) {
                 room.players.guest.id = socket.id;
                 room.players.guest.connected = true;
                 room.players.guest.disconnectTime = null;
@@ -781,7 +1148,20 @@ function setupSocketHandlers(io, roomManager) {
                 roomId,
                 role: reconnectedRole,
                 boardState: gameLogic.getBoardState(room),
-                status: room.status
+                status: room.status,
+                match: room.match || null,
+                myColor: room.players.black && room.players.black.id === socket.id
+                    ? 'black'
+                    : (room.players.white && room.players.white.id === socket.id ? 'white' : null),
+                opponent: room.players.black && room.players.black.id === socket.id
+                    ? {
+                        nickname: room.players.white ? room.players.white.nickname : undefined,
+                        pieceStyle: room.players.white ? room.players.white.pieceStyle : undefined
+                    }
+                    : {
+                        nickname: room.players.black ? room.players.black.nickname : undefined,
+                        pieceStyle: room.players.black ? room.players.black.pieceStyle : undefined
+                    }
             };
             socket.emit('server:reconnect_success', reconnectSuccessPayload);
             
@@ -796,7 +1176,7 @@ function setupSocketHandlers(io, roomManager) {
 /**
  * 处理猜拳结果
  */
-function handleRPSResult(io, roomManager, room) {
+function handleRPSResult(io, roomManager, room, onGameOver) {
     const result = rpsLogic.determineWinner(room);
     
     if (result.result === 'tie') {
@@ -816,7 +1196,7 @@ function handleRPSResult(io, roomManager, room) {
                 round: newRound
             });
             
-            setupRPSTimeout(io, roomManager, room.id);
+            setupRPSTimeout(io, roomManager, room.id, onGameOver);
         }, 2000);  // 2秒后开始新一轮
         
     } else {
@@ -841,14 +1221,14 @@ function handleRPSResult(io, roomManager, room) {
         });
         
         // 设置选边超时
-        setupSideChoiceTimeout(io, roomManager, room.id, winnerSocketId);
+        setupSideChoiceTimeout(io, roomManager, room.id, winnerSocketId, onGameOver);
     }
 }
 
 /**
  * 设置猜拳超时
  */
-function setupRPSTimeout(io, roomManager, roomId) {
+function setupRPSTimeout(io, roomManager, roomId, onGameOver) {
     setTimeout(() => {
         const room = roomManager.getRoom(roomId);
         if (!room || room.status !== 'rps') return;
@@ -861,14 +1241,14 @@ function setupRPSTimeout(io, roomManager, roomId) {
             room.rps.guestChoice = rpsLogic.randomChoice();
         }
         
-        handleRPSResult(io, roomManager, room);
+        handleRPSResult(io, roomManager, room, onGameOver);
     }, config.rps.timeout);
 }
 
 /**
  * 设置选边超时
  */
-function setupSideChoiceTimeout(io, roomManager, roomId, winnerSocketId) {
+function setupSideChoiceTimeout(io, roomManager, roomId, winnerSocketId, onGameOver) {
     setTimeout(() => {
         const room = roomManager.getRoom(roomId);
         if (!room || room.status !== 'choosing_side') return;
@@ -877,8 +1257,6 @@ function setupSideChoiceTimeout(io, roomManager, roomId, winnerSocketId) {
         const result = rpsLogic.submitSideChoice(room, 'black');
         
         if (result.success) {
-            roomManager.initGame(roomId);
-            
             /** @type {SidesDecidedPayload} */
             const timeoutSidesDecidedPayload = {
                 blackPlayer: result.blackPlayer,
@@ -887,13 +1265,18 @@ function setupSideChoiceTimeout(io, roomManager, roomId, winnerSocketId) {
                 whiteSocketId: result.whiteSocketId
             };
             io.to(roomId).emit('room:sides_decided', timeoutSidesDecidedPayload);
-            
-            /** @type {GameStartPayload} */
-            const timeoutGameStartPayload = {
-                blackPlayer: result.blackPlayer,
-                whitePlayer: result.whitePlayer
+
+            const fallbackGameOver = (targetRoom, winnerColor, reason, winLine) => {
+                targetRoom.status = 'finished';
+                stopRoomTimer(targetRoom);
+                io.to(targetRoom.id).emit('room:game_over', {
+                    winner: winnerColor,
+                    reason,
+                    winLine,
+                    state: buildStateDelta(targetRoom)
+                });
             };
-            io.to(roomId).emit('room:game_start', timeoutGameStartPayload);
+            startDraftPhase(io, roomManager, roomId, onGameOver || fallbackGameOver);
         }
     }, config.rps.sideChoiceTimeout);
 }
@@ -917,10 +1300,12 @@ function setupDisconnectTimeout(io, roomManager, roomId, disconnectedSocketId) {
                 ? 'black' : 'white';
             
             room.status = 'finished';
+            stopRoomTimer(room);
             
             io.to(roomId).emit('room:game_over', {
                 winner: winnerColor,
-                reason: 'disconnect_timeout'
+                reason: 'disconnect_timeout',
+                state: buildStateDelta(room)
             });
         }
     }, config.reconnect.timeout);

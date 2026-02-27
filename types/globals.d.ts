@@ -2,6 +2,7 @@ declare const io: (url: string, options?: unknown) => any;
 declare const GameState: Record<string, unknown>;
 declare const OnlineGame: {
     handleDisconnect?: (reason: string) => void;
+    roomId?: string | null;
 };
 declare const OnlineUI: Record<string, unknown>;
 

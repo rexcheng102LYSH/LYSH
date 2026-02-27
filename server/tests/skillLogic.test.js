@@ -16,9 +16,13 @@ function createRoom() {
             skillUsed: { black: false, white: false },
             moveHistory: [],
             activeEffect: null,
-            bombs: [],
-            zones: [],
-            voodoo: [],
+            playerSkills: { black: 'double', white: 'bomb' },
+            chaosDebuff: { black: 0, white: 0 },
+            shortBattleTurns: 0,
+            territoryZones: [],
+            isDoubleMoveActive: false,
+            bombTarget: null,
+            timeRemaining: { black: 240, white: 240 },
             lastMoveTime: 0
         }
     };
@@ -35,36 +39,23 @@ describe('skillLogic', () => {
         expect(result.reason).toBe('not_your_turn');
     });
 
-    it('executes double skill and writes two pieces', () => {
+    it('executes double skill and enables double-move state', () => {
         const room = createRoom();
-        const result = skillLogic.executeSkill(room, 'double', {
-            pos1: { row: 3, col: 3 },
-            pos2: { row: 3, col: 4 }
-        });
+        const result = skillLogic.executeSkill(room, 'double', {});
 
         expect(result.skillId).toBe('double');
-        expect(room.game.board[3][3]).toBe(1);
-        expect(room.game.board[3][4]).toBe(1);
+        expect(room.game.isDoubleMoveActive).toBe(true);
         expect(room.game.skillUsed.black).toBe(true);
-        expect(room.game.moveHistory).toHaveLength(2);
+        expect(result.switchTurn).toBe(false);
     });
 
-    it('applies end-turn effects for voodoo and bomb', () => {
+    it('applies bomb skill by reducing opponent time', () => {
         const room = createRoom();
-        room.game.board[6][6] = 2;
-        room.game.board[8][8] = 5;
-        room.game.board[8][9] = 1;
-        room.game.voodoo.push({ row: 6, col: 6, turnsLeft: 1 });
-        room.game.bombs.push({ row: 8, col: 8, turnsLeft: 1, player: 'black' });
-
-        const effects = skillLogic.processTurnEndEffects(room);
-
-        expect(effects.some((e) => e.type === 'voodoo_expire')).toBe(true);
-        expect(effects.some((e) => e.type === 'bomb_explode')).toBe(true);
-        expect(room.game.board[6][6]).toBe(0);
-        expect(room.game.board[8][8]).toBe(0);
-        expect(room.game.board[8][9]).toBe(0);
-        expect(room.game.voodoo).toHaveLength(0);
-        expect(room.game.bombs).toHaveLength(0);
+        room.game.currentTurn = 'white';
+        room.game.playerSkills.white = 'bomb';
+        const result = skillLogic.executeSkill(room, 'bomb', {});
+        expect(result.specialEffect.type).toBe('bomb_activated');
+        expect(room.game.timeRemaining.black).toBe(90);
+        expect(room.game.bombTarget).toBe('black');
     });
 });

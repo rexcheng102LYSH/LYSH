@@ -1,20 +1,42 @@
-// ================= ????? =================
-function renderBoard() { 
-    const b = document.getElementById('board'); 
-    b.innerHTML = ''; 
-    const stars = [[3,3],[3,11],[7,7],[11,3],[11,11]]; 
-    for(let r=0; r<BOARD_SIZE; r++) for(let c=0; c<BOARD_SIZE; c++) { 
-        const cell = document.createElement('div'); 
-        cell.className = 'cell'; cell.id = `c-${r}-${c}`; cell.dataset.r=r; cell.dataset.c=c; 
-        cell.onclick=()=>handleCellClick(r,c); 
-        cell.onmouseenter=()=>handleCellHover(r,c); 
-        if(stars.some(s=>s[0]===r&&s[1]===c)) { 
-            cell.setAttribute('data-star','true'); 
-            const d=document.createElement('div'); d.className='dot'; cell.appendChild(d); 
-        } 
-        b.appendChild(cell); 
-    } 
-    // [Alpha 0.7.9.1] 应用棋盘皮肤
+// ================= Board Rendering =================
+function renderBoard() {
+    const b = document.getElementById('board');
+    b.innerHTML = '';
+    const stars = [[3,3],[3,11],[7,7],[11,3],[11,11]];
+    for(let r=0; r<BOARD_SIZE; r++) for(let c=0; c<BOARD_SIZE; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell'; cell.id = `c-${r}-${c}`; cell.dataset.r=r; cell.dataset.c=c;
+        cell.onclick=()=>handleCellClick(r,c);
+        cell.onmouseenter=()=>handleCellHover(r,c);
+        if(stars.some(s=>s[0]===r&&s[1]===c)) {
+            cell.setAttribute('data-star','true');
+            const d=document.createElement('div'); d.className='dot'; cell.appendChild(d);
+        }
+        b.appendChild(cell);
+    }
+
+    // Repaint pieces from board state after rebuilding the grid.
+    const sourceBoard = (typeof GameState !== 'undefined' && Array.isArray(GameState.board))
+        ? GameState.board
+        : board;
+    if (Array.isArray(sourceBoard)) {
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                const rowData = sourceBoard[r];
+                if (!Array.isArray(rowData)) continue;
+                const val = rowData[c];
+                const cell = getCell(r, c);
+                if (!cell) continue;
+                if (val === MAPLE || val === SUN) {
+                    renderPieceInCell(cell, val);
+                } else if (typeof CORRODED !== 'undefined' && val === CORRODED) {
+                    cell.classList.add('corroded');
+                }
+            }
+        }
+    }
+
+    // [Alpha 0.7.9.1] Re-apply board skin and FX hooks.
     if (typeof applyBoardSkin === 'function') applyBoardSkin();
     if (typeof VisualFX !== 'undefined') VisualFX.init();
 }

@@ -754,6 +754,13 @@ if (window.GameHost && typeof window.GameHost.register === 'function') {
  * 处理联网模式下的落子点击
  */
 function handleOnlineCellClick(r, c) {
+    if (window.OnlineGame && typeof OnlineGame.hasPendingSkill === 'function' && OnlineGame.hasPendingSkill()) {
+        if (typeof OnlineGame.handleSkillCellClick === 'function') {
+            OnlineGame.handleSkillCellClick(r, c);
+        }
+        return;
+    }
+
     // 检查是否轮到自己
     if (!OnlineGame.isMyTurn()) {
         SoundEngine.playError();
@@ -802,8 +809,9 @@ function handleOnlineCellClick(r, c) {
  * 启动联网游戏
  * @param {string} myColor - 我的颜色 'black' | 'white'
  * @param {string} opponentName - 对手昵称
+ * @param {{ playerSkills?: { black:string|null, white:string|null }, timeRemaining?: { black:number, white:number }, match?: unknown }=} initialState
  */
-function startOnlineGame(myColor, opponentName) {
+function startOnlineGame(myColor, opponentName, initialState) {
     // 重置游戏状态
     GameState.resetGame();
     
@@ -829,6 +837,21 @@ function startOnlineGame(myColor, opponentName) {
     // 设置联网模式
     GameState.gameMode = 'online';
     gameMode = 'online';
+
+    if (initialState && initialState.playerSkills) {
+        GameState.playerSkills = {
+            [MAPLE]: initialState.playerSkills.black || null,
+            [SUN]: initialState.playerSkills.white || null
+        };
+        playerSkills = GameState.playerSkills;
+    }
+    if (initialState && initialState.timeRemaining) {
+        GameState.timeRemaining = {
+            [MAPLE]: Number.isFinite(initialState.timeRemaining.black) ? initialState.timeRemaining.black : 240,
+            [SUN]: Number.isFinite(initialState.timeRemaining.white) ? initialState.timeRemaining.white : 240
+        };
+        timeRemaining = GameState.timeRemaining;
+    }
     
     // 设置游戏激活
     GameState.gameActive = true;
@@ -849,11 +872,19 @@ function startOnlineGame(myColor, opponentName) {
     // 隐藏结算弹窗
     document.getElementById('winnerModal').style.display = 'none';
     
-    // 隐藏难度标签和计分板（联网模式不需要）
+    // 隐藏难度标签，计分板在 BO3 联网模式下复用展示比分
     const dt = document.getElementById('diffTag');
     const sb = document.getElementById('scoreBoard');
     if (dt) dt.style.display = 'none';
-    if (sb) sb.style.display = 'none';
+    if (sb) {
+        const matchState = initialState && initialState.match ? initialState.match : null;
+        if (typeof OnlineUI !== 'undefined' && typeof OnlineUI.updateMatchScore === 'function') {
+            const myRole = (typeof OnlineGame !== 'undefined') ? OnlineGame.role : null;
+            OnlineUI.updateMatchScore(matchState, myRole);
+        } else {
+            sb.style.display = 'none';
+        }
+    }
     
     // 渲染棋盘
     renderBoard();
@@ -861,6 +892,11 @@ function startOnlineGame(myColor, opponentName) {
     // 更新静态文本和动态 UI
     updateStaticText();
     updateDynamicUI();
+
+    // 联网计时由服务端权威同步，前端不再本地扣秒
+    if (GameState.gameTicker) clearInterval(GameState.gameTicker);
+    GameState.gameTicker = null;
+    gameTicker = null;
     
     // 显示对手信息
     showToast('对战开始！对手: ' + opponentName);

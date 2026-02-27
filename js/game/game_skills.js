@@ -1,4 +1,4 @@
-// ================= ??????? =================
+// ================= 技能系统 =================
 function renderSkillGrid() { 
     const g = document.getElementById('skillGrid'); 
     g.innerHTML = ''; 
@@ -78,10 +78,19 @@ function activateSkill() {
         selectedCell = null; // 同步
     }
     
-    saveState();
-    
     const sid = GameState.playerSkills[GameState.currentPlayer];
     const sname = t(sid, 'skills').name;
+
+    if (GameState.online && GameState.online.isOnline) {
+        if (window.OnlineGame && typeof OnlineGame.activateOnlineSkill === 'function') {
+            OnlineGame.activateOnlineSkill(sid);
+        } else {
+            showToast('联网技能模块未初始化');
+        }
+        return;
+    }
+
+    saveState();
     
     SoundEngine.playSkill(); 
     showToast(t('casting', 'toast') + sname); 

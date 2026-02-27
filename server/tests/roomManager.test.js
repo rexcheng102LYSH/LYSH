@@ -65,4 +65,38 @@ describe('roomManager', () => {
         expect(leave.role).toBe('host');
         expect(manager.getRoom(room.id)).toBeUndefined();
     });
+
+    it('keeps room and marks host disconnected when host leaves during game', () => {
+        const manager = new RoomManager();
+        const room = manager.createLobbyRoom('host-1', 'HostA');
+        manager.joinLobbyRoom(room.id, 'guest-1', 'GuestA');
+        room.status = 'playing';
+        room.players.black = room.players.host;
+        room.players.white = room.players.guest;
+
+        const leave = manager.leaveRoom('host-1');
+        const latest = manager.getRoom(room.id);
+
+        expect(leave.role).toBe('host');
+        expect(leave.gameInProgress).toBe(true);
+        expect(latest).toBeTruthy();
+        expect(latest.players.host.connected).toBe(false);
+    });
+
+    it('resetGame also resets match scores for next series', () => {
+        const manager = new RoomManager();
+        const room = manager.createLobbyRoom('host-1', 'HostA', { rule: 'bo3' });
+        manager.joinLobbyRoom(room.id, 'guest-1', 'GuestA');
+        room.match.scores = { host: 2, guest: 1 };
+        room.match.currentGame = 4;
+        room.status = 'finished';
+
+        manager.resetGame(room.id);
+        const latest = manager.getRoom(room.id);
+
+        expect(latest.match.mode).toBe('bo3');
+        expect(latest.match.scores).toEqual({ host: 0, guest: 0 });
+        expect(latest.match.currentGame).toBe(1);
+        expect(latest.status).toBe('rps');
+    });
 });

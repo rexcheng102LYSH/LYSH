@@ -12,6 +12,7 @@ const CLIENT_EVENT_NAMES = Object.freeze({
     SIDE_CHOICE: 'client:side_choice',
     PLACE_PIECE: 'client:place_piece',
     USE_SKILL: 'client:use_skill',
+    DRAFT_PICK: 'client:draft_pick',
     RESPOND_UNDO: 'client:respond_undo',
     LOBBY_CREATE: 'client:lobby_create',
     LOBBY_JOIN: 'client:lobby_join',
@@ -126,6 +127,16 @@ function validateUseSkill(payload) {
  * @param {unknown} payload
  * @returns {{valid: boolean, reason?: string}}
  */
+function validateDraftPick(payload) {
+    if (!isObject(payload)) return { valid: false, reason: 'invalid_payload' };
+    if (!isNonEmptyString(payload.skillId)) return { valid: false, reason: 'invalid_skill_id' };
+    return { valid: true };
+}
+
+/**
+ * @param {unknown} payload
+ * @returns {{valid: boolean, reason?: string}}
+ */
 function validateRespondUndo(payload) {
     if (!isObject(payload)) return { valid: false, reason: 'invalid_payload' };
     if (typeof payload.accept !== 'boolean') return { valid: false, reason: 'invalid_accept' };
@@ -186,6 +197,7 @@ const validators = Object.freeze({
     [CLIENT_EVENT_NAMES.SIDE_CHOICE]: validateSideChoice,
     [CLIENT_EVENT_NAMES.PLACE_PIECE]: validatePlacePiece,
     [CLIENT_EVENT_NAMES.USE_SKILL]: validateUseSkill,
+    [CLIENT_EVENT_NAMES.DRAFT_PICK]: validateDraftPick,
     [CLIENT_EVENT_NAMES.RESPOND_UNDO]: validateRespondUndo,
     [CLIENT_EVENT_NAMES.LOBBY_CREATE]: validateLobbyCreate,
     [CLIENT_EVENT_NAMES.LOBBY_JOIN]: validateLobbyJoin,

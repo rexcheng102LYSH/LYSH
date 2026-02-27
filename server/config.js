@@ -52,7 +52,7 @@ module.exports = {
     
     // 断线重连设置
     reconnect: {
-        timeout: 30 * 1000,               // 重连超时：30秒
+        timeout: 10 * 1000,               // 重连超时：10秒
         heartbeatInterval: 5 * 1000       // 心跳间隔：5秒
     },
     
