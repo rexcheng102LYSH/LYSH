@@ -692,6 +692,13 @@ function handleMatchEnd(winSide) {
 }
 
 function undoMove() {
+    if (GameState.online && GameState.online.isOnline) {
+        if (typeof OnlineGame !== 'undefined' && OnlineGame && typeof OnlineGame.sendUndoRequest === 'function') {
+            OnlineGame.sendUndoRequest();
+        }
+        return;
+    }
+
     if (GameState.isBO3) { 
         showToast(t('undoPvP', 'toast')); 
         return; 
@@ -942,24 +949,8 @@ function startOnlineGame(myColor, opponentName, initialState) {
  * 由 OnlineGame.onPiecePlaced 调用
  */
 function handleOnlineOpponentMove(r, c, pieceValue) {
-    // 更新棋盘数据
-    GameState.board[r][c] = pieceValue;
-    board[r][c] = pieceValue;
-    
-    // 更新落子记录
-    GameState.lastMove = { r, c, player: pieceValue };
-    GameState.moveCount++;
-    lastMove = GameState.lastMove;
-    moveCount = GameState.moveCount;
-    
-    // [关键修复] 直接在对应格子上渲染棋子，而不是重新渲染整个棋盘
-    const cell = getCell(r, c);
-    if (cell) {
-        renderPieceInCell(cell, pieceValue);
-    }
-    
-    // 播放音效
-    SoundEngine.playPlace();
+    // 复用本地落子渲染主链路，确保皮肤差异音效/落子特效与本地一致。
+    placePiece(r, c, pieceValue, true, false);
     
     // 更新落子标记
     if (typeof updateLastMoveMarker === 'function') {

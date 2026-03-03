@@ -979,11 +979,23 @@
                 <div class="online-title">悔棋请求</div>
             </div>
             <div class="online-content center">
-                <p>对手请求悔棋，是否同意？</p>
+                <p id="undoRequestText">对手请求悔棋，是否同意？</p>
             </div>
             <div class="online-footer">
                 <button class="online-back-btn" onclick="OnlineUI.respondUndo(false)">拒绝</button>
                 <button class="online-btn primary small" onclick="OnlineUI.respondUndo(true)">同意</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 悔棋等待弹窗 -->
+    <div id="undoPendingModal" class="modal online-modal">
+        <div class="online-panel small">
+            <div class="online-header">
+                <div class="online-title">等待回应</div>
+            </div>
+            <div class="online-content center">
+                <p id="undoPendingText">正在看对方脸色中...</p>
             </div>
         </div>
     </div>

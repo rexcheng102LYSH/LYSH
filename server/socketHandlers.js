@@ -28,7 +28,7 @@ const { validateClientPayload } = require('./protocol_contract');
  * @typedef {{ nickname: string, rule?: 'single'|'bo3'|string, enabledSkills?: string[], hasPassword?: boolean, password?: string } & TracePayload} LobbyCreatePayload
  * @typedef {{ roomId: string, nickname: string, password?: string } & TracePayload} LobbyJoinPayload
  * @typedef {{ roomId: string, oldSocketId: string } & TracePayload} ReconnectPayload
- * @typedef {{ roomId: string, playerId: string, role: 'host'|'guest' }} RoomCreatedPayload
+ * @typedef {{ roomId: string, playerId: string, role: 'host'|'guest', nickname?: string }} RoomCreatedPayload
  * @typedef {{ roomId: string, playerId: string, role: 'guest', opponent: { nickname: string, pieceStyle?: string } }} JoinSuccessPayload
  * @typedef {{ nickname: string, pieceStyle?: string, playerId: string }} PlayerJoinedPayload
  * @typedef {{ timeout: number, round: number }} RpsStartPayload
@@ -104,6 +104,7 @@ const DEFAULT_SKILLS = Object.freeze([
     'bomb', 'god_hand', 'chaos', 'short_battle', 'swap'
 ]);
 const DRAFT_PICK_TIMEOUT_MS = 10000;
+const UNDO_REQUEST_TIMEOUT_MS = 10000;
 
 /**
  * @param {import('./roomManager')} roomManager
@@ -164,8 +165,11 @@ function startRoomTimer(io, room, onGameOver) {
         emitTimerSync(io, room);
         if (room.game.timeRemaining[turn] <= 0) {
             const winner = turn === 'black' ? 'white' : 'black';
-            io.to(room.id).emit('room:time_out', { loser: turn, winner });
-            onGameOver(room, winner, 'timeout');
+            const isBombTimeout = room.game.bombTarget === turn;
+            if (!isBombTimeout) {
+                io.to(room.id).emit('room:time_out', { loser: turn, winner });
+            }
+            onGameOver(room, winner, isBombTimeout ? 'bomb_explode' : 'timeout');
         }
     }, 1000);
 }
@@ -196,6 +200,46 @@ function clearDraftPickTimer(room) {
     if (!room || !room.draft || !room.draft.timerId) return;
     clearTimeout(room.draft.timerId);
     room.draft.timerId = null;
+}
+
+/**
+ * @param {any} room
+ */
+function clearUndoPendingTimer(room) {
+    if (!room || !room.game || !room.game.undoTimerId) return;
+    clearTimeout(room.game.undoTimerId);
+    room.game.undoTimerId = null;
+}
+
+/**
+ * @param {import('socket.io').Server} io
+ * @param {import('./roomManager')} roomManager
+ * @param {string} roomId
+ * @param {'black'|'white'} requesterColor
+ */
+function setupUndoResponseTimeout(io, roomManager, roomId, requesterColor) {
+    const room = roomManager.getRoom(roomId);
+    if (!room || !room.game || room.status !== 'playing') return;
+    clearUndoPendingTimer(room);
+
+    room.game.undoTimerId = setTimeout(() => {
+        const latest = roomManager.getRoom(roomId);
+        if (!latest || !latest.game || latest.status !== 'playing') return;
+        if (latest.game.undoPending !== requesterColor) return;
+
+        const responderColor = requesterColor === 'black' ? 'white' : 'black';
+        latest.game.undoUsed[requesterColor] = true;
+        latest.game.undoPending = null;
+        clearUndoPendingTimer(latest);
+
+        io.to(latest.id).emit('room:undo_response', {
+            accepted: false,
+            byPlayer: responderColor,
+            requesterColor,
+            undoUsed: latest.game.undoUsed,
+            reason: 'timeout'
+        });
+    }, UNDO_REQUEST_TIMEOUT_MS);
 }
 
 /**
@@ -343,6 +387,8 @@ function setupSocketHandlers(io, roomManager) {
     function finalizeGame(room, winnerColor, reason, winLine) {
         if (!room || !room.game) return;
         stopRoomTimer(room);
+        clearUndoPendingTimer(room);
+        room.game.undoPending = null;
         room.status = 'finished';
 
         let matchPayload = null;
@@ -428,7 +474,8 @@ function setupSocketHandlers(io, roomManager) {
                 const roomCreatedPayload = {
                     roomId: room.id,
                     playerId: socket.id,
-                    role: 'host'
+                    role: 'host',
+                    nickname: room.players.host.nickname
                 };
                 socket.emit('server:room_created', roomCreatedPayload);
                 
@@ -669,6 +716,7 @@ function setupSocketHandlers(io, roomManager) {
             const resolvedCol = Number.isInteger(validation.resolvedCol) ? validation.resolvedCol : col;
 
             // 执行落子
+            gameLogic.pushHistorySnapshot(room);
             const pieceValue = gameLogic.placePiece(room, resolvedRow, resolvedCol);
             const player = room.game.currentTurn;
 
@@ -749,6 +797,7 @@ function setupSocketHandlers(io, roomManager) {
             }
             
             // 执行技能
+            gameLogic.pushHistorySnapshot(room);
             const result = skillLogic.executeSkill(room, skillId, targets);
             
             // 广播技能使用
@@ -858,11 +907,22 @@ function setupSocketHandlers(io, roomManager) {
             
             // 设置悔棋请求
             room.game.undoPending = requesterColor;
+            const requesterPlayer = requesterColor === 'black' ? room.players.black : room.players.white;
+            const requesterId = requesterPlayer && requesterPlayer.id ? requesterPlayer.id : socket.id;
+            const requesterName = requesterPlayer && requesterPlayer.nickname
+                ? requesterPlayer.nickname
+                : requesterColor;
+            const message = `【${requesterName}】表示自己手抖了，想要悔棋！`;
             
             // 通知对方
             socket.to(room.id).emit('room:undo_requested', {
-                fromPlayer: requesterColor
+                fromPlayer: requesterColor,
+                requesterId,
+                requesterName,
+                message,
+                timeoutMs: UNDO_REQUEST_TIMEOUT_MS
             });
+            setupUndoResponseTimeout(io, roomManager, room.id, requesterColor);
         });
         
         // 回应悔棋
@@ -884,32 +944,51 @@ function setupSocketHandlers(io, roomManager) {
             
             // 验证回应者不是请求者
             if (requesterColor === responderColor) return;
-            
-            // 标记请求者已使用悔棋（无论是否同意）
-            room.game.undoUsed[requesterColor] = true;
-            room.game.undoPending = null;
+            clearUndoPendingTimer(room);
             
             if (accept) {
                 // 执行悔棋
                 const undoResult = gameLogic.executeUndo(room);
-                
-                io.to(room.id).emit('room:undo_response', {
-                    accepted: true,
-                    byPlayer: responderColor
-                });
-                
+                room.game.undoPending = null;
+                const undoUsed = { ...room.game.undoUsed };
+                const boardState = undoResult.boardState && typeof undoResult.boardState === 'object'
+                    ? { ...undoResult.boardState, undoUsed, undoPending: null }
+                    : null;
+
                 if (undoResult.success) {
+                    io.to(room.id).emit('room:undo_response', {
+                        accepted: true,
+                        byPlayer: responderColor,
+                        requesterColor,
+                        reason: 'accepted',
+                        undoUsed
+                    });
                     io.to(room.id).emit('room:undo_executed', {
                         undoneMove: undoResult.undoneMove,
+                        boardState,
                         currentTurn: undoResult.currentTurn,
-                        undoUsed: room.game.undoUsed
+                        undoUsed
+                    });
+                    emitTimerSync(io, room);
+                } else {
+                    io.to(room.id).emit('room:undo_response', {
+                        accepted: false,
+                        byPlayer: responderColor,
+                        requesterColor,
+                        undoUsed,
+                        reason: undoResult.reason || 'undo_failed'
                     });
                 }
             } else {
+                // 被拒绝后，本局禁用该请求方悔棋
+                room.game.undoUsed[requesterColor] = true;
+                room.game.undoPending = null;
                 io.to(room.id).emit('room:undo_response', {
                     accepted: false,
                     byPlayer: responderColor,
-                    undoUsed: room.game.undoUsed
+                    requesterColor,
+                    undoUsed: room.game.undoUsed,
+                    reason: 'rejected'
                 });
             }
         });
@@ -982,7 +1061,8 @@ function setupSocketHandlers(io, roomManager) {
                 const responseData = {
                     roomId: room.id,
                     playerId: socket.id,
-                    role: 'host'
+                    role: 'host',
+                    nickname: room.players.host.nickname
                 };
                 
                 // 通知创建者（事件方式，兼容旧客户端）
@@ -1087,7 +1167,7 @@ function setupSocketHandlers(io, roomManager) {
                     });
                     
                     // 设置断线超时
-                    setupDisconnectTimeout(io, roomManager, result.roomId, socket.id);
+                    setupDisconnectTimeout(io, roomManager, result.roomId, socket.id, finalizeGame);
                 } else if (result.role === 'host') {
                     // 房主在非对局阶段离开，直接关闭房间
                     io.to(result.roomId).emit('room:host_left', {});
@@ -1284,7 +1364,7 @@ function setupSideChoiceTimeout(io, roomManager, roomId, winnerSocketId, onGameO
 /**
  * 设置断线超时
  */
-function setupDisconnectTimeout(io, roomManager, roomId, disconnectedSocketId) {
+function setupDisconnectTimeout(io, roomManager, roomId, disconnectedSocketId, onGameOver) {
     setTimeout(() => {
         const room = roomManager.getRoom(roomId);
         if (!room) return;
@@ -1298,15 +1378,18 @@ function setupDisconnectTimeout(io, roomManager, roomId, disconnectedSocketId) {
             const winner = hostDisconnected ? 'guest' : 'host';
             const winnerColor = room.players.black && room.players.black.id === room.players[winner].id 
                 ? 'black' : 'white';
-            
-            room.status = 'finished';
-            stopRoomTimer(room);
-            
-            io.to(roomId).emit('room:game_over', {
-                winner: winnerColor,
-                reason: 'disconnect_timeout',
-                state: buildStateDelta(room)
-            });
+
+            if (typeof onGameOver === 'function') {
+                onGameOver(room, winnerColor, 'disconnect_timeout');
+            } else {
+                room.status = 'finished';
+                stopRoomTimer(room);
+                io.to(roomId).emit('room:game_over', {
+                    winner: winnerColor,
+                    reason: 'disconnect_timeout',
+                    state: buildStateDelta(room)
+                });
+            }
         }
     }, config.reconnect.timeout);
 }

@@ -21,12 +21,13 @@
  * @typedef {{ type: 'bomb_explode', row: number, col: number, explosions: { row: number, col: number, was: number }[] } | { type: 'voodoo_expire', row: number, col: number } | Record<string, unknown>} RoomSkillEffectItem
  * @typedef {{ effects?: RoomSkillEffectItem[] }} RoomSkillEffectPayload
  * @typedef {{ timeRemaining: { black:number, white:number }, currentTurn:'black'|'white', ts:number }} RoomTimerSyncPayload
+ * @typedef {{ bombTarget?: 'black'|'white', target?: 'black'|'white', timeRemaining?: { black:number, white:number } }} RoomBombActivatedPayload
  * @typedef {{ loser:'black'|'white', winner:'black'|'white' }} RoomTimeOutPayload
  * @typedef {{ winner:'host'|'guest', winnerColor:'black'|'white', scores:{host:number,guest:number} }} RoomMatchOverPayload
  * @typedef {{ player: string, socketId: string }} RoomPlayerSurrenderedPayload
- * @typedef {{ fromPlayer: 'black'|'white' }} RoomUndoRequestedPayload
- * @typedef {{ accepted: boolean, byPlayer: 'black'|'white', undoUsed?: Record<'black'|'white', boolean> }} RoomUndoResponsePayload
- * @typedef {{ undoneMove?: { row: number, col: number }, currentTurn: 'black'|'white', undoUsed?: Record<'black'|'white', boolean> }} RoomUndoExecutedPayload
+ * @typedef {{ fromPlayer: 'black'|'white', requesterId?: string, requesterName?: string, message?: string, timeoutMs?: number }} RoomUndoRequestedPayload
+ * @typedef {{ accepted: boolean, byPlayer: 'black'|'white', requesterColor?: 'black'|'white', undoUsed?: Record<'black'|'white', boolean>, reason?: string }} RoomUndoResponsePayload
+ * @typedef {{ undoneMove?: { row: number, col: number }, boardState?: Record<string, unknown>, currentTurn: 'black'|'white', undoUsed?: Record<'black'|'white', boolean> }} RoomUndoExecutedPayload
  * @typedef {{ timeout: number }} RoomOpponentDisconnectedPayload
  * @typedef {{ fromPlayer: 'host'|'guest' }} RoomRematchRequestPayload
  */
@@ -43,6 +44,7 @@ const OnlineGame = {
     opponentSkillUsed: false,
     myUndoUsed: false,
     opponentUndoUsed: false,
+    undoRequestPending: false,
     
     // 猜拳状态
     rpsPhase: false,
@@ -50,6 +52,9 @@ const OnlineGame = {
     pendingSkill: null,
     draftState: null,
     matchState: null,
+    guestNickname: null,
+    _pendingMarkedCells: [],
+    _lastBombActivationAt: 0,
     
     // 防止重复初始化
     _initialized: false,
@@ -100,7 +105,7 @@ const OnlineGame = {
         // 技能事件
         socket.on('room:skill_used', this.onSkillUsed.bind(this));
         socket.on('server:skill_invalid', this.onSkillInvalid.bind(this));
-        socket.on('room:skill_effect', this.onSkillEffect.bind(this));
+        socket.on('room:bomb_activated', this.onBombActivated.bind(this));
         
         // 投降悔棋事件
         socket.on('room:player_surrendered', this.onPlayerSurrendered.bind(this));
@@ -126,6 +131,26 @@ const OnlineGame = {
         socket.on('server:lobby_join_failed', this.onLobbyJoinFailed.bind(this));
         socket.on('server:lobby_update', this.onLobbyUpdate.bind(this));
     },
+
+    generateGuestNickname: function() {
+        const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        let suffix = '';
+        for (let i = 0; i < 4; i++) {
+            suffix += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return '游客' + suffix;
+    },
+
+    getGuestNickname: function() {
+        if (!this.guestNickname) {
+            this.guestNickname = this.generateGuestNickname();
+        }
+        return this.guestNickname;
+    },
+
+    resetGuestNickname: function() {
+        this.guestNickname = null;
+    },
     
     // ========== 房间操作 ==========
     
@@ -134,8 +159,9 @@ const OnlineGame = {
      */
     createRoom: function(nickname) {
         const pieceStyle = GameState.pieceStyle || 'classic';
+        const guestName = this.getGuestNickname();
         SocketClient.emit('client:create_room', {
-            nickname: nickname || '玩家',
+            nickname: nickname || guestName,
             pieceStyle: pieceStyle,
             matchMode: 'single'
         });
@@ -146,9 +172,10 @@ const OnlineGame = {
      */
     joinRoom: function(roomId, nickname) {
         const pieceStyle = GameState.pieceStyle || 'classic';
+        const guestName = this.getGuestNickname();
         SocketClient.emit('client:join_room', {
             roomId: roomId,
-            nickname: nickname || '玩家',
+            nickname: nickname || guestName,
             pieceStyle: pieceStyle
         });
     },
@@ -192,9 +219,15 @@ const OnlineGame = {
         console.log('[OnlineGame] Room created:', data);
         this.roomId = data.roomId;
         this.role = 'host';
+        if (data && data.nickname) {
+            this.guestNickname = data.nickname;
+        }
         
         // 显示等待界面（房间号连线）
-        OnlineUI.showWaitingRoom(data.roomId, { source: '房间号连线' });
+        OnlineUI.showWaitingRoom(data.roomId, {
+            source: '房间号连线',
+            hostName: this.getGuestNickname()
+        });
     },
     
     onJoinSuccess: function(data) {
@@ -397,6 +430,156 @@ const OnlineGame = {
             timeRemaining = GameState.timeRemaining;
         }
     },
+
+    applyBoardStateSnapshot: function(state) {
+        if (!state || typeof state !== 'object') return;
+        if (Array.isArray(state.board)) {
+            GameState.board = state.board.map((row) => Array.isArray(row) ? row.slice() : []);
+            board = GameState.board;
+        }
+
+        this.applyStateDelta(state);
+
+        if (Array.isArray(state.moveHistory)) {
+            GameState.moveHistory = state.moveHistory.map((m) => ({ ...m }));
+            GameState.moveCount = GameState.moveHistory.length;
+            moveCount = GameState.moveCount;
+            const last = GameState.moveHistory.length > 0
+                ? GameState.moveHistory[GameState.moveHistory.length - 1]
+                : null;
+            if (last && Number.isInteger(last.row) && Number.isInteger(last.col)) {
+                const pieceValue = last.player === 'black' ? MAPLE : SUN;
+                GameState.lastMove = { r: last.row, c: last.col, player: pieceValue };
+                lastMove = GameState.lastMove;
+            } else {
+                GameState.lastMove = null;
+                lastMove = null;
+            }
+        } else {
+            GameState.moveHistory = [];
+            GameState.moveCount = 0;
+            moveCount = 0;
+            GameState.lastMove = null;
+            lastMove = null;
+        }
+
+        if (state.skillUsed) {
+            const myPiece = this.myColor === 'black' ? MAPLE : SUN;
+            const enemyPiece = myPiece === MAPLE ? SUN : MAPLE;
+            this.mySkillUsed = !!GameState.skillUsed[myPiece];
+            this.opponentSkillUsed = !!GameState.skillUsed[enemyPiece];
+        }
+        if (state.undoUsed) {
+            this.myUndoUsed = !!state.undoUsed[this.myColor];
+            this.opponentUndoUsed = !!state.undoUsed[this.myColor === 'black' ? 'white' : 'black'];
+        }
+        this.syncUndoButtonState();
+
+        if (typeof renderBoard === 'function') renderBoard();
+        if (typeof updateLastMoveMarker === 'function') updateLastMoveMarker();
+        if (typeof updateDynamicUI === 'function') updateDynamicUI();
+        this.syncBombAudioState();
+    },
+
+    clearPendingMarks: function() {
+        if (!Array.isArray(this._pendingMarkedCells)) {
+            this._pendingMarkedCells = [];
+            return;
+        }
+        for (const cell of this._pendingMarkedCells) {
+            if (cell && cell.style) {
+                cell.style.opacity = '1';
+            }
+        }
+        this._pendingMarkedCells = [];
+    },
+
+    markPendingCell: function(row, col) {
+        if (typeof getCell !== 'function') return;
+        const cell = getCell(row, col);
+        if (!cell) return;
+        cell.style.opacity = '0.5';
+        if (!Array.isArray(this._pendingMarkedCells)) this._pendingMarkedCells = [];
+        if (!this._pendingMarkedCells.includes(cell)) {
+            this._pendingMarkedCells.push(cell);
+        }
+    },
+
+    setPendingCastingMode: function(mode) {
+        const boardEl = document.getElementById('board');
+        if (!boardEl) return;
+        boardEl.classList.remove('casting-voodoo', 'casting-territory', 'casting-move-src', 'casting-move-dest');
+        if (mode) {
+            boardEl.classList.add(mode);
+        }
+    },
+
+    clearSkillCastingVisuals: function() {
+        this.setPendingCastingMode(null);
+        this.clearPendingMarks();
+        document.querySelectorAll('.territory-preview').forEach((el) => el.classList.remove('territory-preview'));
+    },
+
+    getSkillDisplayName: function(skillId) {
+        if (typeof t === 'function') {
+            const meta = t(skillId, 'skills');
+            if (meta && typeof meta === 'object' && typeof meta.name === 'string') {
+                return meta.name;
+            }
+        }
+        return skillId || '技能';
+    },
+
+    getToastText: function(key, fallback) {
+        if (typeof t === 'function') {
+            const value = t(key, 'toast');
+            if (typeof value === 'string' && value.length > 0) return value;
+        }
+        return fallback;
+    },
+
+    syncBombAudioState: function() {
+        if (typeof SoundEngine === 'undefined') return;
+
+        const targetColor = GameState.bombTarget === MAPLE
+            ? 'black'
+            : (GameState.bombTarget === SUN ? 'white' : null);
+        const currentColor = GameState.currentPlayer === MAPLE ? 'black' : 'white';
+
+        if (!targetColor) {
+            if (typeof SoundEngine.setCritical === 'function') {
+                SoundEngine.setCritical(false);
+            }
+            if (SoundEngine.currentTrack === 'bomb' && typeof SoundEngine.switchTrack === 'function') {
+                SoundEngine.switchTrack(GameState.userMusicPref);
+            }
+            return;
+        }
+
+        const remain = targetColor === 'black'
+            ? Number(GameState.timeRemaining[MAPLE] || 0)
+            : Number(GameState.timeRemaining[SUN] || 0);
+        if (typeof SoundEngine.setCritical === 'function') {
+            SoundEngine.setCritical(remain < 30);
+        }
+
+        if (currentColor === targetColor) {
+            if (typeof SoundEngine.switchTrack === 'function') {
+                SoundEngine.switchTrack('bomb');
+            }
+        } else if (SoundEngine.currentTrack === 'bomb' && typeof SoundEngine.switchTrack === 'function') {
+            SoundEngine.switchTrack(GameState.userMusicPref);
+        }
+    },
+
+    syncUndoButtonState: function() {
+        const undoBtn = document.querySelector('[onclick="undoMove()"]');
+        if (!undoBtn) return;
+        const disabled = !!this.myUndoUsed;
+        undoBtn.disabled = disabled;
+        undoBtn.style.pointerEvents = disabled ? 'none' : 'auto';
+        undoBtn.style.opacity = disabled ? '0.5' : '';
+    },
     
     /** @param {RoomGameStartPayload} data */
     onGameStart: function(data) {
@@ -419,7 +602,12 @@ const OnlineGame = {
         this.opponentSkillUsed = false;
         this.myUndoUsed = false;
         this.opponentUndoUsed = false;
+        this.undoRequestPending = false;
         this.pendingSkill = null;
+        if (typeof OnlineUI.hideUndoPendingModal === 'function') {
+            OnlineUI.hideUndoPendingModal();
+        }
+        this.syncUndoButtonState();
         this.matchState = data.match || null;
         if (typeof OnlineUI.updateMatchScore === 'function') {
             OnlineUI.updateMatchScore(this.matchState, this.role);
@@ -447,6 +635,7 @@ const OnlineGame = {
         
         // 更新 UI 显示对手信息
         OnlineUI.updateGameUI();
+        this.syncBombAudioState();
     },
     
     /** @param {RoomPiecePlacedPayload} data */
@@ -454,6 +643,8 @@ const OnlineGame = {
         console.log('[OnlineGame] Piece placed:', data);
         const r = Number.isInteger(data.resolvedRow) ? data.resolvedRow : data.row;
         const c = Number.isInteger(data.resolvedCol) ? data.resolvedCol : data.col;
+        const moverPiece = data.player === 'black' ? MAPLE : SUN;
+        const prevChaos = Number(GameState.chaosDebuff && GameState.chaosDebuff[moverPiece] || 0);
         
         // 使用专门的处理函数渲染棋子
         if (typeof handleOnlineOpponentMove === 'function') {
@@ -479,9 +670,24 @@ const OnlineGame = {
             }
         }
         this.applyStateDelta(data.state);
-        if (data.chaosApplied) {
-            OnlineUI.showToast('混沌干扰触发');
+        if (prevChaos > 0) {
+            if (data.chaosApplied) {
+                OnlineUI.showToast(this.getToastText('chaosTrigger', '混乱触发！落点偏移'));
+                if (typeof SoundEngine !== 'undefined' && typeof SoundEngine.playChaos === 'function') {
+                    SoundEngine.playChaos();
+                }
+            } else {
+                OnlineUI.showToast(this.getToastText('chaosLucky', '混乱触发，但落点未偏移'));
+                if (typeof SoundEngine !== 'undefined') {
+                    if (typeof SoundEngine.playChaosLucky === 'function') {
+                        SoundEngine.playChaosLucky();
+                    } else if (typeof SoundEngine.playChaos === 'function') {
+                        SoundEngine.playChaos();
+                    }
+                }
+            }
         }
+        this.syncBombAudioState();
     },
     
     onInvalidMove: function(data) {
@@ -520,11 +726,30 @@ const OnlineGame = {
                 message = iWon ? '炸弹引爆，你赢了！' : '炸弹引爆，你输了';
                 break;
         }
-        
-        // 显示胜利特效
-        if (iWon && data.winLine && typeof VisualFX !== 'undefined') {
-            VisualFX.drawWinLine(data.winLine, GameState.lineEffect || 'lightning');
-            VisualFX.startCelebration(GameState.winEffect || 'fireworks');
+
+        if (typeof SoundEngine !== 'undefined') {
+            if (typeof SoundEngine.setCritical === 'function') {
+                SoundEngine.setCritical(false);
+            }
+            if (data.reason === 'bomb_explode' && typeof SoundEngine.playExplosion === 'function') {
+                SoundEngine.playExplosion();
+            }
+            if (iWon && typeof SoundEngine.playWinEffect === 'function') {
+                SoundEngine.playWinEffect(GameState.winEffect || 'default');
+            } else if (!iWon && typeof SoundEngine.playDefeat === 'function') {
+                SoundEngine.playDefeat();
+            }
+            if (SoundEngine.currentTrack === 'bomb' && typeof SoundEngine.switchTrack === 'function') {
+                SoundEngine.switchTrack(GameState.userMusicPref);
+            }
+        }
+
+        // 双方都绘制连珠线，胜方额外播放庆祝
+        if (data.winLine && typeof VisualFX !== 'undefined') {
+            VisualFX.drawWinLine(data.winLine, GameState.winEffect || 'default');
+            if (iWon && GameState.winCelebration && GameState.winCelebration !== 'default') {
+                VisualFX.startCelebration(GameState.winCelebration);
+            }
         }
         
         GameState.gameActive = false;
@@ -547,6 +772,7 @@ const OnlineGame = {
         if (typeof updateDynamicUI === 'function') {
             updateDynamicUI();
         }
+        this.syncBombAudioState();
     },
 
     /** @param {RoomTimerSyncPayload} data */
@@ -562,6 +788,7 @@ const OnlineGame = {
             currentPlayer = GameState.currentPlayer;
         }
         if (typeof updateDynamicUI === 'function') updateDynamicUI();
+        this.syncBombAudioState();
     },
 
     /** @param {RoomTimeOutPayload} data */
@@ -594,14 +821,14 @@ const OnlineGame = {
         // 更新技能使用状态
         if (data.player === this.myColor) {
             this.mySkillUsed = true;
-            this.pendingSkill = null;
-            GameState.activeEffect = null;
-            activeEffect = null;
+            this.clearPendingSkill();
         } else {
             this.opponentSkillUsed = true;
         }
         
         // 应用棋盘变化
+        let latestPieceChange = null;
+        let pieceChangeCount = 0;
         if (data.changes) {
             for (const change of data.changes) {
                 if (change.value !== undefined) {
@@ -609,7 +836,19 @@ const OnlineGame = {
                     if (Array.isArray(board) && Array.isArray(board[change.row])) {
                         board[change.row][change.col] = change.value;
                     }
+                    if (change.value === MAPLE || change.value === SUN) {
+                        latestPieceChange = { r: change.row, c: change.col, player: change.value };
+                        pieceChangeCount++;
+                    }
                 }
+            }
+        }
+        if (pieceChangeCount > 0) {
+            GameState.moveCount += pieceChangeCount;
+            moveCount = GameState.moveCount;
+            if (latestPieceChange) {
+                GameState.lastMove = latestPieceChange;
+                lastMove = GameState.lastMove;
             }
         }
         
@@ -617,23 +856,62 @@ const OnlineGame = {
         if (typeof renderBoard === 'function') {
             renderBoard();
         }
+        if (latestPieceChange && typeof updateLastMoveMarker === 'function') {
+            updateLastMoveMarker();
+        }
         
         // 显示技能特效提示
-        OnlineUI.showToast((data.player === this.myColor ? '你' : '对手') + '使用了技能');
+        const actor = data.player === this.myColor ? '你' : '对手';
+        const skillName = this.getSkillDisplayName(data.skillId);
+        OnlineUI.showToast(actor + '使用了' + skillName);
+
+        if (data.player !== this.myColor && typeof SoundEngine !== 'undefined') {
+            if (data.skillId === 'chaos' && typeof SoundEngine.playChaos === 'function') {
+                SoundEngine.playChaos();
+            } else if (typeof SoundEngine.playSkill === 'function') {
+                SoundEngine.playSkill();
+            }
+        }
+
         this.applyStateDelta(data.state);
-        if (data.specialEffect && data.specialEffect.type === 'bomb_activated') {
-            OnlineUI.showToast('炸弹已激活');
+        if (data.specialEffect && data.specialEffect.type === 'chaos_applied') {
+            OnlineUI.showToast(this.getToastText('chaosTrigger', '混乱触发！落点偏移'));
+        }
+        if (data.skillId === 'short_battle') {
+            OnlineUI.showToast(this.getToastText('shortBattleStart', '短兵战！四子即胜'));
         }
         
         // 更新 UI
         if (typeof updateDynamicUI === 'function') {
             updateDynamicUI();
         }
+        this.syncBombAudioState();
     },
     
     onSkillInvalid: function(data) {
         console.log('[OnlineGame] Skill invalid:', data);
-        OnlineUI.showToast('技能使用无效: ' + data.reason);
+        const reason = data && data.reason ? data.reason : 'invalid';
+        const reasonMap = {
+            game_not_playing: '当前对局不可用',
+            not_your_turn: '当前不是你的回合',
+            skill_already_used: this.getToastText('skillUsed', '技能已用尽'),
+            skill_not_owned: '你未拥有该技能',
+            missing_target: '缺少技能目标',
+            missing_targets: '缺少技能目标',
+            invalid_target_piece: '目标棋子无效',
+            target_not_empty: '目标位置不为空',
+            zone_restricted: this.getToastText('errZone', '禁区无法落子'),
+            not_own_piece: '请选择己方棋子',
+            not_enemy_piece: '请选择敌方棋子',
+            source_not_piece: '源位置没有棋子',
+            invalid_move_path: '移动路径无效',
+            unknown_skill: '未知技能'
+        };
+        OnlineUI.showToast('技能使用无效: ' + (reasonMap[reason] || reason));
+        if (typeof SoundEngine !== 'undefined' && typeof SoundEngine.playError === 'function') {
+            SoundEngine.playError();
+        }
+        this.clearPendingSkill();
     },
     
     /** @param {RoomSkillEffectPayload} data */
@@ -652,6 +930,9 @@ const OnlineGame = {
                         }
                     }
                     OnlineUI.showToast('炸弹爆炸！');
+                    if (typeof SoundEngine !== 'undefined' && typeof SoundEngine.playExplosion === 'function') {
+                        SoundEngine.playExplosion();
+                    }
                 } else if (effect.type === 'voodoo_expire') {
                     // 巫毒腐蚀生效
                     GameState.board[effect.row][effect.col] = 0;
@@ -666,6 +947,42 @@ const OnlineGame = {
         if (typeof renderBoard === 'function') {
             renderBoard();
         }
+        this.syncBombAudioState();
+    },
+
+    /** @param {RoomBombActivatedPayload} data */
+    onBombActivated: function(data) {
+        console.log('[OnlineGame] Bomb activated:', data);
+        if (!data) return;
+        const now = Date.now();
+        const isDuplicate = (now - Number(this._lastBombActivationAt || 0)) < 1500;
+        this._lastBombActivationAt = now;
+
+        const target = data.bombTarget || data.target || null;
+        if (target === 'black') {
+            GameState.bombTarget = MAPLE;
+        } else if (target === 'white') {
+            GameState.bombTarget = SUN;
+        } else if (target === null) {
+            GameState.bombTarget = null;
+        }
+        bombTarget = GameState.bombTarget;
+
+        if (data.timeRemaining) {
+            GameState.timeRemaining = {
+                [MAPLE]: Number.isFinite(data.timeRemaining.black) ? data.timeRemaining.black : GameState.timeRemaining[MAPLE],
+                [SUN]: Number.isFinite(data.timeRemaining.white) ? data.timeRemaining.white : GameState.timeRemaining[SUN]
+            };
+            timeRemaining = GameState.timeRemaining;
+        }
+
+        if (!isDuplicate) {
+            OnlineUI.showToast(this.getToastText('bombStart', '炸弹已激活'));
+        }
+        this.syncBombAudioState();
+        if (typeof updateDynamicUI === 'function') {
+            updateDynamicUI();
+        }
     },
     
     // ========== 投降悔棋处理 ==========
@@ -679,54 +996,80 @@ const OnlineGame = {
     /** @param {RoomUndoRequestedPayload} data */
     onUndoRequested: function(data) {
         console.log('[OnlineGame] Undo requested:', data);
-        OnlineUI.showUndoRequestModal();
+        OnlineUI.showUndoRequestModal(data);
     },
     
     /** @param {RoomUndoResponsePayload} data */
     onUndoResponse: function(data) {
         console.log('[OnlineGame] Undo response:', data);
-        
-        // 更新悔棋使用状态
+
+        const requesterColor = data && data.requesterColor ? data.requesterColor : null;
+        const iAmRequester = requesterColor
+            ? requesterColor === this.myColor
+            : !!this.undoRequestPending;
+        const reason = data && data.reason ? data.reason : (data.accepted ? 'accepted' : 'rejected');
+
+        if (iAmRequester) {
+            this.undoRequestPending = false;
+            if (typeof OnlineUI.hideUndoPendingModal === 'function') {
+                OnlineUI.hideUndoPendingModal();
+            }
+        }
+        if (typeof OnlineUI.hideUndoRequestModal === 'function') {
+            OnlineUI.hideUndoRequestModal();
+        }
+
         if (data.undoUsed) {
-            this.myUndoUsed = data.undoUsed[this.myColor];
-            this.opponentUndoUsed = data.undoUsed[this.myColor === 'black' ? 'white' : 'black'];
+            this.myUndoUsed = !!data.undoUsed[this.myColor];
+            this.opponentUndoUsed = !!data.undoUsed[this.myColor === 'black' ? 'white' : 'black'];
         }
-        
-        if (data.accepted) {
-            OnlineUI.showToast('悔棋请求被同意');
-        } else {
-            OnlineUI.showToast('悔棋请求被拒绝');
+        this.syncUndoButtonState();
+
+        if (reason === 'accepted') {
+            OnlineUI.showToast(iAmRequester ? '太神奇了！悔棋已成功！' : '且让它一步，这就是风度');
+            return;
         }
+        if (reason === 'timeout') {
+            OnlineUI.showToast(iAmRequester ? '对方没有回应，可能在偷偷睡觉' : '由于您没有回应对方，已默认拒绝');
+            return;
+        }
+        if (reason === 'rejected') {
+            OnlineUI.showToast(iAmRequester ? '对方不许悔棋！下次他要悔棋的时候别放过它' : '已让对方滚蛋！');
+            return;
+        }
+        OnlineUI.showToast(data.accepted ? '悔棋请求被同意' : '悔棋请求未通过');
     },
     
     /** @param {RoomUndoExecutedPayload} data */
     onUndoExecuted: function(data) {
         console.log('[OnlineGame] Undo executed:', data);
-        
-        // 恢复棋盘状态
-        if (data.undoneMove) {
-            GameState.board[data.undoneMove.row][data.undoneMove.col] = 0;
-            if (Array.isArray(board) && Array.isArray(board[data.undoneMove.row])) {
-                board[data.undoneMove.row][data.undoneMove.col] = 0;
+
+        if (data.boardState && typeof data.boardState === 'object') {
+            this.applyBoardStateSnapshot(data.boardState);
+        } else {
+            // 兼容旧服务端，仅回退最后一手
+            if (data.undoneMove) {
+                GameState.board[data.undoneMove.row][data.undoneMove.col] = 0;
+                if (Array.isArray(board) && Array.isArray(board[data.undoneMove.row])) {
+                    board[data.undoneMove.row][data.undoneMove.col] = 0;
+                }
             }
+            GameState.currentPlayer = data.currentTurn === 'black' ? MAPLE : SUN;
+            currentPlayer = GameState.currentPlayer;
+            if (typeof renderBoard === 'function') renderBoard();
+            if (typeof updateDynamicUI === 'function') updateDynamicUI();
+            this.syncBombAudioState();
         }
-        
-        // 更新回合
-        GameState.currentPlayer = data.currentTurn === 'black' ? 1 : 2;
-        currentPlayer = GameState.currentPlayer;
-        
-        // 更新悔棋状态
+
         if (data.undoUsed) {
-            this.myUndoUsed = data.undoUsed[this.myColor];
-            this.opponentUndoUsed = data.undoUsed[this.myColor === 'black' ? 'white' : 'black'];
+            this.myUndoUsed = !!data.undoUsed[this.myColor];
+            this.opponentUndoUsed = !!data.undoUsed[this.myColor === 'black' ? 'white' : 'black'];
         }
-        
-        if (typeof renderBoard === 'function') {
-            renderBoard();
+        this.undoRequestPending = false;
+        if (typeof OnlineUI.hideUndoPendingModal === 'function') {
+            OnlineUI.hideUndoPendingModal();
         }
-        if (typeof updateDynamicUI === 'function') {
-            updateDynamicUI();
-        }
+        this.syncUndoButtonState();
     },
     
     // ========== 断线重连处理 ==========
@@ -770,8 +1113,6 @@ const OnlineGame = {
         GameState.gameMode = 'online';
         gameMode = 'online';
 
-        GameState.board = state.board || GameState.board;
-        board = GameState.board;
         if (data.status === 'playing') {
             GameState.gameActive = true;
             gameActive = true;
@@ -780,12 +1121,7 @@ const OnlineGame = {
             GameState.gameActive = false;
             gameActive = false;
         }
-        this.applyStateDelta(state);
-        if (Array.isArray(state.moveHistory)) {
-            GameState.moveHistory = state.moveHistory;
-        }
-        if (typeof renderBoard === 'function') renderBoard();
-        if (typeof updateDynamicUI === 'function') updateDynamicUI();
+        this.applyBoardStateSnapshot(state);
         OnlineUI.hideDisconnectWarning();
         if (SocketClient && typeof SocketClient.clearPendingReconnect === 'function') {
             SocketClient.clearPendingReconnect();
@@ -820,7 +1156,21 @@ const OnlineGame = {
     
     onServerError: function(data) {
         console.error('[OnlineGame] Server error:', data);
-        OnlineUI.showToast('服务器错误: ' + data.message);
+        const message = data && data.message ? data.message : 'unknown_error';
+        if (message === 'undo_pending') {
+            this.undoRequestPending = true;
+            if (typeof OnlineUI.showUndoPendingModal === 'function') {
+                OnlineUI.showUndoPendingModal(10000);
+            }
+            return;
+        }
+        if (message === 'undo_already_used') {
+            this.myUndoUsed = true;
+            this.syncUndoButtonState();
+            OnlineUI.showToast('本局悔棋已失效');
+            return;
+        }
+        OnlineUI.showToast('服务器错误: ' + message);
     },
     
     // ========== 发送操作 ==========
@@ -853,6 +1203,20 @@ const OnlineGame = {
         if (this.myUndoUsed) {
             OnlineUI.showToast('你已经使用过悔棋了');
             return;
+        }
+        if (!SocketClient || !SocketClient.connected) {
+            OnlineUI.showToast('未连接到服务器');
+            return;
+        }
+        if (this.undoRequestPending) {
+            if (typeof OnlineUI.showUndoPendingModal === 'function') {
+                OnlineUI.showUndoPendingModal(10000);
+            }
+            return;
+        }
+        this.undoRequestPending = true;
+        if (typeof OnlineUI.showUndoPendingModal === 'function') {
+            OnlineUI.showUndoPendingModal(10000);
         }
         SocketClient.emit('client:request_undo', {});
     },
@@ -916,12 +1280,18 @@ const OnlineGame = {
         console.log('[OnlineGame] Lobby room created:', data);
         this.roomId = data.roomId;
         this.role = 'host';
+        if (data && data.nickname) {
+            this.guestNickname = data.nickname;
+        }
         // 清除创建超时定时器
         if (OnlineUI._createTimeout) {
             clearTimeout(OnlineUI._createTimeout);
             OnlineUI._createTimeout = null;
         }
-        OnlineUI.showWaitingRoom(data.roomId, { source: '公共大厅' });
+        OnlineUI.showWaitingRoom(data.roomId, {
+            source: '公共大厅',
+            hostName: this.getGuestNickname()
+        });
     },
     
     /**
@@ -952,23 +1322,37 @@ const OnlineGame = {
             return;
         }
 
+        if (typeof SoundEngine !== 'undefined' && typeof SoundEngine.playSkill === 'function') {
+            SoundEngine.playSkill();
+        }
+
         const instantSkills = new Set(['double', 'chaos', 'short_battle', 'bomb']);
+        const skillName = this.getSkillDisplayName(skillId);
         if (instantSkills.has(skillId)) {
+            OnlineUI.showToast(this.getToastText('casting', '释放：') + skillName);
             this.sendSkill(skillId, {});
             return;
         }
 
+        this.clearPendingSkill();
         this.pendingSkill = { id: skillId, step: 0, data: {} };
         GameState.activeEffect = 'online_pending_skill';
         activeEffect = GameState.activeEffect;
         const hintMap = {
-            voodoo: '请选择目标棋子',
-            zone: '请选择领地中心',
-            move_self: '请选择己方棋子',
-            move_enemy: '请选择敌方棋子',
-            swap: '请选择己方棋子',
-            god_hand: '请选择第一颗棋子'
+            voodoo: this.getToastText('voodooPick', '请选择目标棋子'),
+            zone: this.getToastText('zonePick', '请选择领地中心'),
+            move_self: this.getToastText('moveSrcSelf', '请选择己方棋子'),
+            move_enemy: this.getToastText('moveSrcEnemy', '请选择敌方棋子'),
+            swap: this.getToastText('swapPickSelf', '请选择己方棋子'),
+            god_hand: this.getToastText('godPick1', '请选择第一颗棋子')
         };
+        if (skillId === 'voodoo') {
+            this.setPendingCastingMode('casting-voodoo');
+        } else if (skillId === 'zone') {
+            this.setPendingCastingMode('casting-territory');
+        } else {
+            this.setPendingCastingMode('casting-move-src');
+        }
         OnlineUI.showToast(hintMap[skillId] || '请选择技能目标');
     },
 
@@ -980,6 +1364,7 @@ const OnlineGame = {
         this.pendingSkill = null;
         GameState.activeEffect = null;
         activeEffect = null;
+        this.clearSkillCastingVisuals();
     },
 
     handleSkillCellClick: function(r, c) {
@@ -1007,7 +1392,9 @@ const OnlineGame = {
                 const ok = skillId === 'move_self' ? val === myPiece : val === enemyPiece;
                 if (!ok) return true;
                 this.pendingSkill.data.from = { row: r, col: c };
-                OnlineUI.showToast('请选择目标空位');
+                this.markPendingCell(r, c);
+                this.setPendingCastingMode('casting-move-dest');
+                OnlineUI.showToast(this.getToastText('moveDest', '请选择目标空位'));
                 return true;
             }
             if (val !== EMPTY) return true;
@@ -1023,7 +1410,9 @@ const OnlineGame = {
             if (!this.pendingSkill.data.own) {
                 if (val !== myPiece) return true;
                 this.pendingSkill.data.own = { row: r, col: c };
-                OnlineUI.showToast('请选择敌方棋子');
+                this.markPendingCell(r, c);
+                this.setPendingCastingMode('casting-move-dest');
+                OnlineUI.showToast(this.getToastText('swapPickEnemy', '请选择敌方棋子'));
                 return true;
             }
             if (val !== enemyPiece) return true;
@@ -1040,7 +1429,12 @@ const OnlineGame = {
             if (!this.pendingSkill.data.from) {
                 if (val === EMPTY || val === CORRODED) return true;
                 this.pendingSkill.data.from = { row: r, col: c };
-                OnlineUI.showToast('请选择落点');
+                this.markPendingCell(r, c);
+                this.setPendingCastingMode('casting-move-dest');
+                const destHint = moves.length === 0
+                    ? this.getToastText('godDest1', '请选择第1次落点')
+                    : this.getToastText('godDest2', '请选择第2次落点');
+                OnlineUI.showToast(destHint);
                 return true;
             }
             if (val !== EMPTY) return true;
@@ -1054,7 +1448,9 @@ const OnlineGame = {
                 this.sendSkill(skillId, { moves });
                 this.clearPendingSkill();
             } else {
-                OnlineUI.showToast('请选择第二颗棋子');
+                this.clearPendingMarks();
+                this.setPendingCastingMode('casting-move-src');
+                OnlineUI.showToast(this.getToastText('godPick2', '请选择第二颗棋子'));
             }
             return true;
         }
@@ -1086,11 +1482,16 @@ const OnlineGame = {
         this.opponentSkillUsed = false;
         this.myUndoUsed = false;
         this.opponentUndoUsed = false;
+        this.undoRequestPending = false;
         this.rpsPhase = false;
         this.myRpsChoice = null;
         this.pendingSkill = null;
+        this.clearSkillCastingVisuals();
         this.draftState = null;
         this.matchState = null;
+        this.resetGuestNickname();
+        this._lastBombActivationAt = 0;
+        this.syncUndoButtonState();
         if (typeof OnlineUI !== 'undefined' && typeof OnlineUI.updateMatchScore === 'function') {
             OnlineUI.updateMatchScore(null, null);
         }
@@ -1107,6 +1508,16 @@ const OnlineGame = {
         if (GameState.gameMode === 'online') {
             GameState.gameMode = 'pvp';
             gameMode = GameState.gameMode;
+        }
+        GameState.bombTarget = null;
+        bombTarget = null;
+        if (typeof SoundEngine !== 'undefined') {
+            if (typeof SoundEngine.setCritical === 'function') {
+                SoundEngine.setCritical(false);
+            }
+            if (SoundEngine.currentTrack === 'bomb' && typeof SoundEngine.switchTrack === 'function') {
+                SoundEngine.switchTrack(GameState.userMusicPref);
+            }
         }
         
         // 重置 GameState 的联网状态

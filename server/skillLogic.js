@@ -251,7 +251,8 @@ function executeSkill(room, skillId, targets) {
         board[target.to.row][target.to.col] = moving;
         result.changes.push({ row: target.from.row, col: target.from.col, value: 0, was: moving });
         result.changes.push({ row: target.to.row, col: target.to.col, value: moving, effect: 'moved_piece' });
-        result.switchTurn = true;
+        // Keep parity with local gameplay: move skill consumes skill usage but does not end turn.
+        result.switchTurn = false;
     } else if (skillId === 'zone') {
         const target = /** @type {SingleTarget} */ (targets);
         game.territoryZones = game.territoryZones || [];
@@ -310,7 +311,8 @@ function executeSkill(room, skillId, targets) {
         board[target.opponent.row][target.opponent.col] = ownVal;
         result.changes.push({ row: target.own.row, col: target.own.col, value: enemyVal, was: ownVal });
         result.changes.push({ row: target.opponent.row, col: target.opponent.col, value: ownVal, was: enemyVal });
-        result.switchTurn = true;
+        // Keep parity with local gameplay: swap consumes skill usage but does not end turn.
+        result.switchTurn = false;
     }
 
     game.skillUsed[currentTurn] = true;

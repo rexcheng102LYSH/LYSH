@@ -28,7 +28,7 @@ describe('roomManager', () => {
         const ok = manager.joinLobbyRoom(room.id, 'guest-1', 'GuestPlayer', '1234');
         expect(ok.success).toBe(true);
         expect(ok.room.status).toBe('rps');
-        expect(ok.room.players.guest.nickname).toBe('GuestPlayer');
+        expect(ok.room.players.guest.nickname).toMatch(/^游客[0-9A-Z]{4}$/);
     });
 
     it('returns only waiting lobby rooms in list', () => {
@@ -54,6 +54,16 @@ describe('roomManager', () => {
         expect(guestFound).not.toBeNull();
         expect(hostFound.role).toBe('host');
         expect(guestFound.role).toBe('guest');
+    });
+
+    it('normalizes incoming nicknames to guest id format', () => {
+        const manager = new RoomManager();
+        const room = manager.createRoom('host-1', 'AnyName');
+        const joined = manager.joinRoom(room.id, 'guest-1', 'AnotherName');
+
+        expect(room.players.host.nickname).toMatch(/^游客[0-9A-Z]{4}$/);
+        expect(joined.success).toBe(true);
+        expect(joined.room.players.guest.nickname).toMatch(/^游客[0-9A-Z]{4}$/);
     });
 
     it('removes room when host leaves', () => {
@@ -98,5 +108,19 @@ describe('roomManager', () => {
         expect(latest.match.scores).toEqual({ host: 0, guest: 0 });
         expect(latest.match.currentGame).toBe(1);
         expect(latest.status).toBe('rps');
+    });
+
+    it('initGame initializes online rollback history stack', () => {
+        const manager = new RoomManager();
+        const room = manager.createLobbyRoom('host-1', 'HostA');
+        manager.joinLobbyRoom(room.id, 'guest-1', 'GuestA');
+        room.players.black = room.players.host;
+        room.players.white = room.players.guest;
+
+        manager.initGame(room.id);
+        const latest = manager.getRoom(room.id);
+
+        expect(Array.isArray(latest.game.historyStack)).toBe(true);
+        expect(latest.game.historyStack).toHaveLength(0);
     });
 });

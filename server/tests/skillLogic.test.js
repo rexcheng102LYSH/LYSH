@@ -58,4 +58,35 @@ describe('skillLogic', () => {
         expect(room.game.timeRemaining.black).toBe(90);
         expect(room.game.bombTarget).toBe('black');
     });
+
+    it('move_self should not switch turn (parity with local mode)', () => {
+        const room = createRoom();
+        room.game.playerSkills.black = 'move_self';
+        room.game.board[7][7] = 1;
+        const result = skillLogic.executeSkill(room, 'move_self', {
+            from: { row: 7, col: 7 },
+            to: { row: 7, col: 8 }
+        });
+
+        expect(result.switchTurn).toBe(false);
+        expect(room.game.board[7][7]).toBe(0);
+        expect(room.game.board[7][8]).toBe(1);
+        expect(room.game.skillUsed.black).toBe(true);
+    });
+
+    it('swap should not switch turn (parity with local mode)', () => {
+        const room = createRoom();
+        room.game.playerSkills.black = 'swap';
+        room.game.board[6][6] = 1;
+        room.game.board[8][8] = 2;
+        const result = skillLogic.executeSkill(room, 'swap', {
+            own: { row: 6, col: 6 },
+            opponent: { row: 8, col: 8 }
+        });
+
+        expect(result.switchTurn).toBe(false);
+        expect(room.game.board[6][6]).toBe(2);
+        expect(room.game.board[8][8]).toBe(1);
+        expect(room.game.skillUsed.black).toBe(true);
+    });
 });

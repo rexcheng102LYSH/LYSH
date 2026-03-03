@@ -160,6 +160,12 @@ Online multiplayer flow (current)
      - picker timeout is 10s per turn; on timeout server auto-picks the first available skill in configured order
   5. game start (`room:game_start` carries `playerSkills`, `timeRemaining`, `match`)
   6. gameplay events (`client:place_piece`, `client:use_skill`, undo/surrender/rematch)
+     - undo is request/confirm based: requester emits `client:request_undo`, opponent responds with `client:respond_undo`
+     - `room:undo_requested` now carries `requesterId/requesterName/message` for UI prompt text
+     - undo request modal highlights player ID with `.player-id` (green), covering both `游客XXXX` and future account IDs
+     - undo request has 10s response timeout; timeout auto-rejects and locks requester undo for current game
+     - server snapshots full game state before every `place_piece` and `use_skill`; accepted undo restores snapshot via `room:undo_executed.boardState`
+     - if an undo request is rejected, requester `undoUsed` is locked for the current game (button should be disabled client-side)
   7. timer sync and timeout (`room:timer_sync`, `room:time_out`)
 - Reconnect/disconnect handling supports both host and guest during active match flow:
   - disconnect enters reconnect window (`room:opponent_disconnected`) instead of immediately destroying room
@@ -169,6 +175,8 @@ Online multiplayer flow (current)
 
 Online gameplay config details (important compatibility notes)
 - Lobby create path supports: rule preset, enabled-skill subset, and optional 4-digit room password (`client:lobby_create` payload).
+- Guest identity is currently account-less and session-scoped: nickname is normalized to `游客XXXX` (`X` in `0-9A-Z`), and resets after leaving/re-entering online flow.
+- ID display rule (online prompts/modals): user IDs should use the `.player-id` class for green emphasis, including guest and account IDs.
 - Room ID compatibility is split by design: backend canonical length is 4 (`/api/status -> roomIdLength: 4`), while join UI still accepts 4-6 digits for legacy compatibility.
 - `/api/status` now carries runtime metadata (`version`, `lobbySupported`, `roomIdLength`) for frontend capability checks.
 

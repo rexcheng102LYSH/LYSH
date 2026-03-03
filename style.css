@@ -1704,6 +1704,11 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
     margin: 16px 0;
 }
 
+.player-id {
+    color: #22c55e;
+    font-weight: 700;
+}
+
 /* 按钮 */
 .online-btn {
     display: flex;
@@ -2904,7 +2909,7 @@ input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
 }
 
 .player-slot-status.ready {
-    color: #4ade80;
+    color: #ff4d4f;
 }
 
 .player-slot-status.joined {

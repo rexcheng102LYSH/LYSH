@@ -3,6 +3,22 @@
 // ============================================
 
 const config = require('./config');
+const GUEST_ID_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+function generateGuestSuffix() {
+    let result = '';
+    for (let i = 0; i < 4; i++) {
+        result += GUEST_ID_CHARS.charAt(Math.floor(Math.random() * GUEST_ID_CHARS.length));
+    }
+    return result;
+}
+
+function normalizeGuestNickname(nickname) {
+    if (typeof nickname === 'string' && /^游客[0-9A-Z]{4}$/.test(nickname.trim())) {
+        return nickname.trim();
+    }
+    return `游客${generateGuestSuffix()}`;
+}
 
 /**
  * @typedef {object} RoomPlayer
@@ -97,6 +113,7 @@ class RoomManager {
     /** @returns {RoomState} */
     createRoom(hostSocketId, nickname, pieceStyle = 'classic', matchMode = 'single') {
         const roomId = this.generateRoomId();
+        const hostNickname = normalizeGuestNickname(nickname);
         
         const room = {
             id: roomId,
@@ -106,7 +123,7 @@ class RoomManager {
             players: {
                 host: {
                     id: hostSocketId,
-                    nickname: nickname || 'Player 1',
+                    nickname: hostNickname,
                     connected: true,
                     disconnectTime: null,
                     pieceStyle: pieceStyle
@@ -142,7 +159,7 @@ class RoomManager {
         };
         
         this.rooms.set(roomId, room);
-        console.log(`[Room] Created: ${roomId} by ${nickname}`);
+        console.log(`[Room] Created: ${roomId} by ${hostNickname}`);
         
         return room;
     }
@@ -157,6 +174,7 @@ class RoomManager {
     /** @returns {{success: true, room: RoomState} | {success: false, reason: string}} */
     joinRoom(roomId, socketId, nickname, pieceStyle = 'classic') {
         const room = this.rooms.get(roomId);
+        const guestNickname = normalizeGuestNickname(nickname);
         
         if (!room) {
             return { success: false, reason: 'room_not_found' };
@@ -173,7 +191,7 @@ class RoomManager {
         // 加入房间
         room.players.guest = {
             id: socketId,
-            nickname: nickname || 'Player 2',
+            nickname: guestNickname,
             connected: true,
             disconnectTime: null,
             pieceStyle: pieceStyle
@@ -182,7 +200,7 @@ class RoomManager {
         // 进入猜拳阶段
         room.status = 'rps';
         
-        console.log(`[Room] ${roomId}: ${nickname} joined`);
+        console.log(`[Room] ${roomId}: ${guestNickname} joined`);
         
         return { success: true, room };
     }
@@ -279,6 +297,9 @@ class RoomManager {
         if (room.game && room.game.timerId) {
             clearInterval(room.game.timerId);
         }
+        if (room.game && room.game.undoTimerId) {
+            clearTimeout(room.game.undoTimerId);
+        }
         
         const size = config.board.size;
         const draftPicks = room.draft && room.draft.picks
@@ -292,6 +313,7 @@ class RoomManager {
             board: Array(size).fill(null).map(() => Array(size).fill(0)),
             currentTurn: 'black',
             moveHistory: [],
+            historyStack: [],
             startTime: Date.now(),
             lastMoveTime: Date.now(),
             turnStartedAt: Date.now(),
@@ -316,7 +338,8 @@ class RoomManager {
              
             // 悔棋状态
             undoUsed: { black: false, white: false },
-            undoPending: null
+            undoPending: null,
+            undoTimerId: null
         };
         
         room.status = 'playing';
@@ -337,6 +360,9 @@ class RoomManager {
 
         if (room.game && room.game.timerId) {
             clearInterval(room.game.timerId);
+        }
+        if (room.game && room.game.undoTimerId) {
+            clearTimeout(room.game.undoTimerId);
         }
         
         // 重置猜拳
@@ -420,6 +446,7 @@ class RoomManager {
     /** @returns {RoomState} */
     createLobbyRoom(hostSocketId, nickname, options = {}) {
         const roomId = this.generateRoomId();
+        const hostNickname = normalizeGuestNickname(nickname);
         const rule = options.rule || 'single';
         const enabledSkills = options.enabledSkills || [];
         const hasPassword = options.hasPassword || false;
@@ -434,7 +461,7 @@ class RoomManager {
             players: {
                 host: {
                     id: hostSocketId,
-                    nickname: nickname || 'Player 1',
+                    nickname: hostNickname,
                     connected: true,
                     disconnectTime: null,
                     pieceStyle: 'classic'
@@ -470,7 +497,7 @@ class RoomManager {
         };
         
         this.rooms.set(roomId, room);
-        console.log(`[Lobby] Room created: ${roomId} by ${nickname} (rule=${rule}, skills=${enabledSkills.length}, pwd=${hasPassword})`);
+        console.log(`[Lobby] Room created: ${roomId} by ${hostNickname} (rule=${rule}, skills=${enabledSkills.length}, pwd=${hasPassword})`);
         
         return room;
     }
@@ -509,6 +536,7 @@ class RoomManager {
      */
     joinLobbyRoom(roomId, socketId, nickname, password = null) {
         const room = this.rooms.get(roomId);
+        const guestNickname = normalizeGuestNickname(nickname);
         
         if (!room) {
             return { success: false, reason: '房间不存在' };
@@ -532,7 +560,7 @@ class RoomManager {
         // 加入房间
         room.players.guest = {
             id: socketId,
-            nickname: nickname || 'Player 2',
+            nickname: guestNickname,
             connected: true,
             disconnectTime: null,
             pieceStyle: 'classic'
@@ -540,7 +568,7 @@ class RoomManager {
         
         room.status = 'rps';
         
-        console.log(`[Lobby] ${roomId}: ${nickname} joined`);
+        console.log(`[Lobby] ${roomId}: ${guestNickname} joined`);
         
         return { success: true, room };
     }

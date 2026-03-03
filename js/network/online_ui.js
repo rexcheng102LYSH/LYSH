@@ -120,15 +120,53 @@ const OnlineUI = {
      * 获取昵称
      */
     promptNickname: function() {
-        // 尝试从本地存储获取
-        let nickname = localStorage.getItem('lysh_nickname');
-        if (!nickname) {
-            nickname = prompt('请输入你的昵称:', '玩家');
-            if (nickname) {
-                localStorage.setItem('lysh_nickname', nickname);
-            }
+        if (typeof OnlineGame !== 'undefined' && OnlineGame && typeof OnlineGame.getGuestNickname === 'function') {
+            return OnlineGame.getGuestNickname();
         }
-        return nickname || '玩家';
+        return '游客0000';
+    },
+
+    /**
+     * 统一渲染玩家ID（绿色高亮，可带后缀）
+     * @param {HTMLElement|null} el
+     * @param {string} idText
+     * @param {string} suffix
+     */
+    appendPlayerIdNode: function(el, idText) {
+        if (!el) return;
+        const raw = typeof idText === 'string' ? idText.trim() : '';
+        if (!raw) return;
+
+        // 游客前缀不高亮，仅4位随机ID高亮
+        const guestMatch = raw.match(/^游客([0-9A-Z]{4})$/);
+        if (guestMatch) {
+            el.appendChild(document.createTextNode('游客'));
+            const guestIdSpan = document.createElement('span');
+            guestIdSpan.className = 'player-id';
+            guestIdSpan.textContent = guestMatch[1];
+            el.appendChild(guestIdSpan);
+            return;
+        }
+
+        const span = document.createElement('span');
+        span.className = 'player-id';
+        span.textContent = raw;
+        el.appendChild(span);
+    },
+
+    renderPlayerIdLabel: function(el, idText, suffix) {
+        if (!el) return;
+        const id = typeof idText === 'string' ? idText.trim() : '';
+        const tail = typeof suffix === 'string' ? suffix : '';
+        if (!id) {
+            el.textContent = tail;
+            return;
+        }
+        el.textContent = '';
+        this.appendPlayerIdNode(el, id);
+        if (tail) {
+            el.appendChild(document.createTextNode(tail));
+        }
     },
     
     /**
@@ -150,7 +188,10 @@ const OnlineUI = {
         // 房主名称
         var hostNameEl = document.getElementById('waitingHostName');
         if (hostNameEl) {
-            hostNameEl.textContent = opts.hostName || localStorage.getItem('lysh_nickname') || '房主';
+            var fallbackHost = (typeof OnlineGame !== 'undefined' && OnlineGame && typeof OnlineGame.getGuestNickname === 'function')
+                ? OnlineGame.getGuestNickname()
+                : '游客0000';
+            this.renderPlayerIdLabel(hostNameEl, opts.hostName || fallbackHost, '');
         }
         
         // 游戏模式
@@ -182,7 +223,7 @@ const OnlineUI = {
         if (guestName) {
             // 对手已加入
             if (guestSlot) guestSlot.className = 'player-slot player-guest joined';
-            if (guestNameEl) guestNameEl.textContent = guestName;
+            if (guestNameEl) this.renderPlayerIdLabel(guestNameEl, guestName, '');
             if (guestStatusEl) {
                 guestStatusEl.className = 'player-slot-status joined';
                 guestStatusEl.textContent = '已加入';
@@ -553,12 +594,62 @@ const OnlineUI = {
             modal.style.display = 'none';
         }
     },
+
+    /**
+     * 渲染悔棋请求文本（ID 高亮）
+     */
+    renderUndoRequestText: function(textEl, requesterName, remainSec) {
+        if (!textEl) return;
+        const hasRequesterName = typeof requesterName === 'string' && requesterName.trim();
+        if (!hasRequesterName) {
+            if (Number.isFinite(remainSec)) {
+                textEl.textContent = `对手请求悔棋，是否同意？（${remainSec}）`;
+            } else {
+                textEl.textContent = '对手请求悔棋，是否同意？';
+            }
+            return;
+        }
+
+        textEl.textContent = '';
+        textEl.append(document.createTextNode('【'));
+        this.appendPlayerIdNode(textEl, requesterName.trim());
+        textEl.append(document.createTextNode('】表示自己手抖了，想要悔棋！'));
+        if (Number.isFinite(remainSec)) {
+            textEl.append(document.createTextNode(`（${remainSec}）`));
+        }
+    },
     
     /**
      * 显示悔棋请求弹窗
      */
-    showUndoRequestModal: function() {
+    showUndoRequestModal: function(data) {
         const modal = document.getElementById('undoRequestModal');
+        const textEl = document.getElementById('undoRequestText');
+        const timeoutMs = data && Number.isFinite(data.timeoutMs) ? data.timeoutMs : 0;
+        const requesterName = data && typeof data.requesterName === 'string' ? data.requesterName : '';
+        const baseMessage = data && data.message ? data.message : '对手请求悔棋，是否同意？';
+        this.hideUndoRequestModal();
+        if (textEl) {
+            if (timeoutMs > 0) {
+                const startedAt = Date.now();
+                const render = () => {
+                    const remainSec = Math.max(0, Math.ceil((timeoutMs - (Date.now() - startedAt)) / 1000));
+                    if (requesterName && requesterName.trim()) {
+                        this.renderUndoRequestText(textEl, requesterName, remainSec);
+                    } else {
+                        textEl.textContent = `${baseMessage}（${remainSec}）`;
+                    }
+                };
+                render();
+                this._undoRequestTimer = setInterval(render, 250);
+            } else {
+                if (requesterName && requesterName.trim()) {
+                    this.renderUndoRequestText(textEl, requesterName);
+                } else {
+                    textEl.textContent = baseMessage;
+                }
+            }
+        }
         if (modal) {
             modal.style.display = 'flex';
         }
@@ -568,9 +659,55 @@ const OnlineUI = {
      * 隐藏悔棋请求弹窗
      */
     hideUndoRequestModal: function() {
+        if (this._undoRequestTimer) {
+            clearInterval(this._undoRequestTimer);
+            this._undoRequestTimer = null;
+        }
         const modal = document.getElementById('undoRequestModal');
+        const textEl = document.getElementById('undoRequestText');
         if (modal) {
             modal.style.display = 'none';
+        }
+        if (textEl) {
+            textEl.textContent = '对手请求悔棋，是否同意？';
+        }
+    },
+
+    showUndoPendingModal: function(timeoutMs) {
+        const modal = document.getElementById('undoPendingModal');
+        const textEl = document.getElementById('undoPendingText');
+        const totalMs = Number.isFinite(timeoutMs) ? timeoutMs : 10000;
+        const startAt = Date.now();
+
+        this.hideUndoPendingModal();
+        if (!modal || !textEl) {
+            this.showToast('正在看对方脸色中...');
+            return;
+        }
+
+        modal.style.display = 'flex';
+        const render = () => {
+            const elapsed = Date.now() - startAt;
+            const remainSec = Math.max(0, Math.ceil((totalMs - elapsed) / 1000));
+            const dots = '.'.repeat((Math.floor(elapsed / 500) % 3) + 1);
+            textEl.textContent = `正在看对方脸色中${dots}（${remainSec}）`;
+        };
+        render();
+        this._undoPendingTimer = setInterval(render, 250);
+    },
+
+    hideUndoPendingModal: function() {
+        if (this._undoPendingTimer) {
+            clearInterval(this._undoPendingTimer);
+            this._undoPendingTimer = null;
+        }
+        const modal = document.getElementById('undoPendingModal');
+        const textEl = document.getElementById('undoPendingText');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        if (textEl) {
+            textEl.textContent = '正在看对方脸色中...';
         }
     },
     
@@ -683,7 +820,7 @@ const OnlineUI = {
         // 更新对手昵称显示
         const opponentName = document.getElementById('onlineOpponentName');
         if (opponentName && OnlineGame.opponentNickname) {
-            opponentName.textContent = OnlineGame.opponentNickname;
+            this.renderPlayerIdLabel(opponentName, OnlineGame.opponentNickname, '');
         }
         
         // 更新我的颜色显示
@@ -727,6 +864,7 @@ const OnlineUI = {
         this.hideSideChoiceModal();
         this.hideGameOverModal();
         this.hideUndoRequestModal();
+        this.hideUndoPendingModal();
         this.hideSurrenderConfirm();
         this.hideDisconnectWarning();
         this.hideRematchRequestModal();
@@ -865,7 +1003,7 @@ const OnlineUI = {
             
             const name = document.createElement('div');
             name.className = 'lobby-room-name';
-            name.textContent = room.hostName + ' 的房间';
+            this.renderPlayerIdLabel(name, room.hostName || '游客0000', ' 的房间');
             
             const tags = document.createElement('div');
             tags.className = 'lobby-room-tags';

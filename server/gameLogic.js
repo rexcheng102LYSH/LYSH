@@ -22,6 +22,7 @@ const config = require('./config');
  *   bombs: BombState[],
  *   zones: ZoneState[],
  *   voodoo: VoodooState[],
+ *   historyStack?: BoardStateSnapshot[],
  *   playerSkills?: Record<PlayerColor, string | null>,
  *   chaosDebuff?: Record<PlayerColor, number>,
  *   shortBattleTurns?: number,
@@ -31,7 +32,9 @@ const config = require('./config');
  *   timeRemaining?: Record<PlayerColor, number>,
  *   turnStartedAt?: number,
  *   lastMoveTime?: number,
- *   activeEffect?: string | null
+ *   activeEffect?: string | null,
+ *   effectData?: Record<string, unknown>,
+ *   undoPending?: PlayerColor | null
  * }} RoomGameState
  * @typedef {{
  *   players: {
@@ -44,7 +47,7 @@ const config = require('./config');
  * @typedef {RoomState & { game: RoomGameState }} RoomWithGame
  * @typedef {{ valid: boolean, reason?: string, resolvedRow?: number, resolvedCol?: number, chaosApplied?: boolean }} ValidationResult
  * @typedef {{ winner: PlayerColor, winLine: BoardPos[] }} WinResult
- * @typedef {{ success: true, undoneMove: MoveRecord, currentTurn: PlayerColor } | { success: false, reason: string }} UndoResult
+ * @typedef {{ success: true, undoneMove?: MoveRecord, currentTurn: PlayerColor, boardState?: BoardStateSnapshot } | { success: false, reason: string }} UndoResult
  * @typedef {{
  *   board: number[][],
  *   currentTurn: PlayerColor,
@@ -61,7 +64,11 @@ const config = require('./config');
  *   isDoubleMoveActive: boolean,
  *   bombTarget: PlayerColor | null,
  *   timeRemaining: Record<PlayerColor, number>,
- *   turnStartedAt: number
+ *   turnStartedAt: number,
+ *   lastMoveTime?: number,
+ *   activeEffect?: string | null,
+ *   effectData?: Record<string, unknown>,
+ *   undoPending?: PlayerColor | null
  * }} BoardStateSnapshot
  */
 
@@ -281,12 +288,111 @@ function consumeChaosDebuff(room) {
 }
 
 /**
+ * Create a rollback snapshot of full authoritative game state.
+ * @param {RoomGameState} game
+ * @returns {BoardStateSnapshot}
+ */
+function cloneBoardStateSnapshot(game) {
+    return {
+        board: Array.isArray(game.board)
+            ? game.board.map((row) => Array.isArray(row) ? [...row] : [])
+            : [],
+        currentTurn: game.currentTurn,
+        moveHistory: Array.isArray(game.moveHistory)
+            ? game.moveHistory.map((m) => ({ ...m }))
+            : [],
+        skillUsed: { ...(game.skillUsed || { black: false, white: false }) },
+        undoUsed: { ...(game.undoUsed || { black: false, white: false }) },
+        bombs: Array.isArray(game.bombs) ? game.bombs.map((b) => ({ ...b })) : [],
+        zones: Array.isArray(game.zones) ? game.zones.map((z) => ({ ...z })) : [],
+        voodoo: Array.isArray(game.voodoo) ? game.voodoo.map((v) => ({ ...v })) : [],
+        playerSkills: { ...(game.playerSkills || { black: null, white: null }) },
+        chaosDebuff: { ...(game.chaosDebuff || { black: 0, white: 0 }) },
+        shortBattleTurns: Number(game.shortBattleTurns || 0),
+        territoryZones: Array.isArray(game.territoryZones)
+            ? game.territoryZones.map((z) => ({ ...z }))
+            : [],
+        isDoubleMoveActive: !!game.isDoubleMoveActive,
+        bombTarget: game.bombTarget || null,
+        timeRemaining: { ...(game.timeRemaining || { black: 240, white: 240 }) },
+        turnStartedAt: Number.isFinite(game.turnStartedAt) ? game.turnStartedAt : Date.now(),
+        lastMoveTime: Number.isFinite(game.lastMoveTime) ? game.lastMoveTime : Date.now(),
+        activeEffect: game.activeEffect || null,
+        effectData: game.effectData && typeof game.effectData === 'object'
+            ? { ...game.effectData }
+            : {},
+        undoPending: game.undoPending || null
+    };
+}
+
+/**
+ * Push one snapshot before mutating state (move / skill).
+ * @param {RoomWithGame} room
+ */
+function pushHistorySnapshot(room) {
+    const game = room.game;
+    if (!Array.isArray(game.historyStack)) {
+        game.historyStack = [];
+    }
+    game.historyStack.push(cloneBoardStateSnapshot(game));
+    if (game.historyStack.length > 120) {
+        game.historyStack.shift();
+    }
+}
+
+/**
+ * Restore authoritative state from a rollback snapshot.
+ * @param {RoomGameState} game
+ * @param {BoardStateSnapshot} snapshot
+ */
+function restoreBoardStateSnapshot(game, snapshot) {
+    game.board = Array.isArray(snapshot.board)
+        ? snapshot.board.map((row) => Array.isArray(row) ? [...row] : [])
+        : game.board;
+    game.currentTurn = snapshot.currentTurn || game.currentTurn;
+    game.moveHistory = Array.isArray(snapshot.moveHistory)
+        ? snapshot.moveHistory.map((m) => ({ ...m }))
+        : [];
+    game.skillUsed = { ...(snapshot.skillUsed || { black: false, white: false }) };
+    game.undoUsed = { ...(snapshot.undoUsed || { black: false, white: false }) };
+    game.bombs = Array.isArray(snapshot.bombs) ? snapshot.bombs.map((b) => ({ ...b })) : [];
+    game.zones = Array.isArray(snapshot.zones) ? snapshot.zones.map((z) => ({ ...z })) : [];
+    game.voodoo = Array.isArray(snapshot.voodoo) ? snapshot.voodoo.map((v) => ({ ...v })) : [];
+    game.playerSkills = { ...(snapshot.playerSkills || { black: null, white: null }) };
+    game.chaosDebuff = { ...(snapshot.chaosDebuff || { black: 0, white: 0 }) };
+    game.shortBattleTurns = Number(snapshot.shortBattleTurns || 0);
+    game.territoryZones = Array.isArray(snapshot.territoryZones)
+        ? snapshot.territoryZones.map((z) => ({ ...z }))
+        : [];
+    game.isDoubleMoveActive = !!snapshot.isDoubleMoveActive;
+    game.bombTarget = snapshot.bombTarget || null;
+    game.timeRemaining = { ...(snapshot.timeRemaining || { black: 240, white: 240 }) };
+    game.turnStartedAt = Date.now();
+    game.lastMoveTime = Number.isFinite(snapshot.lastMoveTime) ? snapshot.lastMoveTime : Date.now();
+    game.activeEffect = snapshot.activeEffect || null;
+    game.effectData = snapshot.effectData && typeof snapshot.effectData === 'object'
+        ? { ...snapshot.effectData }
+        : {};
+    game.undoPending = snapshot.undoPending || null;
+}
+
+/**
  * Undo one move.
  * @param {RoomWithGame} room
  * @returns {UndoResult}
  */
 function executeUndo(room) {
     const game = room.game;
+
+    if (Array.isArray(game.historyStack) && game.historyStack.length > 0) {
+        const snapshot = game.historyStack.pop();
+        restoreBoardStateSnapshot(game, snapshot);
+        return {
+            success: true,
+            currentTurn: game.currentTurn,
+            boardState: getBoardState(room)
+        };
+    }
 
     if (game.moveHistory.length === 0) {
         return { success: false, reason: 'no_moves' };
@@ -300,7 +406,8 @@ function executeUndo(room) {
     return {
         success: true,
         undoneMove: lastMove,
-        currentTurn: game.currentTurn
+        currentTurn: game.currentTurn,
+        boardState: getBoardState(room)
     };
 }
 
@@ -332,7 +439,13 @@ function getBoardState(room) {
         timeRemaining: {
             ...(game.timeRemaining || { black: 240, white: 240 })
         },
-        turnStartedAt: game.turnStartedAt || Date.now()
+        turnStartedAt: game.turnStartedAt || Date.now(),
+        lastMoveTime: game.lastMoveTime || Date.now(),
+        activeEffect: game.activeEffect || null,
+        effectData: game.effectData && typeof game.effectData === 'object'
+            ? { ...game.effectData }
+            : {},
+        undoPending: game.undoPending || null
     };
 }
 
@@ -342,6 +455,7 @@ module.exports = {
     checkWin,
     switchTurn,
     consumeChaosDebuff,
+    pushHistorySnapshot,
     executeUndo,
     getBoardState,
     isZoneRestricted
